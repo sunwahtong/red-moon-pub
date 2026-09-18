@@ -1,6 +1,6 @@
 if(location.protocol==='file:'){ location.replace('http://localhost:8787/staff'); }
 const $=s=>document.querySelector(s);
-let me=null,products=[],currentShift=null,latestSale=null, presenceTimer=null, heartbeatTimer=null;
+let me=null,products=[],currentShift=null,latestSale=null, presenceTimer=null, heartbeatTimer=null, realtimeSource=null, realtimeRefreshTimer=null;
 const money=n=>new Intl.NumberFormat('hu-HU').format(Number(n)||0)+' Ft';
 const SOUND_BASE='/assets/sounds/';
 const soundCache={};
@@ -108,6 +108,35 @@ document.querySelectorAll('[data-modal-close]').forEach(el=>el.addEventListener(
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#actionModal')?.classList.contains('show'))closeActionModal(null)});
 
 
+function showToast(title,message,kind='success'){
+  const modal=$('#toastModal'), icon=$('#toastModal .toast-icon'), titleEl=$('#toastTitle'), textEl=$('#toastText');
+  if(!modal||!titleEl||!textEl)return;
+  titleEl.textContent=title; textEl.textContent=message;
+  if(icon){icon.textContent=kind==='error'?'!':'✓'; icon.classList.toggle('toast-error',kind==='error');}
+  modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+  clearTimeout(window._toastTimer); window._toastTimer=setTimeout(()=>{modal.classList.remove('show');modal.setAttribute('aria-hidden','true')},3200);
+}
+document.querySelectorAll('[data-toast-close]').forEach(el=>el.addEventListener('click',()=>$('#toastModal')?.classList.remove('show')));
+
+function connectRealtime(){
+  if(!me || !window.EventSource)return;
+  try{realtimeSource?.close()}catch{}
+  realtimeSource=new EventSource('/api/events');
+  realtimeSource.onmessage=ev=>{
+    try{
+      const data=JSON.parse(ev.data||'{}');
+      if(data.type==='presence'){loadPresence();return}
+      if(data.type==='state'||data.type==='connected'){
+        clearTimeout(realtimeRefreshTimer);
+        realtimeRefreshTimer=setTimeout(()=>{if(me)load().catch(()=>{})},140);
+      }
+    }catch{}
+  };
+  realtimeSource.onerror=()=>{
+    // EventSource automatically reconnects. Polling is kept as a safety net.
+  };
+}
+
 async function api(url,opt={}){
   try{
     const r=await fetch(url,{credentials:'same-origin',headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt});
@@ -132,7 +161,8 @@ function showApp(){
   clearInterval(heartbeatTimer); clearInterval(presenceTimer);
   sendPresenceHeartbeat();
   heartbeatTimer=setInterval(sendPresenceHeartbeat,20000);
-  presenceTimer=setInterval(loadPresence,10000);
+  presenceTimer=setInterval(loadPresence,15000);
+  connectRealtime();
   load();
 }
 async function sendPresenceHeartbeat(){
@@ -288,7 +318,7 @@ function printCurrentDoc(){if(!window._printHtml)return;const w=window.open('','
 
 function renderManager(){
   $('#managerInventory').innerHTML=products.filter(p=>p.active).map(p=>`<div class="manager-row"><div class="manager-product"><img class="stock-thumb manager-thumb" src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><div><b>${esc(p.name)}</b><div class="role">ITAL · ${money(p.price)}</div></div></div><span>${p.stock} db</span><input data-stock="${p.id}" type="number" min="0" value="${p.stock}" style="width:80px;background:#090506;border:1px solid #3a171f;color:white;padding:7px"><button data-save="${p.id}">MENTÉS</button></div>`).join('');
-  document.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.save;const inp=document.querySelector(`[data-stock="${id}"]`);try{const newStock=Number(inp.value);await api('/api/inventory/adjust',{method:'POST',body:JSON.stringify({productId:id,stock:newStock})});if(newStock===0)playSfx('error',0.75);else if(newStock<=products.find(p=>p.id===id)?.minStock)playSfx('low_stock',0.7);await load()}catch(e){await rmAlert(e.message,'Művelet sikertelen')}})
+  document.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.save;const inp=document.querySelector(`[data-stock="${id}"]`);try{const newStock=Number(inp.value);const saved=await api('/api/inventory/adjust',{method:'POST',body:JSON.stringify({productId:id,stock:newStock})});if(newStock===0)playSfx('error',0.75);else if(newStock<=products.find(p=>p.id===id)?.minStock)playSfx('low_stock',0.7);else playSfx('success',0.5);showToast('Raktár frissítve',`${saved.product.name}: ${newStock} db sikeresen feltöltve.`,'success');await load()}catch(e){await rmAlert(e.message,'Művelet sikertelen')}})
 }
 async function loadUsers(){
   const d=await api('/api/users');
@@ -342,7 +372,15 @@ async function loadPerformance(){
   }catch(e){$('#performance').innerHTML='<div class="mini-note danger">Owner statisztika nem tölthető be.</div>'}
 }
 
-$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();$('#loginError').textContent='';try{const d=await api('/api/login',{method:'POST',body:JSON.stringify({username:$('#username').value,password:$('#password').value})});me=d.user;showApp()}catch(err){$('#loginError').textContent=err.message}});
+$('#loginForm').addEventListener('submit',async e=>{
+  e.preventDefault(); $('#loginError').textContent='';
+  try{
+    const d=await api('/api/login',{method:'POST',body:JSON.stringify({username:$('#username').value,password:$('#password').value})});
+    me=d.user; playSfx('success',0.58); showApp(); showToast('Sikeres bejelentkezés',`Üdv a Command Centerben, ${me.name}.`,'success');
+  }catch(err){
+    playSfx('error',0.82); $('#loginError').textContent=err.message; showToast('Sikertelen bejelentkezés','Hibás felhasználónév vagy jelszó.','error');
+  }
+});
 $('#logoutBtn').addEventListener('click',async()=>{await api('/api/logout',{method:'POST'});location.reload()});
 $('#saleProduct').addEventListener('change',updateSalePreview);$('#saleQty').addEventListener('input',updateSalePreview);
 $('#qtyMinus').onclick=()=>{$('#saleQty').value=Math.max(1,Number($('#saleQty').value)-1);updateSalePreview()};
@@ -366,7 +404,7 @@ $('#saleForm').addEventListener('submit',async e=>{
     $('#saleQty').value=1;await load();
   }catch(err){playSfx('error',0.8);msg.style.color='#ff657a';msg.textContent=err.message}
 });
-$('#productForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/products',{method:'POST',body:JSON.stringify({name:$('#pName').value,category:$('#pCategory').value,price:Number($('#pPrice').value),stock:Number($('#pStock').value),minStock:Number($('#pMin').value)})});e.target.reset();await load();await rmAlert('A termék hozzáadva.','Termék létrehozva')}catch(err){await rmAlert(err.message,'Termék létrehozása sikertelen')}});
+$('#productForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/products',{method:'POST',body:JSON.stringify({name:$('#pName').value,category:$('#pCategory').value,price:Number($('#pPrice').value),stock:Number($('#pStock').value),minStock:Number($('#pMin').value)})});e.target.reset();await load();playSfx('success',0.5);showToast('Raktár frissítve','Az új termék sikeresen hozzáadva.','success')}catch(err){await rmAlert(err.message,'Termék létrehozása sikertelen')}});
 $('#userForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/users',{method:'POST',body:JSON.stringify({name:$('#uName').value,username:$('#uUsername').value,password:$('#uPassword').value,role:$('#uRole').value})});e.target.reset();await loadUsers();await rmAlert('A felhasználó létrehozva.','Fiók létrehozva')}catch(err){await rmAlert(err.message,'Fiók létrehozása sikertelen')}});
 boot().catch(e=>{console.error(e);showLogin();if($('#loginError'))$('#loginError').textContent=e.message});
 

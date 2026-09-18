@@ -13,6 +13,15 @@
   if (!Number.isFinite(volume)) volume = 45;
   volume = Math.max(0, Math.min(100, volume));
   audio.volume = volume / 100;
+
+  // Tiny tactile UI click used by the public navigation and primary controls.
+  const uiClick = new Audio('assets/sounds/ui_click.wav');
+  uiClick.preload = 'auto';
+  uiClick.volume = 0.32;
+  const playUiClick = () => {
+    try { uiClick.currentTime = 0; const p = uiClick.play(); if (p?.catch) p.catch(()=>{}); } catch {}
+  };
+
   let soundOn = localStorage.getItem(STORAGE.sound) === 'on';
   let restoredTime = false;
   const savedTime = Number.parseFloat(localStorage.getItem(STORAGE.time) || '0');
@@ -154,6 +163,11 @@
       setTimeout(() => { transition.classList.remove('leaving'); transition.classList.add('ready'); paintSound(); }, 80);
     } catch { location.href = url.href; }
   }
+  document.addEventListener('click', e => {
+    const menuItem = e.target.closest?.('.nav nav a, .hamb, .loader-enter, .rm17-btn, .btn-red');
+    if(menuItem) playUiClick();
+  });
+
   document.addEventListener('click', e => {
     const link = e.target.closest?.('a[href]'); if (!link) return;
     const href = link.getAttribute('href') || '';

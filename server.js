@@ -9,6 +9,7 @@ const PUBLIC = path.join(ROOT, 'public');
 const DB_FILE = path.join(ROOT, 'data', 'seed.json');
 const PORT = Number(process.env.PORT || 8787);
 const sessions = new Map();
+const realtimeClients = new Set();
 
 // Online storage: when DATABASE_URL is present (Render), all staff data lives in PostgreSQL.
 // Local development keeps the original db.json fallback so the project still works offline.
@@ -64,16 +65,24 @@ async function migrateDrinkCatalog(){
   }else db.products=current;
   if(pool) await writeDB(db);
 }
+function broadcastRealtime(type='state', payload={}){
+  const message=`data: ${JSON.stringify({type,...payload,at:new Date().toISOString()})}\n\n`;
+  for(const client of [...realtimeClients]){
+    try{client.res.write(message)}catch{realtimeClients.delete(client)}
+  }
+}
 function writeDB(next){
   if(!pool){
     const tmp=DB_FILE+'.tmp';
     fs.writeFileSync(tmp, JSON.stringify(next,null,2));
     fs.renameSync(tmp,DB_FILE);
+    broadcastRealtime('state');
     return Promise.resolve();
   }
   // Serialize writes so two quick POS actions cannot overwrite one another.
   writeQueue = writeQueue.then(async()=>{
     await pool.query('UPDATE red_moon_state SET data=$1::jsonb, updated_at=NOW() WHERE id=1', [JSON.stringify(next)]);
+    broadcastRealtime('state');
   });
   return writeQueue;
 }
@@ -129,7 +138,7 @@ async function api(req,res,url){
   for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; }
   try{
     if(req.method==='GET' && url==='/api/health'){
-      return json(res,200,{ok:true,service:'red-moon-staff',version:'18.5-online',time:new Date().toISOString()});
+      return json(res,200,{ok:true,service:'red-moon-staff',version:'19.0-realtime-neon',time:new Date().toISOString()});
     }
 
     if(req.method==='POST' && url==='/api/login'){
@@ -154,11 +163,29 @@ async function api(req,res,url){
       const u=sessionUser(req); return json(res,200,{user:u||null});
     }
 
+    // ---------- REALTIME STAFF CHANNEL ----------
+    if(req.method==='GET' && url==='/api/events'){
+      const u=auth(req,res); if(!u)return;
+      res.writeHead(200,{
+        'Content-Type':'text/event-stream; charset=utf-8',
+        'Cache-Control':'no-cache, no-store, must-revalidate',
+        'Connection':'keep-alive',
+        'X-Accel-Buffering':'no'
+      });
+      res.write(`data: ${JSON.stringify({type:'connected',at:new Date().toISOString()})}\n\n`);
+      const client={res,userId:u.id};
+      realtimeClients.add(client);
+      const keepAlive=setInterval(()=>{try{res.write(': keepalive\\n\\n')}catch{}},20000);
+      req.on('close',()=>{clearInterval(keepAlive);realtimeClients.delete(client);try{res.end()}catch{}});
+      return;
+    }
+
     if(req.method==='POST' && url==='/api/presence/heartbeat'){
       const u=auth(req,res); if(!u)return;
       const sid=parseCookies(req).rm_session;
       const session=sid&&sessions.get(sid);
       if(session) session.lastSeen=Date.now();
+      broadcastRealtime('presence');
       return json(res,200,{ok:true,at:new Date().toISOString()});
     }
 

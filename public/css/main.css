@@ -152,3 +152,22 @@ html.rm-index-lock,html.rm-index-lock body{overflow:hidden}
 .nav nav a{white-space:nowrap}
 @media(max-width:920px){.sound{min-width:48px}.sound span:last-child{display:none}.volume-panel{right:-4px}}
 @media(max-width:760px){.nav{height:74px}.nav .sound-wrap{margin-left:auto;margin-right:8px}.nav nav.open{z-index:95}.nav nav a{font-size:12px;padding:2px 0}}
+
+
+/* V19 / RED MOON NEON ATMOSPHERE */
+.rm-loader .loader-fog{overflow:visible;opacity:.58!important;filter:blur(30px) saturate(1.15)!important;mix-blend-mode:screen}
+.rm-loader .loader-fog:before,
+.rm-loader .loader-fog:after{content:"";position:absolute;inset:auto;width:62vw;height:22vh;border-radius:50%;background:radial-gradient(ellipse,rgba(236,31,62,.20) 0%,rgba(164,12,38,.10) 38%,transparent 72%);filter:blur(34px);opacity:.8;animation:rmSmokeOne 16s ease-in-out infinite alternate}
+.rm-loader .fog-a:before{left:-10vw;top:52%;transform:rotate(-7deg)}
+.rm-loader .fog-a:after{right:-12vw;top:66%;width:54vw;height:18vh;animation-duration:21s;animation-delay:-6s}
+.rm-loader .fog-b:before{left:18vw;top:38%;width:46vw;height:15vh;opacity:.55;animation-duration:19s;animation-delay:-9s}
+.rm-loader .fog-b:after{right:4vw;top:22%;width:38vw;height:13vh;opacity:.42;animation-duration:24s;animation-delay:-3s}
+@keyframes rmSmokeOne{0%{transform:translate3d(-7vw,8px,0) scale(.92) rotate(-6deg);opacity:.18}50%{opacity:.55}100%{transform:translate3d(9vw,-16px,0) scale(1.16) rotate(5deg);opacity:.28}}
+.nav nav a{position:relative;text-shadow:0 0 0 transparent;transition:color .3s,text-shadow .3s}
+.nav nav a:after{content:"";position:absolute;left:0;right:0;bottom:-9px;height:1px;background:linear-gradient(90deg,transparent,#e51b3d,transparent);transform:scaleX(0);transform-origin:center;transition:transform .35s;box-shadow:0 0 12px rgba(229,27,61,.65)}
+.nav nav a:hover,.nav nav a.active{color:#fff;text-shadow:0 0 16px rgba(229,27,61,.28)}
+.nav nav a:hover:after,.nav nav a.active:after{transform:scaleX(1)}
+.rm17-btn{box-shadow:0 0 0 rgba(213,31,60,0);transition:transform .35s,box-shadow .35s,border-color .35s,background .35s}
+.rm17-btn:hover{box-shadow:0 0 28px rgba(213,31,60,.13),inset 0 0 20px rgba(213,31,60,.05)}
+.section-kicker,.rm17-kicker,.rm17-label{ text-shadow:0 0 14px rgba(225,29,63,.18)}
+@media(max-width:700px){.rm-loader .loader-fog:before,.rm-loader .loader-fog:after{width:100vw;height:18vh}.rm-loader .fog-a:before{left:-35vw}.rm-loader .fog-a:after{right:-25vw}.rm-loader .fog-b:before{left:-10vw}.rm-loader .fog-b:after{right:-10vw}}
