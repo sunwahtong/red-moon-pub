@@ -94,11 +94,13 @@ function submitActionModal(){
   const body=$('#actionModalBody');
   const vals={};
   body.querySelectorAll('input,textarea,select').forEach(el=>{
-    const key=el.id.replace(/^modal_/,'');
-    if(el.type==='checkbox' && el.name===`modal_${key}`){
+    const key=el.type==='checkbox'
+      ? String(el.name||'').replace(/^modal_/,'')
+      : String(el.id||'').replace(/^modal_/,'');
+    if(el.type==='checkbox' && key){
       if(!Array.isArray(vals[key]))vals[key]=[];
       if(el.checked)vals[key].push(el.value);
-    }else if(el.type!=='checkbox'){vals[key]=el.value}
+    }else if(el.type!=='checkbox' && key){vals[key]=el.value}
   });
   closeActionModal(vals);
 }
