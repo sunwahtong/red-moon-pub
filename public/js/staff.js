@@ -216,9 +216,9 @@ function renderSales(sales){
   window._lastSales=sales;
   const canDelete=me && (me.role==='manager'||me.role==='owner');
   $('#salesTable').innerHTML=sales.length?sales.slice(0,20).map(s=>`<tr>
-    <td>${new Date(s.at).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</td>
-    <td>${esc(s.user)}</td><td><span class="cart-id">${esc(s.cartId||s.transactionId||'—')}</span></td><td>${esc(s.product)}</td><td>${s.qty}</td><td>${money(s.total)}</td>
-    <td class="sales-actions">
+    <td data-label="Idő">${new Date(s.at).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</td>
+    <td data-label="Dolgozó">${esc(s.user)}</td><td data-label="Kosár ID"><span class="cart-id">${esc(s.cartId||s.transactionId||'—')}</span></td><td data-label="Termék" class="sale-product-cell">${esc(s.product)}</td><td data-label="Db">${s.qty}</td><td data-label="Összeg">${money(s.total)}</td>
+    <td data-label="Kezelés" class="sales-actions">
       ${s.documentId
         ? `<button class="table-action" onclick="loadDocumentById('${esc(s.documentId)}')">MEGNYITÁS</button>`
         : `<button class="table-action" onclick="createDocument('${esc(s.id)}','invoice')">SZÁMLÁZÁS</button>`}

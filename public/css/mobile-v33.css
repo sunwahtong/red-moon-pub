@@ -1,0 +1,127 @@
+/* V33 — full-site mobile system. Every public, Club, DJ and Staff control remains usable without horizontal scrolling. */
+html,body{max-width:100%;overflow-x:hidden}
+img,video,canvas,iframe{max-width:100%}
+button,input,select,textarea{font:inherit;max-width:100%}
+button,.btn,.icon-btn,a{touch-action:manipulation}
+
+/* Header */
+@media(max-width:900px){
+  .nav{height:70px!important;min-height:70px;padding:0 16px!important}
+  .nav .brand{font-size:13px!important;letter-spacing:1.8px;min-width:0!important}
+  .nav .brand-mark{width:32px;height:32px;font-size:16px!important;flex:0 0 auto}
+  .nav .hamb{display:block!important;min-width:44px;min-height:44px;padding:8px}
+  .nav nav{top:70px!important;z-index:2000;width:100%;padding:12px 16px 18px!important;gap:4px!important}
+  .nav nav a{display:flex;align-items:center;min-height:44px;width:100%;padding:10px 4px!important;font-size:10px!important}
+  .sound-wrap{width:100%;justify-content:flex-end}
+  .volume-panel{max-width:calc(100vw - 32px)!important}
+}
+
+/* Public pages */
+@media(max-width:700px){
+  main{width:100%;min-width:0}
+  .hero,.rm17-hero,.rm17-page-hero{min-height:78svh!important;padding-top:105px!important}
+  .hero-content,.rm17-hero-content{width:min(100%,92vw);margin-inline:auto}
+  .hero h1,.rm17-page-hero h1{font-size:clamp(48px,17vw,82px)!important;letter-spacing:-2px!important}
+  .hero-copy,.rm17-lead{font-size:13px!important;line-height:1.75!important}
+  .hero-actions,.rm17-actions{display:grid!important;grid-template-columns:1fr;gap:9px;width:100%}
+  .hero-actions .btn,.rm17-actions .rm17-btn{width:100%;min-height:48px}
+  .section,.rm17-section{padding-top:72px!important;padding-bottom:72px!important}
+  .section h2,.rm17-section h2{font-size:clamp(36px,12vw,58px)!important}
+  .lead{font-size:15px!important;line-height:1.75!important}
+  .rm17-grid,.rm17-owners,.rm17-journal,.rm17-stats{grid-template-columns:1fr!important}
+  .rm17-story{grid-template-columns:1fr!important}
+  .rm17-story-art{min-height:240px}
+  .rm17-shot{min-height:220px}
+  .rm17-footer{padding:40px 5vw 28px!important}
+  .marquee div{font-size:9px!important;letter-spacing:2px!important}
+}
+
+/* Menu */
+@media(max-width:700px){
+  .menu-premium-hero{padding:105px 5vw 55px!important;min-height:auto!important}
+  .menu-premium-hero h1{font-size:clamp(44px,15vw,74px)!important}
+  .featured-grid,.drink-grid{grid-template-columns:1fr!important}
+  .drink-card,.drink-card.featured{min-width:0}
+  .drink-info{min-width:0}
+  .drink-art{min-height:210px}
+}
+
+/* Location */
+@media(max-width:700px){
+  .location-main{padding:100px 14px 30px!important}
+  .location-intro h1{font-size:clamp(42px,14vw,72px)!important}
+  .location-status{min-width:0;width:100%}
+  .map-header,.map-footer{font-size:8px}
+  .map-wrap{min-height:0}
+  .map-wrap img{width:100%;height:auto}
+}
+
+/* Club */
+@media(max-width:800px){
+  .club-shell{width:min(94vw,620px);padding:88px 0 40px}
+  .club-hero{padding:24px 0 28px}
+  .club-hero h1{font-size:clamp(40px,14vw,68px);line-height:1}
+  .club-grid{grid-template-columns:1fr!important}
+  .club-player,.club-chat,.club-side{min-width:0}
+  .club-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:8px}
+  .club-action,.club-action button{min-height:44px;width:100%}
+  .request-row,.chat-row,.name-form{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}
+  .request-row button,.chat-row button,.name-form button{width:100%;min-height:44px}
+  .chat-list,.request-list{max-height:430px}
+  .stage-listen{width:100%;min-width:0!important;min-height:48px}
+  .gocast-callout{padding:13px}
+}
+
+/* DJ */
+@media(max-width:800px){
+  .dj-shell{width:min(94vw,620px);padding:88px 0 40px}
+  .dj-top{gap:12px}
+  .dj-top h1{font-size:clamp(38px,13vw,60px)!important}
+  .dj-grid,.dj-grid.lower{grid-template-columns:1fr!important}
+  .dj-panel,.dj-live-card{min-width:0}
+  .dj-buttons{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important}
+  .dj-buttons .btn{width:100%;min-height:44px}
+  .dj-buttons .wide{grid-column:1/-1}
+  .queue-form,.chat-row,.name-form,.mod-row{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}
+  .queue-form button,.chat-row button,.name-form button,.mod-row button{width:100%;min-height:44px}
+  .request-item,.dj-chat-msg{min-width:0}
+  .request-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:7px}
+  .request-actions button{min-height:42px}
+  .dj-feature-grid{grid-template-columns:1fr!important}
+  .station-card{align-items:stretch}
+  .station-card>a{width:100%;margin-left:0}
+  .station-card>a .btn{width:100%;min-height:44px}
+}
+
+/* Staff — inputs and command center */
+@media(max-width:900px){
+  .staff-shell{width:100%;padding:96px 14px 42px!important}
+  .staff-head h1{font-size:clamp(36px,12vw,60px)!important}
+  .staff-head{gap:12px}
+  .stat-grid{grid-template-columns:1fr 1fr!important}
+  .staff-grid,.staff-grid.lower{grid-template-columns:1fr!important}
+  .panel,.glass-form{padding:17px!important;border-radius:12px}
+  .panel-head h2{font-size:20px}
+  .field input,.field select,.mini-form input,.mini-form select{min-height:44px;font-size:14px}
+  .btn{min-height:46px!important}
+  .qty-row{grid-template-columns:46px 1fr 46px}
+  .qty-row button,.qty-row input{height:46px}
+  .inventory{max-height:none}
+  .stock-row{grid-template-columns:minmax(0,1fr) auto auto;gap:9px}
+  .stock-row b{font-size:12px}
+  .stock-row small{font-size:9px}
+  .mini-form,.owner-panel .mini-form{grid-template-columns:1fr!important}
+  .manager-row,.user-row{grid-template-columns:1fr!important;gap:9px}
+  .manager-row button,.user-row button{min-height:40px}
+}
+@media(max-width:480px){
+  .stat-grid{grid-template-columns:1fr!important}
+  .staff-shell{padding-inline:10px!important}
+  .panel,.glass-form{padding:14px!important}
+  .panel-head{margin-bottom:13px}
+  .panel-head h2{font-size:18px}
+  .sale-preview div{padding:11px}
+  .sale-preview b{font-size:14px}
+  .total-line strong{font-size:21px}
+  .staff-login-art h1{font-size:clamp(42px,14vw,70px)}
+}

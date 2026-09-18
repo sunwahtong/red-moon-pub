@@ -98,3 +98,38 @@ linear-gradient(145deg,#040304 0%,#090507 48%,#050304 100%);}
 }
 
 table{table-layout:fixed;min-width:920px}th,td{white-space:nowrap;vertical-align:middle}th:nth-child(1),td:nth-child(1){width:7%}th:nth-child(2),td:nth-child(2){width:13%}th:nth-child(3),td:nth-child(3){width:13%}th:nth-child(4),td:nth-child(4){width:25%;white-space:normal}th:nth-child(5),td:nth-child(5){width:6%}th:nth-child(6),td:nth-child(6){width:10%}th:nth-child(7),td:nth-child(7){width:26%}.sales-actions{white-space:nowrap}.cart-id{font-size:10px;padding:4px 7px;letter-spacing:.02em}
+
+/* V33 — readable sales log + no horizontal scroller */
+.sales-log-panel{min-width:0}
+.sales-log-panel .table-wrap{overflow:visible}
+.sales-log-panel table{table-layout:fixed;width:100%;font-size:11px}
+.sales-log-panel th{font-size:8px;letter-spacing:1.7px;padding:10px 8px;white-space:nowrap}
+.sales-log-panel td{font-size:11px;padding:11px 8px;vertical-align:middle}
+.sales-log-panel th:nth-child(1),.sales-log-panel td:nth-child(1){width:8%}
+.sales-log-panel th:nth-child(2),.sales-log-panel td:nth-child(2){width:14%}
+.sales-log-panel th:nth-child(3),.sales-log-panel td:nth-child(3){width:13%}
+.sales-log-panel th:nth-child(4),.sales-log-panel td:nth-child(4){width:23%}
+.sales-log-panel th:nth-child(5),.sales-log-panel td:nth-child(5){width:6%}
+.sales-log-panel th:nth-child(6),.sales-log-panel td:nth-child(6){width:11%}
+.sales-log-panel th:nth-child(7),.sales-log-panel td:nth-child(7){width:25%}
+.sale-product-cell{color:#eee!important;font-weight:600}
+.cart-id{display:inline-flex;align-items:center;max-width:100%;padding:5px 8px;border:1px solid rgba(225,29,63,.42);border-radius:7px;background:rgba(225,29,63,.08);color:#ff7a8d;font:700 9px/1 Noto Sans;letter-spacing:.8px;white-space:nowrap}
+.sales-actions{white-space:nowrap;display:flex;justify-content:flex-end;align-items:center;gap:5px}
+.sales-actions .table-action{font-size:8px;padding:7px 8px}
+.staff-grid.lower{grid-template-columns:minmax(0,1.72fr) minmax(260px,.68fr)}
+
+@media(max-width:900px){
+  .sales-log-panel .table-wrap{overflow:visible}
+  .sales-log-panel table,.sales-log-panel tbody,.sales-log-panel tr,.sales-log-panel td{display:block;width:100%}
+  .sales-log-panel thead{display:none}
+  .sales-log-panel tbody{display:grid;gap:10px}
+  .sales-log-panel tr{padding:12px;border:1px solid #2a141a;border-radius:10px;background:#090607;box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
+  .sales-log-panel td{display:grid;grid-template-columns:76px minmax(0,1fr);gap:10px;align-items:center;padding:7px 0;border:0;font-size:12px;min-width:0}
+  .sales-log-panel td:before{content:attr(data-label);font:700 8px Noto Sans;letter-spacing:1.5px;color:#846f74;text-transform:uppercase}
+  .sales-log-panel td[data-label="Termék"]{font-size:13px;color:#f2e7ea!important}
+  .sales-log-panel td[data-label="Kezelés"]{display:block;padding-top:10px;margin-top:4px;border-top:1px solid #211116}
+  .sales-log-panel td[data-label="Kezelés"]:before{display:block;margin-bottom:8px}
+  .sales-actions{justify-content:flex-start;white-space:normal;flex-wrap:wrap}
+  .sales-actions .table-action{min-height:40px;padding:9px 12px;font-size:9px}
+  .cart-id{font-size:10px;padding:6px 9px}
+}
