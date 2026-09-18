@@ -91,7 +91,7 @@ function renderProducts(){
   const active=products.filter(p=>p.active);
   $('#saleProduct').innerHTML=active.map(p=>`<option value="${p.id}">${esc(p.name)} · ${money(p.price)}</option>`).join('');
   updateSalePreview();
-  $('#inventory').innerHTML=active.map(p=>`<div class="stock-row ${p.stock<=p.minStock?'low':''}"><div><b>${esc(p.name)}</b><small>${p.category==='drink'?'ITAL':'ÉTEL'} · minimum ${p.minStock} db</small></div><span class="stock-num">${p.stock} db</span><span>${p.stock<=p.minStock?'⚠':''}</span></div>`).join('')
+  $('#inventory').innerHTML=active.map(p=>`<div class="stock-row ${p.stock<=p.minStock?'low':''}"><div class="stock-product"><img class="stock-thumb" src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><div><b>${esc(p.name)}</b><small>${p.name==='Sörnyitó'?'BAR KELLÉK':'ITAL'} · minimum ${p.minStock} db</small></div></div><span class="stock-num">${p.stock} db</span><span>${p.stock<=p.minStock?'⚠':''}</span></div>`).join('')
 }
 function renderDashboard(d){
   $('#statRevenue').textContent=money(d.today.revenue);$('#statItems').textContent=d.today.items+' db';$('#statLow').textContent=d.lowStock.length;
@@ -196,7 +196,7 @@ function showDocument(doc){
   const label='SZÁMLA';
   $('#docTitle').textContent=`${label} · ${doc.id}`;
   const item=doc.items[0];
-  $('#docContent').innerHTML=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>${label}</b><br>Dokumentum: ${esc(doc.id)}<br>Dátum: ${new Date(doc.createdAt).toLocaleString('hu-HU')}</p><p><b>Vásárló:</b> ${esc(doc.customer.name)}${doc.customer.address?'<br>'+esc(doc.customer.address):''}${doc.customer.taxNumber?'<br>Adószám: '+esc(doc.customer.taxNumber):''}</p><div class="receipt-line"><span>${esc(item.product)} × ${item.qty}</span><b>${money(item.total)}</b></div><div class="receipt-line"><span>Fizetés</span><b>${doc.paymentMethod}</b></div><div class="receipt-line"><span>ÖSSZESEN</span><b>${money(doc.total)}</b></div><p style="margin-top:18px">Red Moon Pub · Zhen Yu Xiaoo</p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
+  $('#docContent').innerHTML=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>${label}</b><br>Dokumentum: ${esc(doc.id)}<br>Dátum: ${new Date(doc.createdAt).toLocaleString('hu-HU')}</p><p><b>Vásárló:</b> ${esc(doc.customer.name)}${doc.customer.address?'<br>'+esc(doc.customer.address):''}${doc.customer.taxNumber?'<br>Adószám: '+esc(doc.customer.taxNumber):''}</p><div class="receipt-line"><span>${esc(item.product)} × ${item.qty}</span><b>${money(item.total)}</b></div><div class="receipt-line"><span>Fizetés</span><b>${doc.paymentMethod}</b></div><div class="receipt-line"><span>ÖSSZESEN</span><b>${money(doc.total)}</b></div><p style="margin-top:18px">Red Moon Pub · Zhen Yu Xiao</p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
   $('#docModal').classList.add('show');window._printHtml=$('#docContent').innerHTML;
 }
 function closeDoc(){$('#docModal').classList.remove('show')}
@@ -210,7 +210,7 @@ async function loadDocumentById(id){
 function printCurrentDoc(){if(!window._printHtml)return;const w=window.open('','_blank','width=700,height=900');w.document.write('<html><head><title>Red Moon Document</title><style>body{font-family:Arial;padding:30px}.receipt-paper{max-width:560px;margin:auto;border:1px solid #ddd;padding:28px}.receipt-line{display:flex;justify-content:space-between;border-bottom:1px dashed #999;padding:9px 0}</style></head><body>'+window._printHtml+'</body></html>');w.document.close();w.focus();w.print()}
 
 function renderManager(){
-  $('#managerInventory').innerHTML=products.filter(p=>p.active).map(p=>`<div class="manager-row"><div><b>${esc(p.name)}</b><div class="role">${p.category==='drink'?'ITAL':'ÉTEL'} · ${money(p.price)}</div></div><span>${p.stock} db</span><input data-stock="${p.id}" type="number" min="0" value="${p.stock}" style="width:80px;background:#090506;border:1px solid #3a171f;color:white;padding:7px"><button data-save="${p.id}">MENTÉS</button></div>`).join('');
+  $('#managerInventory').innerHTML=products.filter(p=>p.active).map(p=>`<div class="manager-row"><div class="manager-product"><img class="stock-thumb manager-thumb" src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><div><b>${esc(p.name)}</b><div class="role">ITAL · ${money(p.price)}</div></div></div><span>${p.stock} db</span><input data-stock="${p.id}" type="number" min="0" value="${p.stock}" style="width:80px;background:#090506;border:1px solid #3a171f;color:white;padding:7px"><button data-save="${p.id}">MENTÉS</button></div>`).join('');
   document.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.save;const inp=document.querySelector(`[data-stock="${id}"]`);try{const newStock=Number(inp.value);await api('/api/inventory/adjust',{method:'POST',body:JSON.stringify({productId:id,stock:newStock})});if(newStock===0)playSfx('error',0.75);else if(newStock<=products.find(p=>p.id===id)?.minStock)playSfx('low_stock',0.7);await load()}catch(e){alert(e.message)}})
 }
 async function loadUsers(){

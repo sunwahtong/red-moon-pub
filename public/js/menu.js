@@ -1,9 +1,20 @@
 (() => {
   const drinks = [
-    {name:'Blood Moon', desc:'Gin · cherry · yuzu · citrus', price:'$18', image:'assets/menu/drinks/blood-moon.jpg', icon:'月'},
-    {name:'Tokyo Afterdark', desc:'Whisky · plum · ginger · smoke', price:'$21', image:'assets/menu/drinks/tokyo-afterdark.jpg', icon:'赤'},
-    {name:'Red Sake', desc:'Premium sake · lychee · rose', price:'$16', image:'assets/menu/drinks/red-sake.jpg', icon:'酒'},
-    {name:'Neon Yuzu', desc:'Vodka · yuzu · tonic · citrus', price:'$17', image:'assets/menu/drinks/neon-yuzu.jpg', icon:'光'}
+    {name:"Kőbaltás", desc:"SeeCity RP · ITAL", price:"1 200 Ft", image:'assets/menu/drinks/kobaltas.png', icon:'月'},
+    {name:"Barracho", desc:"SeeCity RP · Sör", price:"1 800 Ft", image:'assets/menu/drinks/barracho.png', icon:'月'},
+    {name:"Sörnyitó", desc:"SeeCity RP · ITAL", price:"2 400 Ft", image:'assets/menu/drinks/sornyito.png', icon:'月'},
+    {name:"Syrah vörösbor", desc:"SeeCity RP · ITAL", price:"5 000 Ft", image:'assets/menu/drinks/syrah.png', icon:'月'},
+    {name:"Two Roosters rozé", desc:"SeeCity RP · ITAL", price:"5 600 Ft", image:'assets/menu/drinks/two_roosters.png', icon:'月'},
+    {name:"Bleuter'D pezsgő", desc:"SeeCity RP · ITAL", price:"4 800 Ft", image:'assets/menu/drinks/bleuterd.png', icon:'月'},
+    {name:"The Mount Bourbon Whiskey", desc:"SeeCity RP · ITAL", price:"11 200 Ft", image:'assets/menu/drinks/mount_bourbon.png', icon:'月'},
+    {name:"Vinewood Sauvignon Blanc fehérbor", desc:"SeeCity RP · ITAL", price:"5 800 Ft", image:'assets/menu/drinks/vinewood.png', icon:'月'},
+    {name:"Cherenkov Premium Vodka", desc:"SeeCity RP · ITAL", price:"12 600 Ft", image:'assets/menu/drinks/chernekov.png', icon:'月'},
+    {name:"Cazafortunas Tequila", desc:"SeeCity RP · ITAL", price:"12 200 Ft", image:'assets/menu/drinks/cazafortunas.png', icon:'月'},
+    {name:"Sinmisito Tequila", desc:"SeeCity RP · ITAL", price:"15 800 Ft", image:'assets/menu/drinks/sinmisito.png', icon:'月'},
+    {name:"Ragga rum", desc:"SeeCity RP · ITAL", price:"11 200 Ft", image:'assets/menu/drinks/ragga.png', icon:'月'},
+    {name:"Sprunk (dobozos)", desc:"SeeCity RP · ITAL", price:"1 780 Ft", image:'assets/menu/drinks/sprunk.png', icon:'月'},
+    {name:"E-Cola (dobozos)", desc:"SeeCity RP · ITAL", price:"1 780 Ft", image:'assets/menu/drinks/ecola.png', icon:'月'},
+    {name:"Rainé ásványvíz", desc:'SeeCity RP · ITAL', price:'1 600 Ft', image:'assets/menu/drinks/raine.png', icon:'水'}
   ];
   const make = (item, kind, i) => {
     const el = document.createElement('article');

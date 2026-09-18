@@ -44,6 +44,25 @@ async function initDB(){
   } else {
     db = result.rows[0].data;
   }
+  await migrateDrinkCatalog();
+}
+
+const CANONICAL_DRINKS = [{"id":"p_kobaltas","name":"Kőbaltás","category":"drink","price":1200,"stock":24,"minStock":8,"image":"assets/menu/drinks/kobaltas.png","active":true},{"id":"p_barracho","name":"Barracho","category":"drink","price":1800,"stock":24,"minStock":8,"image":"assets/menu/drinks/barracho.png","active":true},{"id":"p_sornyito","name":"Sörnyitó","category":"drink","price":2400,"stock":18,"minStock":6,"image":"assets/menu/drinks/sornyito.png","active":true},{"id":"p_syrah","name":"Syrah vörösbor","category":"drink","price":5000,"stock":18,"minStock":6,"image":"assets/menu/drinks/syrah.png","active":true},{"id":"p_two_roosters","name":"Two Roosters rozé","category":"drink","price":5600,"stock":18,"minStock":6,"image":"assets/menu/drinks/two_roosters.png","active":true},{"id":"p_bleuterd","name":"Bleuter'D pezsgő","category":"drink","price":4800,"stock":18,"minStock":6,"image":"assets/menu/drinks/bleuterd.png","active":true},{"id":"p_mount_bourbon","name":"The Mount Bourbon Whiskey","category":"drink","price":11200,"stock":16,"minStock":5,"image":"assets/menu/drinks/mount_bourbon.png","active":true},{"id":"p_vinewood","name":"Vinewood Sauvignon Blanc fehérbor","category":"drink","price":5800,"stock":18,"minStock":6,"image":"assets/menu/drinks/vinewood.png","active":true},{"id":"p_chernekov","name":"Cherenkov Premium Vodka","category":"drink","price":12600,"stock":16,"minStock":5,"image":"assets/menu/drinks/chernekov.png","active":true},{"id":"p_cazafortunas","name":"Cazafortunas Tequila","category":"drink","price":12200,"stock":16,"minStock":5,"image":"assets/menu/drinks/cazafortunas.png","active":true},{"id":"p_sinmisito","name":"Sinmisito Tequila","category":"drink","price":15800,"stock":14,"minStock":4,"image":"assets/menu/drinks/sinmisito.png","active":true},{"id":"p_ragga","name":"Ragga rum","category":"drink","price":11200,"stock":16,"minStock":5,"image":"assets/menu/drinks/ragga.png","active":true},{"id":"p_sprunk","name":"Sprunk (dobozos)","category":"drink","price":1780,"stock":30,"minStock":10,"image":"assets/menu/drinks/sprunk.png","active":true},{"id":"p_ecola","name":"E-Cola (dobozos)","category":"drink","price":1780,"stock":30,"minStock":10,"image":"assets/menu/drinks/ecola.png","active":true},{"id":"p_raine","name":"Rainé ásványvíz","category":"drink","price":1600,"stock":32,"minStock":10,"image":"assets/menu/drinks/raine.png","active":true}];
+
+async function migrateDrinkCatalog(){
+  db.products ||= [];
+  const ids=new Set(CANONICAL_DRINKS.map(p=>p.id));
+  const hasSales=Array.isArray(db.sales)&&db.sales.length>0;
+  const byName=new Map(db.products.map(p=>[String(p.name||'').trim().toLowerCase(),p]));
+  const current=CANONICAL_DRINKS.map(base=>{
+    const old=byName.get(base.name.toLowerCase());
+    return {...base,stock:Number.isFinite(Number(old?.stock))?Math.max(0,Math.floor(Number(old.stock))):base.stock,minStock:Number.isFinite(Number(old?.minStock))?Math.max(0,Math.floor(Number(old.minStock))):base.minStock,active:true};
+  });
+  if(hasSales){
+    const legacy=db.products.filter(p=>!ids.has(p.id)).map(p=>({...p,active:false}));
+    db.products=[...current,...legacy];
+  }else db.products=current;
+  if(pool) await writeDB(db);
 }
 function writeDB(next){
   if(!pool){
@@ -93,7 +112,7 @@ async function api(req,res,url){
   for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; }
   try{
     if(req.method==='GET' && url==='/api/health'){
-      return json(res,200,{ok:true,service:'red-moon-staff',version:'17.1-online',time:new Date().toISOString()});
+      return json(res,200,{ok:true,service:'red-moon-staff',version:'18.0-online',time:new Date().toISOString()});
     }
 
     if(req.method==='POST' && url==='/api/login'){
@@ -230,7 +249,7 @@ async function api(req,res,url){
       return json(res,200,{shift,transfer:{
         amount:revenue,
         account:'21541444-70524373',
-        name:'Zhen Yu Xiaoo'
+        name:'Zhen Yu Xiao'
       }});
     }
 
@@ -308,7 +327,7 @@ async function api(req,res,url){
           address:String(b.customer?.address||''),
           taxNumber:String(b.customer?.taxNumber||'')
         },
-        seller:{name:'Red Moon Pub',owner:'Zhen Yu Xiaoo'},
+        seller:{name:'Red Moon Pub',owner:'Zhen Yu Xiao'},
         items:[{product:sale.product,qty:sale.qty,unitPrice:sale.unitPrice,total:sale.total}],
         total:sale.total,
         paymentMethod:sale.paymentMethod

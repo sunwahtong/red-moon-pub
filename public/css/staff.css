@@ -35,3 +35,11 @@ linear-gradient(145deg,#040304 0%,#090507 48%,#050304 100%);}
 .table-action.danger:hover{background:rgba(255,75,96,.16)}
 .doc-item{cursor:default}
 @media(max-width:760px){.sales-actions,.doc-actions{justify-content:flex-start}}
+
+/* V18 inventory thumbnails */
+.stock-row{min-height:68px;display:grid;grid-template-columns:minmax(0,1fr) auto 24px;align-items:center;gap:12px}
+.stock-product,.manager-product{display:flex;align-items:center;gap:12px;min-width:0}
+.stock-thumb{width:48px;height:48px;flex:0 0 48px;object-fit:cover;object-position:center;border-radius:9px;border:1px solid rgba(210,34,68,.28);background:#0a0709;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+.manager-thumb{width:52px;height:52px;flex-basis:52px}
+.stock-product>div,.manager-product>div{min-width:0}
+.stock-product b,.manager-product b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
