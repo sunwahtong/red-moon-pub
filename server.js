@@ -654,7 +654,7 @@ function parseWsFrames(client,chunk){
 function handleWsMessage(client,m){
   if(client.mode==='dj' && m.type==='offer' && m.viewerId){ const v=[...wsClients].find(x=>x.id===m.viewerId&&x.mode==='viewer'); if(v)wsSend(v,{type:'offer',offer:m.offer,viewerId:client.id}); return; }
   if(client.mode==='viewer' && m.type==='answer' && liveDJ.socket){ wsSend(liveDJ.socket,{type:'answer',answer:m.answer,viewerId:client.id}); return; }
-  if(m.type==='ice' && m.targetId){ const target=[...wsClients].find(x=>x.id===m.targetId); if(target)wsSend(target,{type:'ice',candidate:m.candidate,viewerId:client.id}); }
+  if(m.type==='ice'){ if(m.targetId){ const target=[...wsClients].find(x=>x.id===m.targetId); if(target)wsSend(target,{type:'ice',candidate:m.candidate,viewerId:client.id}); } else if(client.mode==='viewer' && liveDJ.socket) wsSend(liveDJ.socket,{type:'ice',candidate:m.candidate,viewerId:client.id}); return; }
 }
 function upgradeWebSocket(req,socket){
   const u=new URL(req.url,`http://${req.headers.host||'localhost'}`); if(u.pathname!=='/ws'){socket.destroy();return;}

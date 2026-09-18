@@ -20,7 +20,17 @@
   // the house ambience is muted and the DJ's live audio takes over.
   let liveState={active:false,djName:'',title:'',startedAt:null};
   let liveWS=null, livePC=null, liveAudio=null, liveViewerId=null;
-  function livePanel(){return $('#liveDJPanel')}
+  // Global LIVE NOW indicator: lives outside <main>, so it survives every SPA page change.
+  function ensureLiveUI(){
+    let p=$('#liveDJPanel');
+    if(!p){
+      p=document.createElement('aside'); p.id='liveDJPanel'; p.className='rm-live-corner'; p.setAttribute('aria-live','polite');
+      p.innerHTML='<div class=\"rm-live-corner-dot\"></div><div class=\"rm-live-corner-copy\"><b data-live-badge>OFF AIR</b><span data-live-dj>Red Moon DJ</span></div>';
+      document.body.appendChild(p);
+    }
+    return p;
+  }
+  function livePanel(){return ensureLiveUI()}
   function paintLive(state){
     liveState={...liveState,...state};
     const p=livePanel();
@@ -57,6 +67,7 @@
           livePC.ontrack=e=>{
             if(!liveAudio){liveAudio=new Audio();liveAudio.autoplay=true;liveAudio.playsInline=true;document.body.appendChild(liveAudio)}
             liveAudio.srcObject=e.streams[0];liveAudio.volume=volume/100;
+            liveAudio.setAttribute('playsinline','');
             const pr=liveAudio.play();if(pr?.catch)pr.catch(()=>{});
           };
           await livePC.setRemoteDescription(m.offer);
@@ -66,15 +77,17 @@
       }
       if(m.type==='ice'&&livePC&&m.candidate)try{await livePC.addIceCandidate(m.candidate)}catch{}
     };
-    liveWS.onclose=()=>{liveWS=null;livePC?.close();livePC=null;liveViewerId=null};
+    liveWS.onclose=()=>{liveWS=null;livePC?.close();livePC=null;liveViewerId=null;if(liveState.active&&document.visibilityState!=='hidden')setTimeout(connectLiveViewer,900)};
   }
   function disconnectLiveViewer(){
     try{livePC?.close()}catch{};livePC=null;liveViewerId=null;
     try{liveWS?.close()}catch{};liveWS=null;
     if(liveAudio){try{liveAudio.pause()}catch{};liveAudio.srcObject=null;liveAudio.remove();liveAudio=null}
   }
+  ensureLiveUI();
   // Server status gives freshly loaded pages the current live state immediately.
   fetch('/api/live',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json()).then(paintLive).catch(()=>{});
+  setInterval(()=>{fetch('/api/live',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json()).then(paintLive).catch(()=>{})},5000);
 
   const uiClick = new Audio('assets/sounds/ui_click.wav');
   uiClick.preload = 'auto';
