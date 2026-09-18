@@ -319,11 +319,26 @@ async function editUser(user){
   }catch(e){await rmAlert(e.message,'Fiók szerkesztése sikertelen')}
 }
 async function deleteUser(id,name){if(!await rmConfirm(`Biztosan törlöd: ${name}?`,'Fiók törlése'))return;try{await api('/api/users/'+encodeURIComponent(id),{method:'DELETE'});await loadUsers();await rmAlert('A fiók törölve.','Fiók törölve')}catch(e){await rmAlert(e.message,'Fiók törlése sikertelen')}}
+async function deleteClosedShift(id){
+  const shift=(window._ownerShiftData||[]).find(s=>s.id===id);
+  const when=shift?new Date(shift.startedAt).toLocaleString('hu-HU'):'ezt a műszakot';
+  const ok=await rmConfirm(`Biztosan törlöd a(z) ${when} időpontban indított lezárt műszakot? Az eladások, kapcsolódó számlák és a teljesítményadat is törlődik, a készlet visszaáll.`, 'Lezárt műszak törlése');
+  if(!ok)return;
+  try{
+    const d=await api('/api/shifts/'+encodeURIComponent(id),{method:'DELETE'});
+    playSfx('success',0.75);
+    await rmAlert(`A műszak törölve. Eladások: ${d.deletedSales} · Számlák: ${d.deletedInvoices}`, 'Műszak törölve');
+    await loadPerformance();
+    await load();
+  }catch(e){playSfx('error',0.9);await rmAlert(e.message,'Műszak törlése sikertelen')}
+}
+
 async function loadPerformance(){
   try{
     const d=await api('/api/owner/performance');
     $('#performance').innerHTML=`<h3>Műszak teljesítmény — csak OWNER</h3>`+(d.staff.length?`<div class="table-wrap"><table><thead><tr><th>Dolgozó</th><th>Műszak</th><th>Bevétel</th><th>Eladás</th><th>Db</th><th>Óra</th></tr></thead><tbody>${d.staff.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.shifts}</td><td>${money(x.revenue)}</td><td>${x.sales}</td><td>${x.items}</td><td>${x.hours.toFixed(1)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="mini-note">Még nincs lezárt műszak.</div>');
-    $('#ownerShifts').innerHTML=`<h3>Lezárt műszakok — dolgozói bontás</h3><div class="table-wrap"><table><thead><tr><th>Nyitás</th><th>Zárás</th><th>Műszakban</th><th>Dolgozói teljesítmény</th><th>Bevétel</th></tr></thead><tbody>${d.shiftBreakdown.map(s=>`<tr><td>${new Date(s.startedAt).toLocaleString('hu-HU')}</td><td>${new Date(s.endedAt).toLocaleString('hu-HU')}</td><td>${esc((s.members||[]).join(', '))}</td><td>${s.employees.length?s.employees.map(x=>`${esc(x.name)}: ${money(x.revenue)} / ${x.items} db`).join('<br>'):'Nincs rögzített eladás'}</td><td>${money(s.revenue)}</td></tr>`).join('')}</tbody></table></div>`;
+    window._ownerShiftData=d.shiftBreakdown||[];
+    $('#ownerShifts').innerHTML=`<h3>Lezárt műszakok — dolgozói bontás</h3><div class="mini-note">A lezárt műszak törlése az adott műszak eladásait és kapcsolódó számláit is törli, a készletet pedig visszaállítja.</div><div class="table-wrap"><table><thead><tr><th>Nyitás</th><th>Zárás</th><th>Műszakban</th><th>Dolgozói teljesítmény</th><th>Bevétel</th><th>Művelet</th></tr></thead><tbody>${d.shiftBreakdown.map(s=>`<tr><td>${new Date(s.startedAt).toLocaleString('hu-HU')}</td><td>${new Date(s.endedAt).toLocaleString('hu-HU')}</td><td>${esc((s.members||[]).join(', '))}</td><td>${s.employees.length?s.employees.map(x=>`${esc(x.name)}: ${money(x.revenue)} / ${x.items} db`).join('<br>'):'Nincs rögzített eladás'}</td><td>${money(s.revenue)}</td><td><button class="table-action danger-action" onclick="deleteClosedShift('${s.id}')">TÖRLÉS</button></td></tr>`).join('')}</tbody></table></div>`;
   }catch(e){$('#performance').innerHTML='<div class="mini-note danger">Owner statisztika nem tölthető be.</div>'}
 }
 

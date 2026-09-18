@@ -129,7 +129,7 @@ async function api(req,res,url){
   for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; }
   try{
     if(req.method==='GET' && url==='/api/health'){
-      return json(res,200,{ok:true,service:'red-moon-staff',version:'18.3-online',time:new Date().toISOString()});
+      return json(res,200,{ok:true,service:'red-moon-staff',version:'18.5-online',time:new Date().toISOString()});
     }
 
     if(req.method==='POST' && url==='/api/login'){
@@ -282,6 +282,31 @@ async function api(req,res,url){
         account:'21541444-70524373',
         name:'Zhen Yu Xiao'
       }});
+    }
+
+    // ---------- OWNER: DELETE CLOSED SHIFT + ITS SHIFT DATA ----------
+    if(req.method==='DELETE' && url.startsWith('/api/shifts/')){
+      const u=auth(req,res,'owner'); if(!u)return;
+      const id=decodeURIComponent(url.split('/').pop());
+      const idx=db.shifts.findIndex(s=>s.id===id);
+      if(idx<0)return json(res,404,{error:'A műszak nem található'});
+      const shift=db.shifts[idx];
+      if(shift.status!=='closed')return json(res,400,{error:'Csak lezárt műszak törölhető.'});
+      const shiftSales=db.sales.filter(x=>x.shiftId===id);
+      const saleIds=new Set(shiftSales.map(x=>x.id));
+      const shiftDocs=db.documents.filter(x=>saleIds.has(x.saleId) || shiftSales.some(s=>s.documentId===x.id));
+      // A műszak törlésekor az ahhoz tartozó eladások is törlődnek,
+      // a készlet pedig visszaáll az eladások előtti állapotra.
+      for(const sale of shiftSales){
+        const product=db.products.find(p=>p.id===sale.productId);
+        if(product) product.stock += Number(sale.qty)||0;
+      }
+      db.documents=db.documents.filter(x=>!shiftDocs.includes(x));
+      db.sales=db.sales.filter(x=>x.shiftId!==id);
+      db.shifts.splice(idx,1);
+      audit(db,u,'SHIFT_DELETE',`Lezárt műszak törölve · ${id} · ${shiftSales.length} eladás · ${shiftDocs.length} számla · készlet visszaállítva`);
+      await writeDB(db);
+      return json(res,200,{ok:true,deletedShiftId:id,deletedSales:shiftSales.length,deletedInvoices:shiftDocs.length});
     }
 
     if(req.method==='GET' && url.startsWith('/api/shifts/')){
