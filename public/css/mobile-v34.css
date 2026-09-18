@@ -209,3 +209,27 @@ body:before{opacity:1!important}
 
 /* Remove the old internal inventory scrollbar treatment completely */
 .inventory::-webkit-scrollbar{width:0;height:0}
+
+
+/* V35 — compact POS inventory + contained sales actions + shift team control */
+.inventory{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}
+.product-card-art{aspect-ratio:2.05/1!important;min-height:0!important}
+.product-card-body{padding:9px 10px 6px!important;min-height:58px!important}
+.product-card-body b{font-size:11px!important}
+.product-card-body small{font-size:9px!important}
+.product-add{min-height:36px!important;margin:0 8px 8px!important;font-size:8px!important}
+.product-stock{top:6px!important;right:6px!important;font-size:8px!important;padding:5px 7px!important}
+.sales-log-panel table{min-width:0!important;width:100%!important}
+.sales-log-panel th:nth-child(1),.sales-log-panel td:nth-child(1){width:7%!important}
+.sales-log-panel th:nth-child(2),.sales-log-panel td:nth-child(2){width:13%!important}
+.sales-log-panel th:nth-child(3),.sales-log-panel td:nth-child(3){width:12%!important}
+.sales-log-panel th:nth-child(4),.sales-log-panel td:nth-child(4){width:24%!important}
+.sales-log-panel th:nth-child(5),.sales-log-panel td:nth-child(5){width:5%!important}
+.sales-log-panel th:nth-child(6),.sales-log-panel td:nth-child(6){width:10%!important}
+.sales-log-panel th:nth-child(7),.sales-log-panel td:nth-child(7){width:29%!important}
+.sales-log-panel .sales-actions{display:flex!important;flex-wrap:nowrap!important;justify-content:flex-start!important;gap:4px!important}
+.sales-log-panel .sales-actions .table-action{min-width:0!important;margin:0!important;padding:6px 7px!important;font-size:7.5px!important;letter-spacing:.8px!important;white-space:nowrap!important}
+.shift-member-actions{display:flex;gap:9px;flex-wrap:wrap}
+.shift-member-actions .btn{min-height:42px}
+@media(max-width:900px){.inventory{grid-template-columns:repeat(2,minmax(0,1fr))!important}.sales-log-panel .sales-actions{flex-wrap:wrap!important}}
+@media(max-width:600px){.inventory{grid-template-columns:1fr!important}.product-card-art{aspect-ratio:2.25/1!important}.shift-member-actions{display:grid;grid-template-columns:1fr}.shift-member-actions .btn{width:100%}}

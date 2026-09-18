@@ -502,8 +502,10 @@ async function api(req,res,url){
       if(existing) return json(res,409,{error:`Már van nyitott műszak: ${existing.startedByName}. Zárd le előbb.`});
       const b=await readBody(req);
       const openingCash=Number(b.openingCash)||0;
-      const members=Array.isArray(b.members)?b.members.map(String).filter(Boolean):[];
+      const members=Array.isArray(b.members)?b.members.map(String).map(x=>x.trim()).filter(Boolean):[];
       if(!members.includes(u.name)) members.unshift(u.name);
+      const memberIds=[...new Set(members.map(name=>db.users.find(x=>x.name===name)?.id).filter(Boolean))];
+      if(!memberIds.includes(u.id)) memberIds.unshift(u.id);
       const shift={
         id:'sh_'+crypto.randomBytes(7).toString('hex'),
         status:'open',
@@ -512,6 +514,8 @@ async function api(req,res,url){
         startedById:u.id,
         startedByName:u.name,
         members:[...new Set(members)],
+        memberIds,
+        memberHistory:members.map(name=>({name,joinedAt:new Date().toISOString(),joinedById:u.id,joinedByName:u.name})),
         openingCash,
         closingCash:null,
         revenue:0,
@@ -524,6 +528,42 @@ async function api(req,res,url){
       audit(db,u,'SHIFT_OPEN',`Műszak nyitva · kezdő kassza ${openingCash} Ft · ${shift.members.join(', ')}`);
       await writeDB(db);
       return json(res,201,{shift});
+    }
+
+    if(req.method==='GET' && url==='/api/shifts/eligible-members'){
+      const u=auth(req,res);
+      if(!u)return;
+      const shift=db.shifts.find(s=>s.status==='open')||null;
+      if(!shift)return json(res,409,{error:'Nincs nyitott műszak.'});
+      const currentIds=new Set(shift.memberIds||[]);
+      const currentNames=new Set(shift.members||[]);
+      const users=db.users.filter(x=>x.role!=='dj' && !currentIds.has(x.id) && !currentNames.has(x.name)).map(publicUser);
+      return json(res,200,{users});
+    }
+
+    if(req.method==='POST' && url==='/api/shifts/members'){
+      const u=auth(req,res);
+      if(!u)return;
+      const shift=db.shifts.find(s=>s.status==='open')||null;
+      if(!shift)return json(res,409,{error:'Nincs nyitott műszak.'});
+      if(shift.startedById!==u.id && !['manager','owner'].includes(u.role)){
+        return json(res,403,{error:'Ezt a műszakot csak a műszakindító, MANAGER vagy OWNER bővítheti.'});
+      }
+      const b=await readBody(req);
+      const member=db.users.find(x=>x.id===String(b.userId||''));
+      if(!member || member.role==='dj')return json(res,404,{error:'A kiválasztott dolgozó nem található.'});
+      shift.members ||= [];
+      shift.memberIds ||= [];
+      if(shift.memberIds.includes(member.id) || shift.members.includes(member.name)){
+        return json(res,409,{error:'Ez a dolgozó már tagja ennek a műszaknak.'});
+      }
+      shift.members.push(member.name);
+      shift.memberIds.push(member.id);
+      shift.memberHistory ||= [];
+      shift.memberHistory.push({name:member.name,userId:member.id,joinedAt:new Date().toISOString(),joinedById:u.id,joinedByName:u.name});
+      audit(db,u,'SHIFT_MEMBER_ADD',`Műszaktag hozzáadva · ${member.name} · műszak ${shift.id}`);
+      await writeDB(db);
+      return json(res,200,{shift,member:publicUser(member)});
     }
 
     if(req.method==='POST' && url==='/api/shifts/close'){

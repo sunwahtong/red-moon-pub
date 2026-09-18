@@ -308,7 +308,8 @@ function renderShift(){
   }else{
     const rev=currentShift.id?0:0;
     $('#shiftBar').innerHTML=`<div><span class="shift-dot open"></span><b>KASSZA NYITVA</b><div class="shift-meta"><span>Indította: ${esc(currentShift.startedByName)}</span><span>Nyitás: ${new Date(currentShift.startedAt).toLocaleString('hu-HU')}</span><span>Műszakban: ${esc((currentShift.members||[]).join(', '))}</span></div></div><button class="btn btn-red" onclick="closeShift()">MŰSZAK / KASSZA ZÁRÁSA</button>`;
-    $('#shiftPanelBody').innerHTML=`<div class="kpi-grid"><div class="kpi"><span class="muted">Indító</span><strong>${esc(currentShift.startedByName)}</strong></div><div class="kpi"><span class="muted">Nyitás</span><strong>${new Date(currentShift.startedAt).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</strong></div><div class="kpi"><span class="muted">Műszak tagjai</span><strong>${esc((currentShift.members||[]).join(', '))}</strong></div></div><div class="action-row" style="margin-top:15px"><button class="btn btn-red" onclick="closeShift()">KASSZA ZÁRÁSA</button></div>`;
+    const canAddMember=me && (me.id===currentShift.startedById || me.role==='manager' || me.role==='owner');
+    $('#shiftPanelBody').innerHTML=`<div class="kpi-grid"><div class="kpi"><span class="muted">Indító</span><strong>${esc(currentShift.startedByName)}</strong></div><div class="kpi"><span class="muted">Nyitás</span><strong>${new Date(currentShift.startedAt).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</strong></div><div class="kpi"><span class="muted">Műszak tagjai</span><strong>${esc((currentShift.members||[]).join(', '))}</strong></div></div><div class="shift-member-actions" style="margin-top:15px">${canAddMember?'<button class="btn btn-ghost" type="button" onclick="addShiftMember()">＋ MŰSZAKTAG HOZZÁADÁSA</button>':''}<button class="btn btn-red" onclick="closeShift()">KASSZA ZÁRÁSA</button></div>`;
   }
 }
 async function openShift(){
@@ -320,6 +321,23 @@ async function openShift(){
   const opening=Number(data.opening);const members=String(data.members||'').split(',').map(x=>x.trim()).filter(Boolean);
   if(!Number.isFinite(opening)||opening<0||!members.length){await rmAlert('Add meg a kezdő kassza összegét és legalább egy műszaktagot.','Hiányzó adatok');return}
   try{await api('/api/shifts/open',{method:'POST',body:JSON.stringify({openingCash:opening,members})});playSfx('cash_open',0.7);await rmAlert('A műszak és a kassza sikeresen megnyílt.','Kassza megnyitva');await load()}catch(e){await rmAlert(e.message,'Kasszanyitás sikertelen')}
+}
+async function addShiftMember(){
+  if(!currentShift)return;
+  try{
+    const d=await api('/api/shifts/eligible-members');
+    if(!d.users?.length){await rmAlert('Minden elérhető dolgozó már benne van a műszakban.','Műszaktagok');return}
+    const data=await rmForm({title:'Műszaktag hozzáadása',kicker:'RED MOON / SHIFT · TEAM CONTROL',fields:[
+      {id:'userId',label:'DOLGOZÓ KIVÁLASZTÁSA',type:'select',value:d.users[0].id,options:d.users.map(x=>({value:x.id,label:`${x.name} · ${x.role.toUpperCase()}`}))}
+    ],confirmText:'HOZZÁADÁS'});
+    if(!data?.userId)return;
+    const added=await api('/api/shifts/members',{method:'POST',body:JSON.stringify({userId:data.userId})});
+    currentShift=added.shift;
+    playSfx('success',0.42);
+    showToast('Műszaktag hozzáadva',`${added.member.name} bekerült a jelenlegi műszakba.`,'success');
+    renderShift();
+    await loadPresence();
+  }catch(e){playSfx('error',0.7);await rmAlert(e.message,'Műszaktag hozzáadása sikertelen')}
 }
 async function closeShift(){
   if(!currentShift)return;
