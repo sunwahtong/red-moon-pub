@@ -10,6 +10,11 @@ const DB_FILE = path.join(ROOT, 'data', 'seed.json');
 const PORT = Number(process.env.PORT || 8787);
 const sessions = new Map();
 const realtimeClients = new Set();
+const wsClients = new Set();
+const liveDJ = { active:false, djId:null, djName:'', title:'', startedAt:null, socket:null };
+function publicLiveState(){ return {active:!!liveDJ.active,djName:liveDJ.djName||'',title:liveDJ.title||'',startedAt:liveDJ.startedAt||null}; }
+function wsBroadcast(msg){ const raw=JSON.stringify(msg); for(const c of [...wsClients]){ try{if(c.ws.readyState===1)c.ws.send(raw)}catch{wsClients.delete(c)} } }
+function stopLiveDJ(reason='offline'){ liveDJ.active=false; liveDJ.djId=null; liveDJ.djName=''; liveDJ.title=''; liveDJ.startedAt=null; liveDJ.socket=null; wsBroadcast({type:'live_state',...publicLiveState(),reason}); }
 
 // Online storage: when DATABASE_URL is present (Render), all staff data lives in PostgreSQL.
 // Local development keeps the original db.json fallback so the project still works offline.
@@ -107,6 +112,7 @@ function onlineUsers(){
   return [...seen.values()].sort((a,b)=>a.name.localeCompare(b.name,'hu'));
 }
 function roleAtLeast(role,need){ const r={staff:1,manager:2,owner:3}; return (r[role]||0)>=(r[need]||99); }
+function authDJ(req,res){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if(u.role!=='dj'){json(res,403,{error:'Csak DJ jogosultság használhatja a DJ pultot.'});return null;} return u; }
 function auth(req,res,need='staff'){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if(!roleAtLeast(u.role,need)){json(res,403,{error:'Nincs jogosultságod ehhez a művelethez'});return null;} return u; }
 function readBody(req){return new Promise((resolve,reject)=>{let d='';req.on('data',c=>{d+=c;if(d.length>1e6) req.destroy();});req.on('end',()=>{try{resolve(d?JSON.parse(d):{})}catch(e){reject(e)}});req.on('error',reject)})}
 function hashPassword(password,salt=crypto.randomBytes(16).toString('hex')){return {salt,hash:crypto.pbkdf2Sync(password,salt,310000,32,'sha256').toString('hex')}}
@@ -137,8 +143,24 @@ async function api(req,res,url){
   dbState.notifications ||= [];
   for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; }
   try{
+    if(req.method==='GET' && url==='/api/live') return json(res,200,publicLiveState());
+
     if(req.method==='GET' && url==='/api/health'){
       return json(res,200,{ok:true,service:'red-moon-staff',version:'19.0-realtime-neon',time:new Date().toISOString()});
+    }
+
+    if(req.method==='POST' && url==='/api/dj/start'){
+      const u=authDJ(req,res); if(!u)return;
+      if(liveDJ.active && liveDJ.djId!==u.id)return json(res,409,{error:'Már adásban van egy DJ.'});
+      const b=await readBody(req);
+      liveDJ.active=true; liveDJ.djId=u.id; liveDJ.djName=u.name; liveDJ.title=String(b.title||'Red Moon Live').trim().slice(0,100)||'Red Moon Live'; liveDJ.startedAt=new Date().toISOString();
+      wsBroadcast({type:'live_state',...publicLiveState()});
+      return json(res,200,publicLiveState());
+    }
+    if(req.method==='POST' && url==='/api/dj/stop'){
+      const u=authDJ(req,res); if(!u)return;
+      if(!liveDJ.active || liveDJ.djId!==u.id)return json(res,400,{error:'Nincs aktív saját DJ adás.'});
+      stopLiveDJ('stopped'); return json(res,200,publicLiveState());
     }
 
     if(req.method==='POST' && url==='/api/login'){
@@ -483,7 +505,7 @@ async function api(req,res,url){
       const b=await readBody(req);
       if(!b.username||!b.password||!b.name)return json(res,400,{error:'Név, felhasználónév és jelszó kötelező'});
       if(db.users.some(x=>x.username.toLowerCase()===String(b.username).toLowerCase()))return json(res,409,{error:'Ez a felhasználónév már létezik'});
-      const role=['staff','manager','owner'].includes(b.role)?b.role:'staff';
+      const role=['staff','manager','owner','dj'].includes(b.role)?b.role:'staff';
       const hp=hashPassword(String(b.password));
       const nu={id:'u_'+crypto.randomBytes(6).toString('hex'),username:String(b.username),name:String(b.name),role,passwordHash:`PBKDF2:310000:sha256:${hp.salt}:${hp.hash}`};
       db.users.push(nu);
@@ -503,7 +525,7 @@ async function api(req,res,url){
       const nextRole=String(b.role??target.role).toLowerCase();
       const newPassword=String(b.password??'');
       if(!nextName||!nextUsername)return json(res,400,{error:'A név és a felhasználónév kötelező'});
-      if(!['staff','manager','owner'].includes(nextRole))return json(res,400,{error:'Érvénytelen jogosultsági szint'});
+      if(!['staff','manager','owner','dj'].includes(nextRole))return json(res,400,{error:'Érvénytelen jogosultsági szint'});
       const duplicate=db.users.find(x=>x.id!==id && x.username.toLowerCase()===nextUsername.toLowerCase());
       if(duplicate)return json(res,409,{error:'Ez a felhasználónév már használatban van'});
       if(target.role==='owner' && nextRole!=='owner' && db.users.filter(x=>x.role==='owner').length<=1){
@@ -603,6 +625,54 @@ const server=http.createServer(async(req,res)=>{
   const file=path.normalize(path.join(PUBLIC,p)); if(!file.startsWith(PUBLIC)) return res.writeHead(403).end('Forbidden');
   fs.stat(file,(err,st)=>{if(err||!st.isFile())return res.writeHead(404).end('Not found'); const ext=path.extname(file).toLowerCase(); res.writeHead(200,{'Content-Type':mime[ext]||'application/octet-stream','Cache-Control':'no-store'}); fs.createReadStream(file).pipe(res)});
 });
+// Minimal WebSocket signaling server (text frames only) so the project needs no extra runtime package.
+function wsFrame(text){
+  const data=Buffer.from(String(text)); const len=data.length; let head;
+  if(len<126) head=Buffer.from([0x81,len]);
+  else if(len<65536){ head=Buffer.alloc(4); head[0]=0x81; head[1]=126; head.writeUInt16BE(len,2); }
+  else { head=Buffer.alloc(10); head[0]=0x81; head[1]=127; head.writeBigUInt64BE(BigInt(len),2); }
+  return Buffer.concat([head,data]);
+}
+function wsSend(client,obj){ try{if(!client.socket.destroyed)client.socket.write(wsFrame(JSON.stringify(obj)))}catch{} }
+function wsClose(client,code=1000){ try{const b=Buffer.alloc(2);b.writeUInt16BE(code);client.socket.write(Buffer.from([0x88,2,b[0],b[1]]));client.socket.end()}catch{} }
+function parseWsFrames(client,chunk){
+  client.buf=Buffer.concat([client.buf||Buffer.alloc(0),chunk]);
+  while(client.buf.length>=2){
+    const b0=client.buf[0], b1=client.buf[1], opcode=b0&15, masked=!!(b1&128); let len=b1&127, off=2;
+    if(len===126){if(client.buf.length<4)break;len=client.buf.readUInt16BE(2);off=4}
+    else if(len===127){if(client.buf.length<10)break;const n=client.buf.readBigUInt64BE(2);if(n>BigInt(1e7)){wsClose(client,1009);return}len=Number(n);off=10}
+    if(masked)off+=4; if(client.buf.length<off+len)break;
+    let payload=client.buf.subarray(off,off+len); if(masked){const key=client.buf.subarray(off-4,off);const out=Buffer.alloc(len);for(let i=0;i<len;i++)out[i]=payload[i]^key[i%4];payload=out}
+    client.buf=client.buf.subarray(off+len);
+    if(opcode===8){try{client.socket.end()}catch{};return}
+    if(opcode===9){try{client.socket.write(Buffer.from([0x8A,0]))}catch{};continue}
+    if(opcode!==1)continue;
+    let m;try{m=JSON.parse(payload.toString('utf8'))}catch{continue}
+    handleWsMessage(client,m);
+  }
+}
+function handleWsMessage(client,m){
+  if(client.mode==='dj' && m.type==='offer' && m.viewerId){ const v=[...wsClients].find(x=>x.id===m.viewerId&&x.mode==='viewer'); if(v)wsSend(v,{type:'offer',offer:m.offer,viewerId:client.id}); return; }
+  if(client.mode==='viewer' && m.type==='answer' && liveDJ.socket){ wsSend(liveDJ.socket,{type:'answer',answer:m.answer,viewerId:client.id}); return; }
+  if(m.type==='ice' && m.targetId){ const target=[...wsClients].find(x=>x.id===m.targetId); if(target)wsSend(target,{type:'ice',candidate:m.candidate,viewerId:client.id}); }
+}
+function upgradeWebSocket(req,socket){
+  const u=new URL(req.url,`http://${req.headers.host||'localhost'}`); if(u.pathname!=='/ws'){socket.destroy();return;}
+  const mode=u.searchParams.get('mode')==='dj'?'dj':'viewer'; let user=null;
+  if(mode==='dj'){ const sid=parseCookies(req).rm_session; const sess=sid&&sessions.get(sid); if(!sess||sess.role!=='dj'){socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');socket.destroy();return;} user=sess; }
+  const key=req.headers['sec-websocket-key']; if(!key){socket.destroy();return;}
+  const accept=crypto.createHash('sha1').update(key+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
+  socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: '+accept+'\r\n\r\n');
+  const client={socket,mode,id:crypto.randomUUID(),userId:user?.id||null,buf:Buffer.alloc(0)}; wsClients.add(client);
+  if(mode==='dj'){if(liveDJ.socket&&liveDJ.socket!==client)wsClose(liveDJ.socket,4001);liveDJ.socket=client;}
+  wsSend(client,{type:'live_state',...publicLiveState()});
+  if(mode==='viewer'&&liveDJ.active&&liveDJ.socket)wsSend(liveDJ.socket,{type:'viewer_joined',viewerId:client.id});
+  socket.on('data',chunk=>parseWsFrames(client,chunk));
+  const cleanup=()=>{wsClients.delete(client);if(mode==='viewer'&&liveDJ.socket&&liveDJ.active)wsSend(liveDJ.socket,{type:'viewer_left',viewerId:client.id});if(mode==='dj'&&liveDJ.socket===client)stopLiveDJ('dj_disconnected')};
+  socket.on('close',cleanup);socket.on('error',cleanup);
+}
+server.on('upgrade',(req,socket,head)=>{ upgradeWebSocket(req,socket); if(head&&head.length) socket.emit('data',head); });
+
 initDB().then(()=>{
   server.listen(PORT,()=>console.log(`Red Moon Pub V17 online server running on port ${PORT}${pool?' · PostgreSQL':' · local db.json'}`));
 }).catch(err=>{

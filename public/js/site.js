@@ -15,6 +15,67 @@
   audio.volume = volume / 100;
 
   // Tiny tactile UI click used by the public navigation and primary controls.
+
+  // LIVE DJ — one public WebRTC listener per browser tab. When live is active,
+  // the house ambience is muted and the DJ's live audio takes over.
+  let liveState={active:false,djName:'',title:'',startedAt:null};
+  let liveWS=null, livePC=null, liveAudio=null, liveViewerId=null;
+  function livePanel(){return $('#liveDJPanel')}
+  function paintLive(state){
+    liveState={...liveState,...state};
+    const p=livePanel();
+    if(p){
+      p.classList.toggle('is-live',!!liveState.active);
+      p.querySelector('[data-live-badge]')?.replaceChildren(document.createTextNode(liveState.active?'LIVE NOW':'OFF AIR'));
+      p.querySelector('[data-live-dj]')?.replaceChildren(document.createTextNode(liveState.djName||'Red Moon DJ'));
+      p.querySelector('[data-live-title]')?.replaceChildren(document.createTextNode(liveState.title||'Red Moon Live'));
+    }
+    if(liveState.active){
+      audio.pause();
+      audio.currentTime=audio.currentTime||0;
+      connectLiveViewer();
+    }else{
+      disconnectLiveViewer();
+      if(soundOn && volume>0) playAudio();
+    }
+    paintSound();
+  }
+  function connectLiveViewer(){
+    if(!liveState.active)return;
+    if(liveWS&&liveWS.readyState<=1)return;
+    const proto=location.protocol==='https:'?'wss':'ws';
+    liveWS=new WebSocket(`${proto}://${location.host}/ws?mode=viewer`);
+    liveWS.onmessage=async ev=>{
+      let m;try{m=JSON.parse(ev.data)}catch{return}
+      if(m.type==='live_state'){paintLive(m);return}
+      if(m.type==='offer'){
+        try{
+          liveViewerId=m.viewerId;
+          livePC=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
+          livePC.onicecandidate=e=>{if(e.candidate&&liveWS?.readyState===1)liveWS.send(JSON.stringify({type:'ice',targetId:null,candidate:e.candidate}))};
+          // The DJ needs the viewer's id as the target. The server infers it from the connection.
+          livePC.ontrack=e=>{
+            if(!liveAudio){liveAudio=new Audio();liveAudio.autoplay=true;liveAudio.playsInline=true;document.body.appendChild(liveAudio)}
+            liveAudio.srcObject=e.streams[0];liveAudio.volume=volume/100;
+            const pr=liveAudio.play();if(pr?.catch)pr.catch(()=>{});
+          };
+          await livePC.setRemoteDescription(m.offer);
+          const answer=await livePC.createAnswer();await livePC.setLocalDescription(answer);
+          liveWS.send(JSON.stringify({type:'answer',answer:livePC.localDescription}));
+        }catch{disconnectLiveViewer()}
+      }
+      if(m.type==='ice'&&livePC&&m.candidate)try{await livePC.addIceCandidate(m.candidate)}catch{}
+    };
+    liveWS.onclose=()=>{liveWS=null;livePC?.close();livePC=null;liveViewerId=null};
+  }
+  function disconnectLiveViewer(){
+    try{livePC?.close()}catch{};livePC=null;liveViewerId=null;
+    try{liveWS?.close()}catch{};liveWS=null;
+    if(liveAudio){try{liveAudio.pause()}catch{};liveAudio.srcObject=null;liveAudio.remove();liveAudio=null}
+  }
+  // Server status gives freshly loaded pages the current live state immediately.
+  fetch('/api/live',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json()).then(paintLive).catch(()=>{});
+
   const uiClick = new Audio('assets/sounds/ui_click.wav');
   uiClick.preload = 'auto';
   uiClick.volume = 0.32;
@@ -54,13 +115,16 @@
   }
   const btn = $('#soundBtn'), icon = $('#soundIcon'), slider = $('#volumeSlider'), value = $('#volumeValue'), panel = $('#volumePanel');
   function paintSound() {
+    if(liveState.active && livePanel()){ const b=livePanel().querySelector('[data-live-badge]'); if(b)b.textContent='LIVE NOW'; }
     btn?.setAttribute('aria-pressed', String(soundOn && !audio.paused));
     btn?.setAttribute('aria-expanded', String(panel?.classList.contains('open') || false));
-    if (icon) icon.textContent = soundOn && !audio.paused ? ')))' : '—';
+    if (icon) icon.textContent = liveState.active ? (soundOn ? ')))' : '—') : (soundOn && !audio.paused ? ')))' : '—');
+    const label=btn?.querySelector('span:last-child'); if(label) label.textContent=liveState.active?'LIVE DJ':'AMBIENCE';
     if (slider) slider.value = String(volume);
     if (value) value.textContent = `${volume}%`;
   }
   async function playAudio() {
+    if (liveState.active) return false;
     if (!soundOn || volume <= 0) return false;
     restoreTime();
     audio.volume = volume / 100;
@@ -68,13 +132,14 @@
   }
   async function startFromGesture() {
     soundOn = true;
+    if(liveState.active){connectLiveViewer();return true;}
     localStorage.setItem(STORAGE.sound, 'on');
     restoreTime();
     audio.volume = volume / 100;
     try { await audio.play(); paintSound(); return true; } catch { paintSound(); return false; }
   }
   function stopAudio() { saveTime(); audio.pause(); soundOn = false; localStorage.setItem(STORAGE.sound, 'off'); paintSound(); }
-  btn?.addEventListener('click', async () => { panel?.classList.toggle('open'); if (soundOn && !audio.paused) stopAudio(); else await startFromGesture(); paintSound(); });
+  btn?.addEventListener('click', async () => { panel?.classList.toggle('open'); if(liveState.active){ soundOn=!soundOn; localStorage.setItem(STORAGE.sound,soundOn?'on':'off'); if(soundOn){connectLiveViewer();if(liveAudio)await liveAudio.play().catch(()=>{})}else if(liveAudio)liveAudio.pause(); paintSound(); return; } if (soundOn && !audio.paused) stopAudio(); else await startFromGesture(); paintSound(); });
   slider?.addEventListener('input', async () => { volume = Number(slider.value); localStorage.setItem(STORAGE.volume, String(volume)); audio.volume = volume / 100; if (volume === 0) { if (!audio.paused) stopAudio(); return; } if (soundOn && audio.paused) await playAudio(); paintSound(); });
   panel?.addEventListener('click', e => e.stopPropagation());
   document.addEventListener('click', e => { if (!soundWrap?.contains(e.target)) panel?.classList.remove('open'); });
