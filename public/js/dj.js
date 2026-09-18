@@ -43,11 +43,11 @@ function renderRequests(){
   </article>`).join('');
 }
 function renderChat(){
-  const list=$('#djChat'),arr=(state?.chat||[]).filter(m=>Date.now()-new Date(m.at).getTime()<30000);
+  const list=$('#djChat'),arr=(state?.chat||[]).filter(m=>Date.now()-new Date(m.at).getTime()<60000).slice(0,8);
   const count=$('#messageCount');if(count)count.textContent=arr.length;
   if(!list)return;
   if(!arr.length){list.innerHTML='<div class="empty-state">Még nincs üzenet.</div>';return}
-  list.innerHTML=arr.map(m=>`<article class="dj-chat-msg"><div class="msg-head"><b>${esc(m.name)}</b><small>${time(m.at)}</small></div><p>${esc(m.text)}</p><button class="msg-delete" data-chat-delete="${esc(m.id)}">TÖRLÉS</button></article>`).join('');
+  list.innerHTML=arr.map(m=>{const k=m.kind||'chat';let badge='';if(k==='request')badge='<span class="chat-kind request-kind">🎵 ZENEKÉRÉS</span>';if(k==='request-accepted')badge='<span class="chat-kind accepted-kind">✓ KÉRÉS ELFOGADVA</span>';if(k==='request-declined')badge='<span class="chat-kind declined-kind">× KÉRÉS ELUTASÍTVA</span>';if(k==='dj')badge='<span class="chat-kind dj-kind">🎧 DJ ÜZENET</span>';const age=Date.now()-new Date(m.at).getTime();const opacity=age>=45000?Math.max(0,Math.min(1,(60000-age)/15000)):1;return `<article class="dj-chat-msg kind-${esc(k)}" style="--chat-opacity:${opacity}"><div class="msg-head"><b>${esc(m.name)}</b><small>${time(m.at)}</small></div><p>${esc(m.text)}</p>${badge}<button class="msg-delete" data-chat-delete="${esc(m.id)}">TÖRLÉS</button></article>`}).join('');
 }
 function render(){
   if(!state||!me)return;
@@ -113,6 +113,12 @@ $('#djChat')?.addEventListener('click',async e=>{
   const b=e.target.closest('[data-chat-delete]');if(!b)return;
   try{const d=await api('/api/club/chat/'+encodeURIComponent(b.dataset.chatDelete),{method:'DELETE'});state=d.state;render()}catch(err){const x=$('#gocastMsg');if(x)x.textContent=err.message}
 });
+$('#djChatSend')?.addEventListener('click',async()=>{
+  const input=$('#djChatInput');if(!input)return;const text=input.value.trim();if(!text)return;
+  const btn=$('#djChatSend');if(btn)btn.disabled=true;
+  try{const d=await api('/api/dj/chat',{method:'POST',body:JSON.stringify({text})});state=d.state;input.value='';render()}catch(err){const x=$('#gocastMsg');if(x)x.textContent=err.message}finally{if(btn)btn.disabled=false}
+});
+$('#djChatInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#djChatSend')?.click()}});
 $('#djLogout')?.addEventListener('click',async()=>{
   cleanupRealtime();
   try{await api('/api/logout',{method:'POST'})}catch{}

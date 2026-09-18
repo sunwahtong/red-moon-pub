@@ -1,33 +1,31 @@
 (()=>{
-const $=s=>document.querySelector(s);let state=null,es=null,user=null;
-const clientId=localStorage.getItem('rm-club-client')||('rm_'+crypto.randomUUID());localStorage.setItem('rm-club-client',clientId);let name=localStorage.getItem('rm-club-name')||'',token=localStorage.getItem('rm-club-token')||'',cooldownUntil=0;
+'use strict';
+const $=s=>document.querySelector(s);let state=null,es=null,user=null,lastChatIds=new Set(),soundReady=false;
+const clientId=localStorage.getItem('rm-club-client')||('rm_'+crypto.randomUUID());localStorage.setItem('rm-club-client',clientId);
+let name=localStorage.getItem('rm-club-name')||'',token=localStorage.getItem('rm-club-token')||'',cooldownUntil=0;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function api(url,opt){const o={credentials:'same-origin',...opt};if(!(o.body instanceof FormData))o.headers={'Content-Type':'application/json',...(o.headers||{})};const r=await fetch(url,o);let d={};try{d=await r.json()}catch{}if(!r.ok)throw Error(d.error||`HTTP ${r.status}`);return d}
+const chatSound=new Audio('assets/sounds/chat_message.wav');chatSound.preload='auto';chatSound.volume=.38;
+const playChatSound=()=>{if(!soundReady)return;try{chatSound.currentTime=0;const p=chatSound.play();if(p?.catch)p.catch(()=>{})}catch{}};
+document.addEventListener('pointerdown',()=>{soundReady=true;try{chatSound.load()}catch{}},{once:true,passive:true});
+async function api(url,opt){const o={credentials:'same-origin',cache:'no-store',...opt};if(!(o.body instanceof FormData))o.headers={'Content-Type':'application/json',...(o.headers||{})};const r=await fetch(url,o);let d={};try{d=await r.json()}catch{}if(!r.ok)throw Error(d.error||`HTTP ${r.status}`);return d}
 function djLabel(n){const x=String(n||'').trim();return /^dj\b/i.test(x)?x:`DJ ${x}`}
+function messageHtml(m,age=0){const kind=m.kind||'chat';const fade=Math.max(0,Math.min(1,(60000-age)/15000));const opacity=age>=45000?fade:1;let label='';if(kind==='request')label='<span class="chat-kind request-kind">🎵 ZENEKÉRÉS</span>';if(kind==='request-accepted')label='<span class="chat-kind accepted-kind">✓ KÉRÉS ELFOGADVA</span>';if(kind==='request-declined')label='<span class="chat-kind declined-kind">× KÉRÉS ELUTASÍTVA</span>';if(kind==='dj')label='<span class="chat-kind dj-kind">🎧 DJ ÜZENET</span>';return `<article class="chat-msg kind-${esc(kind)}" style="--chat-opacity:${opacity}"><div><b>${esc(m.name)}</b><small>${new Date(m.at).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</small></div><p>${esc(m.text)}</p>${label}</article>`}
 function render(){
-  if(!state)return;
-  const live=!!state.live;
-  $('#liveBadge').textContent=live?'● LIVE NOW':'● OFFLINE';
-  $('#liveBadge').classList.toggle('live',live);
-  $('#clubTitle').textContent=live?(state.title||'Red Moon Live'):'A klub jelenleg offline.';
-  $('#djLine').textContent=live&&state.dj?djLabel(state.dj.name):'—';
-  const offline=$('#offlinePlayer'),copy=$('#liveCopy');
-  if(live){offline?.classList.add('hidden');copy?.classList.remove('hidden');$('#liveShowTitle').textContent=state.title||'Red Moon Live';$('#liveDjName').textContent=state.dj?djLabel(state.dj.name):'DJ —';$('#listenerCount').textContent=`${Number(state.listenerCount||0)} hallgató`}
-  else{offline?.classList.remove('hidden');copy?.classList.add('hidden')}
-  const approved=!!token&&!!name;
-  $('#requestForm').classList.toggle('hidden',!approved||!$('#requestForm').dataset.open);
-  $('#chatForm').classList.toggle('hidden',!approved||!$('#chatForm').dataset.open);
-  if(!approved)$('#nameStatus').textContent='A DJ jóváhagyása szükséges az üzenetekhez és zenei kérésekhez.';
-  else{$('#nameStatus').textContent='✓ Név jóváhagyva — használhatod a Clubot.';$('#nameStatus').classList.add('good')}
-  const now=Date.now();
-  const chat=[...(state.chat||[])].filter(m=>now-new Date(m.at).getTime()<30000).reverse();
-  $('#chat').innerHTML=chat.length?chat.map(m=>`<div class="chat-msg ${esc(m.kind||'chat')}"><div><b>${esc(m.name)}</b><small>${new Date(m.at).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</small></div><p>${esc(m.text)}</p>${m.kind==='request'?'<span class="chat-kind">🎵 ZENEKÉRÉS</span>':''}</div>`).join(''):'<div class="player-hint">Még nincs aktivitás.</div>';
+ if(!state)return;const live=!!state.live;$('#liveBadge').textContent=live?'● LIVE NOW':'● OFFLINE';$('#liveBadge').classList.toggle('live',live);$('#clubTitle').textContent=live?(state.title||'Red Moon Live'):'A klub jelenleg offline.';$('#djLine').textContent=live&&state.dj?djLabel(state.dj.name):'—';
+ const offline=$('#offlinePlayer'),copy=$('#liveCopy');if(live){offline?.classList.add('hidden');copy?.classList.remove('hidden');$('#liveShowTitle').textContent=state.title||'Red Moon Live';$('#liveDjName').textContent=state.dj?djLabel(state.dj.name):'DJ —';$('#listenerCount').textContent=`${Number(state.listenerCount||0)} hallgató`}else{offline?.classList.remove('hidden');copy?.classList.add('hidden')}
+ const approved=!!token&&!!name;$('#requestForm').classList.toggle('hidden',!approved||!$('#requestForm').dataset.open);$('#chatForm').classList.toggle('hidden',!approved||!$('#chatForm').dataset.open);
+ if(!approved)$('#nameStatus').textContent='A DJ jóváhagyása szükséges az üzenetekhez és zenei kérésekhez.';else{$('#nameStatus').textContent='✓ Név jóváhagyva — használhatod a Clubot.';$('#nameStatus').classList.add('good')}
+ const now=Date.now();const chat=(state.chat||[]).filter(m=>now-new Date(m.at).getTime()<60000).slice(0,8);const ids=new Set(chat.map(m=>m.id));if(lastChatIds.size){for(const id of ids)if(!lastChatIds.has(id))playChatSound()}lastChatIds=ids;
+ $('#chat').innerHTML=chat.length?chat.map(m=>{const age=now-new Date(m.at).getTime();return messageHtml(m,age)}).join(''):'<div class="player-hint">Még nincs aktivitás.</div>';
 }
 async function checkNameStatus(){try{const d=await api('/api/club/name-status?clientId='+encodeURIComponent(clientId));if(d.status==='accepted'&&d.token){token=d.token;name=d.name||name;localStorage.setItem('rm-club-token',token);render()}else if(d.status==='declined'){token='';localStorage.removeItem('rm-club-token');$('#nameStatus').textContent='A névkérelmet a DJ elutasította.'}}catch{}}
-async function boot(){try{const [s,m]=await Promise.all([api('/api/club/state'),api('/api/me')]);state=s.state;user=m.user;render();es=new EventSource('/api/club/events');es.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.state){state=d.state;render()} if(d.type==='name_decision'&&d.clientId===clientId){if(d.accepted&&d.token){token=d.token;name=d.name||name;localStorage.setItem('rm-club-token',token)}else if(!d.accepted){token='';localStorage.removeItem('rm-club-token')}render()}}catch{}};setInterval(async()=>{try{const d=await api('/api/club/state');state=d.state;render();await checkNameStatus()}catch{}},7000);await checkNameStatus()}catch{}}
+async function heartbeat(){try{await api('/api/club/listener',{method:'POST',body:JSON.stringify({id:clientId})})}catch{}}
+async function boot(){try{const [s,m]=await Promise.all([api('/api/club/state'),api('/api/me')]);state=s.state;user=m.user;render();await heartbeat();es=new EventSource('/api/club/events');es.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.state){state=d.state;render()}if(d.type==='name_decision'&&d.clientId===clientId){if(d.accepted&&d.token){token=d.token;name=d.name||name;localStorage.setItem('rm-club-token',token)}else{token='';localStorage.removeItem('rm-club-token')}render()}}catch{}};setInterval(async()=>{try{const d=await api('/api/club/state');state=d.state;render();await checkNameStatus();await heartbeat()}catch{}},7000);await checkNameStatus()}catch{}}
 $('#nameForm').onsubmit=async e=>{e.preventDefault();name=$('#nameInput').value.trim();if(!name)return;try{localStorage.setItem('rm-club-name',name);const d=await api('/api/club/name-request',{method:'POST',body:JSON.stringify({name,clientId})});if(d.approved){token=d.token;localStorage.setItem('rm-club-token',token);render()}else{$('#nameStatus').textContent='Név elküldve a DJ-nek jóváhagyásra.'}}catch(e){$('#nameStatus').textContent=e.message}};
 $('#toggleRequest').onclick=()=>{if(!token)return $('#nameStatus').textContent='Előbb küldd el a megjelenési neved.';$('#requestForm').dataset.open=$('#requestForm').dataset.open?'':'1';$('#chatForm').dataset.open='';render()};
 $('#toggleChat').onclick=()=>{if(!token)return $('#nameStatus').textContent='Előbb küldd el a megjelenési neved.';$('#chatForm').dataset.open=$('#chatForm').dataset.open?'':'1';$('#requestForm').dataset.open='';render()};
 $('#requestForm').onsubmit=async e=>{e.preventDefault();if(!token||Date.now()<cooldownUntil)return;const title=$('#requestTitle').value.trim();if(!title)return;try{await api('/api/club/request',{method:'POST',body:JSON.stringify({name,title,token})});$('#requestTitle').value='';cooldownUntil=Date.now()+5000;$('#nameStatus').textContent='🎵 Zenei kérés elküldve a DJ-nek.'}catch(e){$('#nameStatus').textContent=e.message}};
-$('#chatForm').onsubmit=async e=>{e.preventDefault();if(Date.now()<cooldownUntil)return;const text=$('#chatText').value.trim();if(!text)return;try{await api('/api/club/chat',{method:'POST',body:JSON.stringify({name,text,token})});$('#chatText').value='';cooldownUntil=Date.now()+5000}catch(e){$('#nameStatus').textContent=e.message}};boot();
+$('#chatForm').onsubmit=async e=>{e.preventDefault();if(Date.now()<cooldownUntil)return;const text=$('#chatText').value.trim();if(!text)return;try{await api('/api/club/chat',{method:'POST',body:JSON.stringify({name,text,token})});$('#chatText').value='';cooldownUntil=Date.now()+5000}catch(e){$('#nameStatus').textContent=e.message}};
+boot();
+setInterval(()=>{if(state){render();heartbeat()}},3000);
 })();

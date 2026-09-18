@@ -21,3 +21,14 @@
 
 /* V27 audience approvals */
 .name-requests{grid-column:1 / -1}.name-requests .request-list{max-height:300px}.name-requests .request-item{display:flex;justify-content:space-between;align-items:center;gap:14px}.name-requests .request-actions{margin-top:0}@media(max-width:800px){.name-requests{grid-column:auto}.name-requests .request-item{align-items:flex-start;flex-direction:column}.name-requests .request-actions{width:100%}.name-requests .request-actions button{flex:1}}
+
+/* V28 LIVE ROOM polish */
+.chat-msg,.dj-chat-msg{opacity:var(--chat-opacity,1);transition:opacity 1.2s ease,transform 1.2s ease,filter 1.2s ease}.chat-msg.fading,.dj-chat-msg.fading{opacity:var(--chat-opacity,1)}
+.kind-chat{border-left:3px solid #7e5262!important;background:linear-gradient(90deg,#10090d,#0b0709)!important}.kind-chat b{color:#e6d6dc!important}
+.kind-request{border-left:3px solid #d93658!important;background:linear-gradient(90deg,#210b13,#0e080a)!important}.kind-request b{color:#ff8aa3!important}
+.kind-request-accepted{border-left:3px solid #42d49a!important;background:linear-gradient(90deg,#082018,#0b0a0a)!important}.kind-request-accepted b{color:#80efc0!important}
+.kind-request-declined{border-left:3px solid #c15b78!important;background:linear-gradient(90deg,#1d0c12,#0b0809)!important}.kind-request-declined b{color:#ef91a8!important}
+.kind-dj{border:1px solid #8c2947!important;border-left:4px solid #ff3e68!important;background:radial-gradient(circle at 0 50%,rgba(255,40,88,.16),transparent 45%),#16090e!important;box-shadow:inset 0 0 28px rgba(255,32,80,.06),0 0 20px rgba(255,32,80,.04)!important}.kind-dj b{color:#ff6d8a!important}.dj-kind{color:#ff6d8a!important;border-color:#8c2947!important;background:#210b12}
+.request-kind{color:#ff6a83!important;border-color:#6d273a!important;background:#190910}.accepted-kind{color:#69e0ad!important;border-color:#2d7658!important;background:#0b1d16}.declined-kind{color:#ef819d!important;border-color:#713248!important;background:#1b0b11}
+.stage-listen{margin-top:10px;min-width:220px;text-align:center}.gocast-live-copy .stage-listen{margin-top:8px}.club-player-actions{justify-content:center;text-align:center;padding:8px 0 0}.club-player-actions .player-hint{margin:0;max-width:760px}
+.dj-message-compose{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:12px;padding:12px;border:1px solid #54202e;border-radius:13px;background:linear-gradient(135deg,#13080c,#0b0709)}.dj-message-compose textarea{min-height:52px;resize:vertical;background:#090708;border:1px solid #45202b;border-radius:10px;color:#f5edf0;padding:11px;font:inherit}.dj-message-compose small{grid-column:1/-1;color:#7f7077;font-size:9px;letter-spacing:.05em}.dj-message-compose button{align-self:stretch}@media(max-width:700px){.dj-message-compose{grid-template-columns:1fr}.dj-message-compose button{min-height:44px}.stage-listen{min-width:0;width:100%}}
