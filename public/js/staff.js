@@ -239,9 +239,9 @@ function renderSales(sales){
     <td data-label="Dolgozó">${esc(s.user)}</td><td data-label="Kosár ID"><span class="cart-id">${esc(s.cartId||s.transactionId||'—')}</span></td><td data-label="Termék" class="sale-product-cell">${esc(s.product)}</td><td data-label="Db">${s.qty}</td><td data-label="Összeg">${money(s.total)}</td>
     <td data-label="Kezelés" class="sales-actions">
       ${s.documentId
-        ? `<button class="table-action" onclick="loadDocumentById('${esc(s.documentId)}')">MEGNYITÁS</button>`
-        : `<button class="table-action" onclick="createDocument('${esc(s.id)}','invoice')">SZÁMLÁZÁS</button>`}
-      ${canDelete?`<button class="table-action danger" onclick="deleteSale('${esc(s.id)}')">TÖRLÉS</button>`:''}
+        ? `<button class="table-action" onclick="loadDocumentById('${esc(s.documentId)}')">Megnyitás</button>`
+        : `<button class="table-action" onclick="createDocument('${esc(s.id)}','invoice')">Számlázás</button>`}
+      ${canDelete?`<button class="table-action danger" onclick="deleteSale('${esc(s.id)}')">Törlés</button>`:''}
     </td>
   </tr>`).join(''):'<tr><td colspan="7">Még nincs eladás.</td></tr>';
 }
@@ -364,8 +364,8 @@ async function renderDocumentsHint(){
       (d.documents.length?`<div class="doc-list">${d.documents.slice(0,100).map(x=>`<div class="doc-item">
         <span><b>${esc(x.id)}</b><small>${new Date(x.createdAt).toLocaleString('hu-HU')} · ${esc(x.createdByName)}</small></span>
         <span class="doc-actions"><strong>${money(x.total)}</strong>
-          <button class="table-action" onclick='showDocument(${JSON.stringify(x).replace(/</g,'\\u003c')})'>MEGNYITÁS</button>
-          ${me.role==='owner'?`<button class="table-action danger" onclick="deleteInvoice('${esc(x.id)}')">TÖRLÉS</button>`:''}
+          <button class="table-action" onclick='showDocument(${JSON.stringify(x).replace(/</g,'\\u003c')})'>Megnyitás</button>
+          ${me.role==='owner'?`<button class="table-action danger" onclick="deleteInvoice('${esc(x.id)}')">Törlés</button>`:''}
         </span>
       </div>`).join('')}</div>`:'<div class="mini-note">Még nincs kiállított számla.</div>');
   }catch(e){box.innerHTML='<div class="mini-note">A számlák megnyitásához MANAGER vagy OWNER jogosultság szükséges.</div>'}
@@ -425,7 +425,7 @@ async function loadUsers(){
   $('#usersList').innerHTML='<div class="mini-note" style="margin:12px 0">OWNER jogosultsággal meglévő fiókok is szerkeszthetők. Saját fiók nem törölhető; az utolsó OWNER rang nem vehető el.</div>'+d.users.map(u=>`<div class="user-row">
     <div><b>${esc(u.name)}</b><small class="user-meta">${esc(u.username)}</small></div>
     <span class="role">${u.role.toUpperCase()}</span>
-    <div class="user-actions"><button class="table-action" onclick='editUser(${JSON.stringify(u).replace(/</g,'\\u003c')})'>SZERKESZTÉS</button><button class="danger-btn" onclick="deleteUser('${esc(u.id)}','${esc(u.name)}')">TÖRLÉS</button></div>
+    <div class="user-actions"><button class="table-action" onclick='editUser(${JSON.stringify(u).replace(/</g,'\\u003c')})'>SZERKESZTÉS</button><button class="danger-btn" onclick="deleteUser('${esc(u.id)}','${esc(u.name)}')">Törlés</button></div>
   </div>`).join('')
 }
 async function editUser(user){
@@ -468,7 +468,7 @@ async function loadPerformance(){
     const d=await api('/api/owner/performance');
     $('#performance').innerHTML=`<h3>Műszak teljesítmény — csak OWNER</h3>`+(d.staff.length?`<div class="table-wrap"><table><thead><tr><th>Dolgozó</th><th>Műszak</th><th>Bevétel</th><th>Eladás</th><th>Db</th><th>Óra</th></tr></thead><tbody>${d.staff.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.shifts}</td><td>${money(x.revenue)}</td><td>${x.sales}</td><td>${x.items}</td><td>${x.hours.toFixed(1)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="mini-note">Még nincs lezárt műszak.</div>');
     window._ownerShiftData=d.shiftBreakdown||[];
-    $('#ownerShifts').innerHTML=`<h3>Lezárt műszakok — dolgozói bontás</h3><div class="mini-note">A lezárt műszak törlése az adott műszak eladásait és kapcsolódó számláit is törli, a készletet pedig visszaállítja.</div><div class="table-wrap"><table><thead><tr><th>Nyitás</th><th>Zárás</th><th>Műszakban</th><th>Dolgozói teljesítmény</th><th>Bevétel</th><th>Művelet</th></tr></thead><tbody>${d.shiftBreakdown.map(s=>`<tr><td>${new Date(s.startedAt).toLocaleString('hu-HU')}</td><td>${new Date(s.endedAt).toLocaleString('hu-HU')}</td><td>${esc((s.members||[]).join(', '))}</td><td>${s.employees.length?s.employees.map(x=>`${esc(x.name)}: ${money(x.revenue)} / ${x.items} db`).join('<br>'):'Nincs rögzített eladás'}</td><td>${money(s.revenue)}</td><td><button class="table-action danger-action" onclick="deleteClosedShift('${s.id}')">TÖRLÉS</button></td></tr>`).join('')}</tbody></table></div>`;
+    $('#ownerShifts').innerHTML=`<h3>Lezárt műszakok — dolgozói bontás</h3><div class="mini-note">A lezárt műszak törlése az adott műszak eladásait és kapcsolódó számláit is törli, a készletet pedig visszaállítja.</div><div class="table-wrap"><table><thead><tr><th>Nyitás</th><th>Zárás</th><th>Műszakban</th><th>Dolgozói teljesítmény</th><th>Bevétel</th><th>Művelet</th></tr></thead><tbody>${d.shiftBreakdown.map(s=>`<tr><td>${new Date(s.startedAt).toLocaleString('hu-HU')}</td><td>${new Date(s.endedAt).toLocaleString('hu-HU')}</td><td>${esc((s.members||[]).join(', '))}</td><td>${s.employees.length?s.employees.map(x=>`${esc(x.name)}: ${money(x.revenue)} / ${x.items} db`).join('<br>'):'Nincs rögzített eladás'}</td><td>${money(s.revenue)}</td><td><button class="table-action danger-action" onclick="deleteClosedShift('${s.id}')">Törlés</button></td></tr>`).join('')}</tbody></table></div>`;
   }catch(e){$('#performance').innerHTML='<div class="mini-note danger">Owner statisztika nem tölthető be.</div>'}
 }
 

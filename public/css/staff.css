@@ -145,3 +145,21 @@ table{table-layout:fixed;min-width:920px}th,td{white-space:nowrap;vertical-align
   .sales-log-panel .sales-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
   .sales-log-panel .sales-actions .table-action{min-height:38px;padding:9px 8px;font-size:9px;white-space:nowrap;overflow:visible;text-overflow:clip}
 }
+
+/* V37 — full sales action labels, never truncated */
+.sales-log-panel .table-wrap{overflow:visible!important;width:100%;min-width:0!important}
+.sales-log-panel table{width:100%!important;min-width:0!important;table-layout:fixed!important}
+.sales-log-panel th:nth-child(1),.sales-log-panel td:nth-child(1){width:7%!important}
+.sales-log-panel th:nth-child(2),.sales-log-panel td:nth-child(2){width:13%!important}
+.sales-log-panel th:nth-child(3),.sales-log-panel td:nth-child(3){width:12%!important}
+.sales-log-panel th:nth-child(4),.sales-log-panel td:nth-child(4){width:20%!important}
+.sales-log-panel th:nth-child(5),.sales-log-panel td:nth-child(5){width:6%!important}
+.sales-log-panel th:nth-child(6),.sales-log-panel td:nth-child(6){width:11%!important}
+.sales-log-panel th:nth-child(7),.sales-log-panel td:nth-child(7){width:31%!important}
+.sales-log-panel td[data-label="Kezelés"]{overflow:visible!important}
+.sales-log-panel .sales-actions{display:flex!important;justify-content:flex-start!important;align-items:center!important;gap:7px!important;width:100%!important;min-width:0!important;overflow:visible!important;flex-wrap:nowrap!important}
+.sales-log-panel .sales-actions .table-action{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:none!important;height:34px!important;padding:0 11px!important;font-size:8px!important;line-height:1!important;letter-spacing:1px!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important}
+@media(max-width:900px){
+  .sales-log-panel .sales-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;flex-wrap:unset!important}
+  .sales-log-panel .sales-actions .table-action{width:100%!important;height:40px!important;padding:0 8px!important;font-size:9px!important;letter-spacing:.8px!important}
+}
