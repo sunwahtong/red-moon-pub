@@ -512,21 +512,32 @@ async function api(req,res,url){
       target.name=nextName;
       target.username=nextUsername;
       target.role=nextRole;
+      let passwordChanged=false;
       if(newPassword){
         const hp=hashPassword(newPassword);
         target.passwordHash=`PBKDF2:310000:sha256:${hp.salt}:${hp.hash}`;
+        passwordChanged=true;
       }
-      for(const session of sessions.values()){
+      const revokedSessionIds=[];
+      for(const [sid,session] of sessions.entries()){
         if(session.id===target.id){
-          session.username=target.username;
-          session.name=target.name;
-          session.role=target.role;
-          session.lastSeen=Date.now();
+          if(passwordChanged){
+            revokedSessionIds.push(sid);
+            sessions.delete(sid);
+          } else {
+            session.username=target.username;
+            session.name=target.name;
+            session.role=target.role;
+            session.lastSeen=Date.now();
+          }
         }
       }
-      audit(db,u,'USER_UPDATE',`${target.name} (${target.username}) · ${target.role}${newPassword?' · jelszó frissítve':''}`);
+      audit(db,u,'USER_UPDATE',`${target.name} (${target.username}) · ${target.role}${passwordChanged?' · jelszó frissítve · aktív munkamenetek kiléptetve':''}`);
       await writeDB(db);
-      return json(res,200,{user:publicUser(target)});
+      if(passwordChanged){
+        broadcastRealtime('session_revoked',{targetUserId:target.id,reason:'password_changed'});
+      }
+      return json(res,200,{user:publicUser(target),sessionRevoked:passwordChanged});
     }
 
     if(req.method==='DELETE' && url.startsWith('/api/users/')){

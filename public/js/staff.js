@@ -1,6 +1,6 @@
 if(location.protocol==='file:'){ location.replace('http://localhost:8787/staff'); }
 const $=s=>document.querySelector(s);
-let me=null,products=[],currentShift=null,latestSale=null, presenceTimer=null, heartbeatTimer=null, realtimeSource=null, realtimeRefreshTimer=null;
+let me=null,products=[],currentShift=null,latestSale=null, presenceTimer=null, heartbeatTimer=null, realtimeSource=null, realtimeRefreshTimer=null, realtimePollTimer=null;
 const money=n=>new Intl.NumberFormat('hu-HU').format(Number(n)||0)+' Ft';
 const SOUND_BASE='/assets/sounds/';
 const soundCache={};
@@ -119,22 +119,30 @@ function showToast(title,message,kind='success'){
 document.querySelectorAll('[data-toast-close]').forEach(el=>el.addEventListener('click',()=>$('#toastModal')?.classList.remove('show')));
 
 function connectRealtime(){
-  if(!me || !window.EventSource)return;
+  if(!me)return;
   try{realtimeSource?.close()}catch{}
-  realtimeSource=new EventSource('/api/events');
-  realtimeSource.onmessage=ev=>{
-    try{
-      const data=JSON.parse(ev.data||'{}');
-      if(data.type==='presence'){loadPresence();return}
-      if(data.type==='state'||data.type==='connected'){
-        clearTimeout(realtimeRefreshTimer);
-        realtimeRefreshTimer=setTimeout(()=>{if(me)load().catch(()=>{})},140);
-      }
-    }catch{}
-  };
-  realtimeSource.onerror=()=>{
-    // EventSource automatically reconnects. Polling is kept as a safety net.
-  };
+  clearInterval(realtimePollTimer);
+  if(window.EventSource){
+    realtimeSource=new EventSource('/api/events');
+    realtimeSource.onmessage=ev=>{
+      try{
+        const data=JSON.parse(ev.data||'{}');
+        if(data.type==='session_revoked' && data.targetUserId===me.id){
+          playSfx('error',0.75);
+          showToast('Munkamenet lezárva','A jelszavadat egy OWNER módosította. Újra be kell jelentkezned.','error');
+          setTimeout(()=>location.reload(),900);
+          return;
+        }
+        if(data.type==='presence'){loadPresence();return}
+        if(data.type==='state'||data.type==='connected'){
+          clearTimeout(realtimeRefreshTimer);
+          realtimeRefreshTimer=setTimeout(()=>{if(me)load().catch(()=>{})},80);
+        }
+      }catch{}
+    };
+  }
+  // Safety net: no F5 is ever needed even if an SSE connection is delayed by a proxy.
+  realtimePollTimer=setInterval(()=>{if(me)load().catch(()=>{});},5000);
 }
 
 async function api(url,opt={}){
