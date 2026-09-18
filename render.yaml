@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: red-moon-pub
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: red-moon-pub-db
+          property: connectionString
+      - key: OWNER_USERNAME
+        sync: false
+      - key: OWNER_PASSWORD
+        sync: false
+      - key: OWNER_NAME
+        value: Zhen Yu Xiao
+
+databases:
+  - name: red-moon-pub-db
+    plan: free

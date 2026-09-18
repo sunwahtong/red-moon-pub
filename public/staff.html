@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Red Moon — Staff Command V15.1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css?v=15.2"><link rel="stylesheet" href="css/premium-v13.css?v=15.2"><link rel="stylesheet" href="css/staff.css?v=15.2">
+<style>
+.staff-extra{margin-top:22px}.shift-status{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 18px;border:1px solid #4b2735;border-radius:14px;background:linear-gradient(120deg,#160b11,#0d090c)}.shift-dot{width:10px;height:10px;border-radius:50%;display:inline-block;background:#777;margin-right:8px}.shift-dot.open{background:#68e0ad;box-shadow:0 0 15px #68e0ad}.shift-meta{display:flex;gap:16px;flex-wrap:wrap;color:#c9b8bf;font-size:13px}.action-row{display:flex;gap:9px;flex-wrap:wrap}.mini-note{font-size:12px;color:#a997a0;margin-top:7px}.doc-modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}.doc-modal.show{display:flex}.doc-box{width:min(560px,96vw);max-height:90vh;overflow:auto;background:#120c10;border:1px solid #512b3b;border-radius:18px;padding:22px}.doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.owner-only{border-color:#704055}.danger-btn{border:1px solid #743347;background:#2a0d18;color:#ff9bb0;border-radius:9px;padding:7px 10px;cursor:pointer}.success{color:#70e2ae}.warning{color:#ffcc75}.receipt-paper{background:#f5eff1;color:#151013;padding:26px;border-radius:10px;font-family:Arial,sans-serif}.receipt-paper h2{margin-top:0}.receipt-line{display:flex;justify-content:space-between;border-bottom:1px dashed #8e7f86;padding:7px 0}.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.kpi{padding:14px;border:1px solid #38252d;border-radius:12px}.kpi strong{display:block;font-size:22px;margin-top:5px}@media(max-width:760px){.doc-grid,.kpi-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body class="staff-page">
+<div class="noise"></div>
+<header class="nav"><a class="brand" href="index.html"><span class="brand-mark">月</span><span>RED MOON <small>PUB</small></span></a>
+<nav><a href="index.html">Főoldal</a><a href="menu.html">Itallap</a><a href="events.html">Rendezvények</a><a href="gallery.html">Galéria</a><a href="about.html">Rólunk</a><a href="location.html">Lokáció</a><a class="staff-link active" href="staff.html">STAFF</a></nav><div class="staff-user" id="staffUser"></div></header>
+
+<main class="staff-shell">
+<section id="loginView" class="staff-login">
+<div class="staff-login-art"><div class="staff-moon">月</div><div class="staff-kicker">RED MOON / PRIVATE ACCESS</div><h1>STAFF<br><em>COMMAND</em></h1><p>Belső kassza · műszak · raktár · dokumentumok</p></div>
+<form id="loginForm" class="glass-form"><div class="field"><label>FELHASZNÁLÓNÉV</label><input id="username" autocomplete="username" required></div><div class="field"><label>JELSZÓ</label><input id="password" type="password" autocomplete="current-password" required></div><button class="btn btn-red" type="submit">BELÉPÉS <span>↗</span></button><div id="loginError" class="error"></div></form>
+</section>
+
+<section id="appView" class="staff-app hidden">
+<div class="staff-head"><div><div class="section-kicker">RED MOON / COMMAND CENTER</div><h1>Kassza &amp; <em>Raktár</em></h1><p id="welcome"></p></div><button id="logoutBtn" class="btn btn-ghost">KIJELENTKEZÉS</button></div>
+
+<div id="shiftBar" class="shift-status staff-extra"></div>
+<div class="stat-grid"><article><span>MAI BEVÉTEL</span><strong id="statRevenue">0 Ft</strong><small>összes rögzített eladás</small></article><article><span>MAI ELADÁS</span><strong id="statItems">0 db</strong><small>eladott darab</small></article><article><span>ALACSONY KÉSZLET</span><strong id="statLow">0</strong><small>figyelmeztetés</small></article><article><span>JOGOSULTSÁG</span><strong id="statRole">STAFF</strong><small>hozzáférési szint</small></article></div>
+
+<div class="staff-grid">
+<section class="panel sale-panel"><div class="panel-head"><div><span>01 / POS</span><h2>Új eladás</h2></div><div class="live-dot">LIVE</div></div>
+<form id="saleForm"><div class="field"><label>TERMÉK</label><select id="saleProduct" required></select></div><div class="sale-preview"><div><span>EGYSÉGÁR</span><b id="salePrice">0 Ft</b></div><div><span>KÉSZLET</span><b id="saleStock">0 db</b></div></div>
+<div class="qty-row"><button type="button" id="qtyMinus">−</button><input id="saleQty" type="number" min="1" value="1"><button type="button" id="qtyPlus">+</button></div>
+<div class="field"><label>FIZETÉSI MÓD</label><select id="paymentMethod"><option value="cash">Készpénz</option><option value="card">Bankkártya</option><option value="transfer">Átutalás</option></select></div>
+<div class="total-line"><span>ÖSSZESEN</span><strong id="saleTotal">0 Ft</strong></div>
+<button class="btn btn-red wide" type="submit">ELADÁS RÖGZÍTÉSE ↗</button><div id="saleMsg" class="form-msg"></div></form></section>
+
+<section class="panel inventory-panel"><div class="panel-head"><div><span>02 / STOCK</span><h2>Raktár</h2></div><button id="refreshBtn" class="icon-btn">↻</button></div><div id="inventory" class="inventory"></div></section>
+</div>
+
+<div class="staff-grid lower">
+<section class="panel"><div class="panel-head"><div><span>03 / SALES LOG</span><h2>Legutóbbi eladások</h2></div></div><div class="table-wrap"><table><thead><tr><th>Idő</th><th>Dolgozó</th><th>Termék</th><th>Db</th><th>Összeg</th><th>Számlázás / kezelés</th></tr></thead><tbody id="salesTable"></tbody></table></div></section>
+<section class="panel"><div class="panel-head"><div><span>04 / ALERTS</span><h2>Alacsony készlet</h2></div></div><div id="alerts" class="alerts"></div></section>
+</div>
+
+<section id="notificationsPanel" class="panel notifications-panel hidden staff-extra">
+<div class="panel-head"><div><span>08 / COMMAND ALERTS</span><h2>Vezetői értesítések</h2></div><span class="live-dot">LIVE</span></div>
+<div id="notificationsBody"><div class="mini-note">Betöltés…</div></div>
+</section>
+
+<section id="managerPanel" class="panel manager-panel hidden staff-extra"><div class="panel-head"><div><span>05 / MANAGER</span><h2>Készlet &amp; termékek</h2></div></div>
+<form id="productForm" class="mini-form"><input id="pName" placeholder="Termék neve" required><select id="pCategory"><option value="drink">Ital</option><option value="food">Étel</option></select><input id="pPrice" type="number" min="0" placeholder="Ár" required><input id="pStock" type="number" min="0" placeholder="Készlet" required><input id="pMin" type="number" min="0" placeholder="Minimum" required><button class="btn btn-red" type="submit">TERMÉK HOZZÁADÁSA</button></form><div id="managerInventory" class="manager-list"></div></section>
+
+<section id="shiftPanel" class="panel staff-extra"><div class="panel-head"><div><span>06 / CASH REGISTER</span><h2>Műszak &amp; kassza</h2></div></div><div id="shiftPanelBody"></div></section>
+
+<section id="documentsPanel" class="panel staff-extra"><div class="panel-head"><div><span>07 / DOCUMENTS</span><h2>Számla</h2></div></div><div id="documentsBody"><div class="doc-note">A számlázás <b>nem kötelező</b>. Eladáskor vagy később is elkészíthető.</div></div></section>
+
+<section id="ownerPanel" class="panel owner-panel hidden owner-only staff-extra"><div class="panel-head"><div><span>08 / OWNER</span><h2>Fiókok &amp; műszak statisztika</h2></div></div>
+<form id="userForm" class="mini-form"><input id="uName" placeholder="Név" required><input id="uUsername" placeholder="Felhasználónév" required><input id="uPassword" type="password" placeholder="Ideiglenes jelszó" required><select id="uRole"><option value="staff">Staff</option><option value="manager">Manager</option><option value="owner">Owner</option></select><button class="btn btn-red" type="submit">FELHASZNÁLÓ LÉTREHOZÁSA</button></form>
+<div id="usersList" class="users-list"></div><div id="performance" style="margin-top:18px"></div><div id="ownerShifts" style="margin-top:18px"></div>
+</section>
+</section></main>
+
+<div id="docModal" class="doc-modal"><div class="doc-box"><div class="row" style="display:flex;justify-content:space-between;gap:10px"><h2 id="docTitle">Dokumentum</h2><button class="btn btn-ghost" onclick="closeDoc()">×</button></div><div id="docContent"></div></div></div>
+<script src="js/staff.js?v=15.5"></script>
+</body></html>

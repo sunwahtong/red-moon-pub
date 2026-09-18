@@ -1,0 +1,90 @@
+{
+  "users": [],
+  "products": [
+    {
+      "id": "p_blood",
+      "name": "Blood Moon",
+      "category": "drink",
+      "price": 1800,
+      "stock": 24,
+      "minStock": 8,
+      "image": "assets/menu/drinks/blood-moon.jpg",
+      "active": true
+    },
+    {
+      "id": "p_tokyo",
+      "name": "Tokyo Afterdark",
+      "category": "drink",
+      "price": 2100,
+      "stock": 18,
+      "minStock": 8,
+      "image": "assets/menu/drinks/tokyo-afterdark.jpg",
+      "active": true
+    },
+    {
+      "id": "p_sake",
+      "name": "Red Sake",
+      "category": "drink",
+      "price": 1600,
+      "stock": 32,
+      "minStock": 10,
+      "image": "assets/menu/drinks/red-sake.jpg",
+      "active": true
+    },
+    {
+      "id": "p_yuzu",
+      "name": "Neon Yuzu",
+      "category": "drink",
+      "price": 1400,
+      "stock": 26,
+      "minStock": 8,
+      "image": "assets/menu/drinks/neon-yuzu.jpg",
+      "active": true
+    },
+    {
+      "id": "p_gyoza",
+      "name": "Gyoza",
+      "category": "food",
+      "price": 2500,
+      "stock": 41,
+      "minStock": 15,
+      "image": "assets/menu/food/gyoza.jpg",
+      "active": true
+    },
+    {
+      "id": "p_karaage",
+      "name": "Karaage",
+      "category": "food",
+      "price": 2900,
+      "stock": 16,
+      "minStock": 10,
+      "image": "assets/menu/food/karaage.jpg",
+      "active": true
+    },
+    {
+      "id": "p_yakitori",
+      "name": "Yakitori",
+      "category": "food",
+      "price": 2700,
+      "stock": 22,
+      "minStock": 10,
+      "image": "assets/menu/food/yakitori.jpg",
+      "active": true
+    },
+    {
+      "id": "p_bao",
+      "name": "Bao",
+      "category": "food",
+      "price": 2300,
+      "stock": 19,
+      "minStock": 8,
+      "image": "assets/menu/food/bao.jpg",
+      "active": true
+    }
+  ],
+  "sales": [],
+  "audit": [],
+  "shifts": [],
+  "documents": [],
+  "notifications": []
+}

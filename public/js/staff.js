@@ -1,0 +1,270 @@
+if(location.protocol==='file:'){ location.replace('http://localhost:8787/staff'); }
+const $=s=>document.querySelector(s);
+let me=null,products=[],currentShift=null,latestSale=null;
+const money=n=>new Intl.NumberFormat('hu-HU').format(Number(n)||0)+' Ft';
+const SOUND_BASE='/assets/sounds/';
+const soundCache={};
+let audioUnlocked=false;
+function unlockAudio(){
+  if(audioUnlocked)return;
+  try{
+    const C=window.AudioContext||window.webkitAudioContext;
+    if(C){window._audioCtx ||= new C(); if(window._audioCtx.state==='suspended')window._audioCtx.resume();}
+    audioUnlocked=true;
+  }catch{}
+}
+document.addEventListener('pointerdown',unlockAudio,{once:true});
+document.addEventListener('keydown',unlockAudio,{once:true});
+function playSfx(name,volume=0.65){
+  unlockAudio();
+  try{
+    const a=soundCache[name]||new Audio(SOUND_BASE+name+'.wav');
+    soundCache[name]=a;
+    a.currentTime=0;
+    a.volume=volume;
+    const p=a.play();
+    if(p&&p.catch)p.catch(()=>fallbackSfx(name,volume));
+  }catch{fallbackSfx(name,volume)}
+}
+function fallbackSfx(name,volume){
+  try{
+    const ctx=window._audioCtx||(window._audioCtx=new (window.AudioContext||window.webkitAudioContext)());
+    const now=ctx.currentTime;
+    const patterns={
+      error:[[170,0,.12],[110,.13,.22]],
+      low_stock:[[660,0,.10],[880,.11,.22],[660,.23,.33]],
+      success:[[520,0,.08],[660,.09,.17],[790,.18,.32]],
+      cash_close:[[392,0,.10],[523,.11,.21],[659,.22,.34],[784,.35,.52]]
+    };
+    (patterns[name]||patterns.success).forEach(([freq,a,b])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine';o.frequency.value=freq;
+      g.gain.setValueAtTime(0.0001,now+a);
+      g.gain.exponentialRampToValueAtTime(Math.max(.015,volume*.16),now+a+.01);
+      g.gain.exponentialRampToValueAtTime(.0001,now+b);
+      o.connect(g);g.connect(ctx.destination);o.start(now+a);o.stop(now+b+.02);
+    });
+  }catch{}
+}
+let warnedLowStock=new Set();
+function checkStockAlerts(list){
+  const low=list.filter(p=>p.active&&p.stock>0&&p.stock<=p.minStock);
+  const empty=list.filter(p=>p.active&&p.stock<=0);
+  const signature=low.map(p=>p.id+':'+p.stock).sort().join('|');
+  const previous=window._lowStockSignature||'';
+  if(signature!==previous && low.length) playSfx('low_stock',0.7);
+  window._lowStockSignature=signature;
+  window._emptyStockIds=new Set(empty.map(p=>p.id));
+}
+
+const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+async function api(url,opt={}){
+  try{
+    const r=await fetch(url,{credentials:'same-origin',headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt});
+    let d={}; try{d=await r.json()}catch{}
+    if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);
+    return d;
+  }catch(err){
+    if(err instanceof TypeError)throw new Error('A Red Moon Staff szerver nem érhető el. Indítsd el a Start_Red_Moon.bat fájlt.');
+    throw err;
+  }
+}
+async function boot(){const d=await api('/api/me');if(d.user){me=d.user;showApp()}else showLogin()}
+function showLogin(){$('#loginView').classList.remove('hidden');$('#appView').classList.add('hidden')}
+function showApp(){
+  $('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');
+  $('#staffUser').textContent=`${me.name.toUpperCase()} · ${me.role.toUpperCase()}`;
+  $('#welcome').textContent=`Bejelentkezve: ${me.name} · ${me.role.toUpperCase()}`;
+  $('#statRole').textContent=me.role.toUpperCase();
+  if(me.role==='manager'||me.role==='owner')$('#managerPanel').classList.remove('hidden');
+  if(me.role==='owner')$('#ownerPanel').classList.remove('hidden');
+  load();
+}
+async function load(){
+  const [p,d,s,sh]=await Promise.all([api('/api/products'),api('/api/dashboard'),api('/api/sales'),api('/api/shifts/current')]);
+  products=p.products;currentShift=sh.shift||null;checkStockAlerts(products);
+  renderProducts();renderDashboard(d);renderSales(s.sales);renderShift();renderDocumentsHint();if(me.role==='manager'||me.role==='owner')loadNotifications();
+  if(me.role==='manager'||me.role==='owner')renderManager();
+  if(me.role==='owner'){loadUsers();loadPerformance()}
+}
+function renderProducts(){
+  const active=products.filter(p=>p.active);
+  $('#saleProduct').innerHTML=active.map(p=>`<option value="${p.id}">${esc(p.name)} · ${money(p.price)}</option>`).join('');
+  updateSalePreview();
+  $('#inventory').innerHTML=active.map(p=>`<div class="stock-row ${p.stock<=p.minStock?'low':''}"><div><b>${esc(p.name)}</b><small>${p.category==='drink'?'ITAL':'ÉTEL'} · minimum ${p.minStock} db</small></div><span class="stock-num">${p.stock} db</span><span>${p.stock<=p.minStock?'⚠':''}</span></div>`).join('')
+}
+function renderDashboard(d){
+  $('#statRevenue').textContent=money(d.today.revenue);$('#statItems').textContent=d.today.items+' db';$('#statLow').textContent=d.lowStock.length;
+  $('#alerts').innerHTML=d.lowStock.length?d.lowStock.map(p=>`<div class="alert"><b>${esc(p.name)} · ${p.stock} db</b><small>Minimum: ${p.minStock} db</small></div>`).join(''):'<div class="alert"><b>Minden rendben.</b><small>Nincs alacsony készlet.</small></div>';
+}
+function renderSales(sales){
+  window._lastSales=sales;
+  const canDelete=me && (me.role==='manager'||me.role==='owner');
+  $('#salesTable').innerHTML=sales.length?sales.slice(0,20).map(s=>`<tr>
+    <td>${new Date(s.at).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</td>
+    <td>${esc(s.user)}</td><td>${esc(s.product)}</td><td>${s.qty}</td><td>${money(s.total)}</td>
+    <td class="sales-actions">
+      ${s.documentId
+        ? `<button class="table-action" onclick="loadDocumentById('${esc(s.documentId)}')">MEGNYITÁS</button>`
+        : `<button class="table-action" onclick="createDocument('${esc(s.id)}','invoice')">SZÁMLÁZÁS</button>`}
+      ${canDelete?`<button class="table-action danger" onclick="deleteSale('${esc(s.id)}')">TÖRLÉS</button>`:''}
+    </td>
+  </tr>`).join(''):'<tr><td colspan="6">Még nincs eladás.</td></tr>';
+}
+
+function updateSalePreview(){const p=products.find(x=>String(x.id)===$('#saleProduct')?.value);if(!p)return;$('#salePrice').textContent=money(p.price);$('#saleStock').textContent=p.stock+' db';const q=Math.max(1,Number($('#saleQty').value)||1);$('#saleTotal').textContent=money(p.price*q)}
+function renderShift(){
+  if(!currentShift){
+    $('#shiftBar').innerHTML=`<div><span class="shift-dot"></span><b>KASSZA ZÁRVA</b><div class="mini-note">Eladás előtt nyiss műszakot.</div></div><button class="btn btn-red" onclick="openShift()">MŰSZAK / KASSZA NYITÁSA</button>`;
+    $('#shiftPanelBody').innerHTML=`<div class="mini-note">A kassza jelenleg zárva van.</div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="openShift()">KASSZA NYITÁSA</button></div>`;
+  }else{
+    const rev=currentShift.id?0:0;
+    $('#shiftBar').innerHTML=`<div><span class="shift-dot open"></span><b>KASSZA NYITVA</b><div class="shift-meta"><span>Indította: ${esc(currentShift.startedByName)}</span><span>Nyitás: ${new Date(currentShift.startedAt).toLocaleString('hu-HU')}</span><span>Műszakban: ${esc((currentShift.members||[]).join(', '))}</span></div></div><button class="btn btn-red" onclick="closeShift()">MŰSZAK / KASSZA ZÁRÁSA</button>`;
+    $('#shiftPanelBody').innerHTML=`<div class="kpi-grid"><div class="kpi"><span class="muted">Indító</span><strong>${esc(currentShift.startedByName)}</strong></div><div class="kpi"><span class="muted">Nyitás</span><strong>${new Date(currentShift.startedAt).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</strong></div><div class="kpi"><span class="muted">Műszak tagjai</span><strong>${esc((currentShift.members||[]).join(', '))}</strong></div></div><div class="action-row" style="margin-top:15px"><button class="btn btn-red" onclick="closeShift()">KASSZA ZÁRÁSA</button></div>`;
+  }
+}
+async function openShift(){
+  const opening=prompt('Kezdő kassza összege (Ft):','0'); if(opening===null)return;
+  const members=prompt('Műszakban lévők nevei, vesszővel elválasztva:',me.name); if(members===null)return;
+  try{await api('/api/shifts/open',{method:'POST',body:JSON.stringify({openingCash:Number(opening),members:members.split(',').map(x=>x.trim()).filter(Boolean)})});alert('Műszak megnyitva.');await load()}catch(e){alert(e.message)}
+}
+async function closeShift(){
+  if(!currentShift)return;
+  const closing=prompt('Záró kassza összege (Ft):','0'); if(closing===null)return;
+  const notes=prompt('Zárási megjegyzés (opcionális):','')??'';
+  try{
+    const d=await api('/api/shifts/close',{method:'POST',body:JSON.stringify({closingCash:Number(closing),notes})});
+    playSfx('cash_close',0.65);
+    showShiftCloseDocument(d.shift,d.transfer);
+    currentShift=null;await load();
+  }catch(e){alert(e.message)}
+}
+function showShiftCloseDocument(s,t){
+  $('#docTitle').textContent='Műszakzárási dokumentáció';
+  $('#docContent').innerHTML=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>Műszakazonosító:</b> ${esc(s.id)}</p><div class="receipt-line"><span>Nyitás</span><b>${new Date(s.startedAt).toLocaleString('hu-HU')}</b></div><div class="receipt-line"><span>Zárás</span><b>${new Date(s.endedAt).toLocaleString('hu-HU')}</b></div><div class="receipt-line"><span>Indította</span><b>${esc(s.startedByName)}</b></div><div class="receipt-line"><span>Zárta</span><b>${esc(s.closedByName)}</b></div><div class="receipt-line"><span>Műszakban</span><b>${esc((s.members||[]).join(', '))}</b></div><div class="receipt-line"><span>Eladások</span><b>${s.salesCount} db</b></div><div class="receipt-line"><span>Eladott tételek</span><b>${s.items} db</b></div><div class="receipt-line"><span>Bevétel</span><b>${money(s.revenue)}</b></div><div class="receipt-line"><span>Záró kassza</span><b>${money(s.closingCash)}</b></div><hr><p><b>Az elszámolandó összeg átutalása:</b></p><p>Számlaszám: <b>${t.account}</b><br>Név: <b>${t.name}</b><br><b>Közlemény: Zárási idő: ${new Date(s.endedAt).toLocaleString('hu-HU')}</b><br>Összeg: <b>${money(t.amount)}</b></p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
+  $('#docModal').classList.add('show');
+  window._printHtml=$('#docContent').innerHTML;
+}
+async function renderDocumentsHint(){
+  const box=$('#documentsBody');
+  if(!box)return;
+  try{
+    const d=await api('/api/documents');
+    box.innerHTML=`<div class="doc-note">A számlázás <b>nem kötelező</b>. Eladáskor vagy később is elkészíthető.</div>`+
+      (d.documents.length?`<div class="doc-list">${d.documents.slice(0,100).map(x=>`<div class="doc-item">
+        <span><b>${esc(x.id)}</b><small>${new Date(x.createdAt).toLocaleString('hu-HU')} · ${esc(x.createdByName)}</small></span>
+        <span class="doc-actions"><strong>${money(x.total)}</strong>
+          <button class="table-action" onclick='showDocument(${JSON.stringify(x).replace(/</g,'\\u003c')})'>MEGNYITÁS</button>
+          ${me.role==='owner'?`<button class="table-action danger" onclick="deleteInvoice('${esc(x.id)}')">TÖRLÉS</button>`:''}
+        </span>
+      </div>`).join('')}</div>`:'<div class="mini-note">Még nincs kiállított számla.</div>');
+  }catch(e){box.innerHTML='<div class="mini-note">A számlák megnyitásához MANAGER vagy OWNER jogosultság szükséges.</div>'}
+}
+
+function updateLatestDocButtons(){}
+
+async function deleteSale(id){
+  if(!(me && (me.role==='manager'||me.role==='owner')))return;
+  const sale=(window._lastSales||[]).find(x=>x.id===id);
+  const label=sale?`${sale.product} · ${money(sale.total)}`:'ezt az eladást';
+  const extra=sale?.documentId?`\n\nAz eladáshoz tartozó számla megmarad. Számlát csak OWNER tud törölni a Számla fülön.`:'';
+  if(!confirm(`Biztosan törlöd ${label} az eladási listából?\n\nA készlet az eladott mennyiséggel vissza lesz állítva.${extra}`))return;
+  try{await api('/api/sales/'+encodeURIComponent(id),{method:'DELETE'});playSfx('success',0.45);await load()}
+  catch(e){playSfx('error',0.8);alert(e.message)}
+}
+async function deleteInvoice(id){
+  if(me?.role!=='owner'){playSfx('error',0.6);alert('Számlát csak OWNER jogosultsággal lehet törölni.');return}
+  if(!confirm(`Biztosan törlöd a(z) ${id} számlát?\n\nAz eredeti eladás ettől nem törlődik.`))return;
+  try{await api('/api/documents/'+encodeURIComponent(id),{method:'DELETE'});playSfx('success',0.45);await load()}
+  catch(e){playSfx('error',0.8);alert(e.message)}
+}
+async function createDocument(saleId,type){
+  let customer={name:'Vásárló',address:'',taxNumber:''};
+  if(true){
+    const name=prompt('Számlázási név:', ''); if(name===null)return;
+    const address=prompt('Számlázási cím:', ''); if(address===null)return;
+    const tax=prompt('Adószám (opcionális):',''); if(tax===null)return;
+    customer={name,address,taxNumber:tax};
+  }
+  try{
+    const d=await api('/api/documents',{method:'POST',body:JSON.stringify({saleId,type:'invoice',customer})});
+    showDocument(d.document);
+    await load();
+  }catch(e){alert(e.message)}
+}
+function showDocument(doc){
+  const label='SZÁMLA';
+  $('#docTitle').textContent=`${label} · ${doc.id}`;
+  const item=doc.items[0];
+  $('#docContent').innerHTML=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>${label}</b><br>Dokumentum: ${esc(doc.id)}<br>Dátum: ${new Date(doc.createdAt).toLocaleString('hu-HU')}</p><p><b>Vásárló:</b> ${esc(doc.customer.name)}${doc.customer.address?'<br>'+esc(doc.customer.address):''}${doc.customer.taxNumber?'<br>Adószám: '+esc(doc.customer.taxNumber):''}</p><div class="receipt-line"><span>${esc(item.product)} × ${item.qty}</span><b>${money(item.total)}</b></div><div class="receipt-line"><span>Fizetés</span><b>${doc.paymentMethod}</b></div><div class="receipt-line"><span>ÖSSZESEN</span><b>${money(doc.total)}</b></div><p style="margin-top:18px">Red Moon Pub · Zhen Yu Xiaoo</p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
+  $('#docModal').classList.add('show');window._printHtml=$('#docContent').innerHTML;
+}
+function closeDoc(){$('#docModal').classList.remove('show')}
+async function loadDocumentById(id){
+  try{
+    const d=await api('/api/documents');
+    const doc=d.documents.find(x=>x.id===id);
+    if(doc)showDocument(doc); else alert('A számla nem található.');
+  }catch(e){alert(e.message)}
+}
+function printCurrentDoc(){if(!window._printHtml)return;const w=window.open('','_blank','width=700,height=900');w.document.write('<html><head><title>Red Moon Document</title><style>body{font-family:Arial;padding:30px}.receipt-paper{max-width:560px;margin:auto;border:1px solid #ddd;padding:28px}.receipt-line{display:flex;justify-content:space-between;border-bottom:1px dashed #999;padding:9px 0}</style></head><body>'+window._printHtml+'</body></html>');w.document.close();w.focus();w.print()}
+
+function renderManager(){
+  $('#managerInventory').innerHTML=products.filter(p=>p.active).map(p=>`<div class="manager-row"><div><b>${esc(p.name)}</b><div class="role">${p.category==='drink'?'ITAL':'ÉTEL'} · ${money(p.price)}</div></div><span>${p.stock} db</span><input data-stock="${p.id}" type="number" min="0" value="${p.stock}" style="width:80px;background:#090506;border:1px solid #3a171f;color:white;padding:7px"><button data-save="${p.id}">MENTÉS</button></div>`).join('');
+  document.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.save;const inp=document.querySelector(`[data-stock="${id}"]`);try{const newStock=Number(inp.value);await api('/api/inventory/adjust',{method:'POST',body:JSON.stringify({productId:id,stock:newStock})});if(newStock===0)playSfx('error',0.75);else if(newStock<=products.find(p=>p.id===id)?.minStock)playSfx('low_stock',0.7);await load()}catch(e){alert(e.message)}})
+}
+async function loadUsers(){
+  const d=await api('/api/users');
+  $('#usersList').innerHTML='<div class="mini-note" style="margin:12px 0">OWNER jogosultsággal Owner rang is létrehozható. Saját fiók nem törölhető; az utolsó OWNER sem.</div>'+d.users.map(u=>`<div class="user-row"><b>${esc(u.name)}</b><span>${esc(u.username)}</span><span class="role">${u.role.toUpperCase()}</span><button class="danger-btn" onclick="deleteUser('${u.id}','${esc(u.name)}')">TÖRLÉS</button></div>`).join('')
+}
+async function deleteUser(id,name){if(!confirm(`Biztosan törlöd: ${name}?`))return;try{await api('/api/users/'+encodeURIComponent(id),{method:'DELETE'});await loadUsers();alert('Fiók törölve.')}catch(e){alert(e.message)}}
+async function loadPerformance(){
+  try{
+    const d=await api('/api/owner/performance');
+    $('#performance').innerHTML=`<h3>Műszak teljesítmény — csak OWNER</h3>`+(d.staff.length?`<div class="table-wrap"><table><thead><tr><th>Dolgozó</th><th>Műszak</th><th>Bevétel</th><th>Eladás</th><th>Db</th><th>Óra</th></tr></thead><tbody>${d.staff.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.shifts}</td><td>${money(x.revenue)}</td><td>${x.sales}</td><td>${x.items}</td><td>${x.hours.toFixed(1)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="mini-note">Még nincs lezárt műszak.</div>');
+    $('#ownerShifts').innerHTML=`<h3>Lezárt műszakok — dolgozói bontás</h3><div class="table-wrap"><table><thead><tr><th>Nyitás</th><th>Zárás</th><th>Műszakban</th><th>Dolgozói teljesítmény</th><th>Bevétel</th></tr></thead><tbody>${d.shiftBreakdown.map(s=>`<tr><td>${new Date(s.startedAt).toLocaleString('hu-HU')}</td><td>${new Date(s.endedAt).toLocaleString('hu-HU')}</td><td>${esc((s.members||[]).join(', '))}</td><td>${s.employees.length?s.employees.map(x=>`${esc(x.name)}: ${money(x.revenue)} / ${x.items} db`).join('<br>'):'Nincs rögzített eladás'}</td><td>${money(s.revenue)}</td></tr>`).join('')}</tbody></table></div>`;
+  }catch(e){$('#performance').innerHTML='<div class="mini-note danger">Owner statisztika nem tölthető be.</div>'}
+}
+
+$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();$('#loginError').textContent='';try{const d=await api('/api/login',{method:'POST',body:JSON.stringify({username:$('#username').value,password:$('#password').value})});me=d.user;showApp()}catch(err){$('#loginError').textContent=err.message}});
+$('#logoutBtn').addEventListener('click',async()=>{await api('/api/logout',{method:'POST'});location.reload()});
+$('#saleProduct').addEventListener('change',updateSalePreview);$('#saleQty').addEventListener('input',updateSalePreview);
+$('#qtyMinus').onclick=()=>{$('#saleQty').value=Math.max(1,Number($('#saleQty').value)-1);updateSalePreview()};
+$('#qtyPlus').onclick=()=>{$('#saleQty').value=Number($('#saleQty').value)+1;updateSalePreview()};
+$('#refreshBtn').onclick=load;
+$('#saleForm').addEventListener('submit',async e=>{
+  e.preventDefault();const msg=$('#saleMsg');msg.textContent='';
+  try{
+    const selected=products.find(p=>p.id===$('#saleProduct').value);
+    const wanted=Number($('#saleQty').value)||1;
+    if(selected && selected.stock<=0){
+      playSfx('error',0.9);
+      throw new Error('EZ A TERMÉK NINCS KÉSZLETEN — az eladás nem rögzíthető.');
+    }
+    if(selected && wanted>selected.stock){
+      playSfx('error',0.9);
+      throw new Error(`NINCS ELÉG KÉSZLET — jelenleg ${selected.stock} db van.`);
+    }
+    const d=await api('/api/sales',{method:'POST',body:JSON.stringify({productId:$('#saleProduct').value,qty:wanted,paymentMethod:$('#paymentMethod').value})});
+    latestSale=d.sale;playSfx('success',0.55);msg.style.color='#69e0ac';msg.innerHTML=`Eladás rögzítve: ${money(d.sale.total)} · <button type="button" class="btn" onclick="createDocument('${d.sale.id}','invoice')">SZÁMLA KÉSZÍTÉSE</button>`;
+    $('#saleQty').value=1;await load();
+  }catch(err){playSfx('error',0.8);msg.style.color='#ff657a';msg.textContent=err.message}
+});
+$('#productForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/products',{method:'POST',body:JSON.stringify({name:$('#pName').value,category:$('#pCategory').value,price:Number($('#pPrice').value),stock:Number($('#pStock').value),minStock:Number($('#pMin').value)})});e.target.reset();await load()}catch(err){alert(err.message)}});
+$('#userForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/users',{method:'POST',body:JSON.stringify({name:$('#uName').value,username:$('#uUsername').value,password:$('#uPassword').value,role:$('#uRole').value})});e.target.reset();await loadUsers();alert('Felhasználó létrehozva.')}catch(err){alert(err.message)}});
+boot().catch(e=>{console.error(e);showLogin();if($('#loginError'))$('#loginError').textContent=e.message});
+
+async function loadNotifications(){
+  const panel=$('#notificationsPanel'), body=$('#notificationsBody');
+  if(!panel||!body)return;
+  try{
+    const d=await api('/api/notifications');
+    const unread=d.notifications.filter(n=>!n.read);
+    panel.classList.toggle('has-unread',unread.length>0);
+    body.innerHTML=d.notifications.length?d.notifications.map(n=>`<button class="notification ${n.read?'read':'unread'}" onclick="markNotification('${n.id}')"><span class="notification-dot"></span><span><b>${esc(n.title)}</b><small>${esc(n.message)}<br>${new Date(n.at).toLocaleString('hu-HU')}</small></span></button>`).join(''):'<div class="mini-note">Nincs új értesítés.</div>';
+  }catch{}
+}
+async function markNotification(id){
+  try{await api('/api/notifications/read',{method:'POST',body:JSON.stringify({id})});await loadNotifications()}catch{}
+}
+setInterval(()=>{if(me&&(me.role==='manager'||me.role==='owner'))loadNotifications()},15000);
