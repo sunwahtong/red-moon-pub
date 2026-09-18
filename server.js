@@ -71,11 +71,20 @@ function broadcastClub(type='club_state', payload={}){
   const message=`data: ${JSON.stringify({type,...payload,at:new Date().toISOString()})}\n\n`;
   for(const client of [...clubRealtimeClients]){ try{client.res.write(message)}catch{clubRealtimeClients.delete(client)} }
 }
+function clubDefaults(){ return {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],nameRequests:[],approvedNames:[],bans:[],startedAt:null}; }
+function ensureClub(){ db.club ||= clubDefaults(); db.club.nameRequests ||= []; db.club.approvedNames ||= []; db.club.bans ||= []; db.club.chat ||= []; db.club.requests ||= []; db.club.queue ||= []; return db.club; }
+function getClientIP(req){ const x=String(req.headers['x-forwarded-for']||req.headers['x-real-ip']||req.socket.remoteAddress||'').split(',')[0].trim(); return x.replace(/^::ffff:/,'') || 'unknown'; }
+function activeBan(ip){ const c=ensureClub(), now=Date.now(); c.bans=c.bans.filter(b=>!b.until || b.until>now); return c.bans.find(b=>b.ip===ip)||null; }
+function cleanNameToken(raw){ return String(raw||'').trim().slice(0,160); }
+function approvedIdentity(req,name,token){ const c=ensureClub(), ip=getClientIP(req), n=String(name||'').trim().slice(0,32), t=cleanNameToken(token); if(!n||!t)return false; const ban=activeBan(ip); if(ban)return false; const hash=crypto.createHash('sha256').update(t).digest('hex'); return c.approvedNames.some(x=>x.tokenHash===hash && x.ip===ip && x.name===n && x.expiresAt>Date.now()); }
 function clubState(){
-  db.club ||= {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],startedAt:null};
-  const active=[...clubListeners.values()].filter(x=>x.lastSeen>Date.now()-30000);
+  const c=ensureClub();
+  const active=[...clubListeners.entries()].filter(([id,x])=>!id.startsWith('chat:')&&!id.startsWith('request:')&&x.lastSeen>Date.now()-30000);
   for(const [id,x] of clubListeners) if(x.lastSeen<=Date.now()-30000) clubListeners.delete(id);
-  return {live:!!db.club.live,dj:db.club.dj||null,title:db.club.title||'',current:db.club.current||null,queue:(db.club.queue||[]).slice(0,30),chat:(db.club.chat||[]).slice(0,80),requests:(db.club.requests||[]).filter(x=>x.status==='pending').slice(0,30),listenerCount:active.length,startedAt:db.club.startedAt||null};
+  c.nameRequests=c.nameRequests.filter(x=>x.status==='pending').slice(0,80);
+  c.approvedNames=c.approvedNames.filter(x=>x.expiresAt>Date.now()).slice(-300);
+  c.bans=c.bans.filter(x=>!x.until||x.until>Date.now()).slice(-200);
+  return {live:!!c.live,dj:c.dj||null,title:c.title||'',current:c.current||null,queue:(c.queue||[]).slice(0,30),chat:(c.chat||[]).slice(0,80).map(publicChatMessage),requests:(c.requests||[]).filter(x=>x.status==='pending').slice(0,30).map(x=>({id:x.id,at:x.at,name:x.name,item:x.item,status:x.status})),nameRequests:c.nameRequests.slice(0,50),listenerCount:active.length,startedAt:c.startedAt||null};
 }
 function broadcastClubState(){ broadcastClub('club_state',{state:clubState()}); }
 function authDJ(req,res){ const u=sessionUser(req); if(!u){json(res,401,{error:'DJ bejelentkezés szükséges'});return null;} if(u.role!=='dj'){json(res,403,{error:'Ehhez a DJ jogosultság szükséges'});return null;} return u; }
@@ -177,7 +186,7 @@ async function api(req,res,url){
       const u=db.users.find(x=>x.username.toLowerCase()===String(b.username||'').trim().toLowerCase());
       if(!u || !verifyPassword(String(b.password||''),u.passwordHash)) return json(res,401,{error:'Hibás felhasználónév vagy jelszó'});
       const sid=crypto.randomBytes(32).toString('hex');
-      sessions.set(sid,{id:u.id,username:u.username,name:u.name,role:u.role,lastSeen:Date.now()});
+      sessions.set(sid,{id:u.id,username:u.username,name:u.name,role:u.role,lastSeen:Date.now(),ip:getClientIP(req)});
       res.setHeader('Set-Cookie',`rm_session=${sid}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800${process.env.NODE_ENV==='production'?' ; Secure':''}`.replace(' ; Secure','; Secure'));
       audit(db,u,'LOGIN','Sikeres belépés'); await writeDB(db);
       return json(res,200,{user:publicUser(u)});
@@ -209,21 +218,44 @@ async function api(req,res,url){
       const b=await readBody(req); const id=String(b.id||'').trim(); if(!id)return json(res,400,{error:'Hiányzó listener azonosító'});
       clubListeners.set(id,{lastSeen:Date.now()}); broadcastClubState(); return json(res,200,{ok:true});
     }
+    if(req.method==='POST' && url==='/api/club/name-request'){
+      const b=await readBody(req); const name=String(b.name||'').trim().slice(0,32); const clientId=String(b.clientId||'').trim().slice(0,80);
+      if(!name||!clientId)return json(res,400,{error:'Megjelenési név szükséges'});
+      const ban=activeBan(getClientIP(req)); if(ban)return json(res,403,{error:`A chat tiltva van${ban.until?` ${new Date(ban.until).toLocaleString('hu-HU')}-ig`:''}. Indok: ${ban.reason||'nincs megadva'}`});
+      const c=ensureClub(); const existing=c.nameRequests.find(x=>x.clientId===clientId&&x.status==='pending');
+      if(existing){broadcastClubState();return json(res,200,{pending:true});}
+      const approved=c.approvedNames.find(x=>x.ip===getClientIP(req)&&x.name===name&&x.expiresAt>Date.now()); if(approved){ const fresh=crypto.randomBytes(32).toString('hex'); approved.tokenHash=crypto.createHash('sha256').update(fresh).digest('hex'); return json(res,200,{approved:true,token:fresh,name}); }
+      const request={id:crypto.randomUUID(),clientId,name,ip:getClientIP(req),at:new Date().toISOString(),status:'pending'}; c.nameRequests.unshift(request); c.nameRequests=c.nameRequests.slice(0,100); await writeDB(db); broadcastClub('name_request',{request:{id:request.id,clientId,name,at:request.at}}); broadcastClubState(); return json(res,201,{pending:true,requestId:request.id});
+    }
     if(req.method==='POST' && url==='/api/club/chat'){
-      const b=await readBody(req); const name=String(b.name||'').trim().slice(0,32); const text=String(b.text||'').trim().slice(0,500);
-      if(!name||!text)return json(res,400,{error:'Név és üzenet kötelező'});
-      db.club ||= {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],startedAt:null};
-      db.club.chat.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),name,text,kind:'chat'}); db.club.chat=db.club.chat.slice(0,120); await writeDB(db); broadcastClubState(); return json(res,201,{ok:true});
+      const b=await readBody(req); const name=String(b.name||'').trim().slice(0,32); const text=String(b.text||'').trim().slice(0,500); const token=cleanNameToken(b.token);
+      const djSession=sessionUser(req); const isDJ=djSession?.role==='dj';
+      if(!name||!text||(!isDJ&&!approvedIdentity(req,name,token)))return json(res,403,{error:'Előbb kérd a megjelenési neved jóváhagyását a DJ-től.'});
+      const ip=getClientIP(req), ban=activeBan(ip); if(ban)return json(res,403,{error:`Chat tiltás aktív. Indok: ${ban.reason||'nincs megadva'}`});
+      const last=clubListeners.get(`chat:${ip}`)?.lastChat||0; if(Date.now()-last<5000)return json(res,429,{error:`Várj még ${Math.ceil((5000-(Date.now()-last))/1000)} mp-et az új üzenetig.`});
+      clubListeners.set(`chat:${ip}`,{lastChat:Date.now(),lastSeen:Date.now()}); const c=ensureClub(); const msg={id:crypto.randomUUID(),at:new Date().toISOString(),name,text,kind:'chat'}; c.chat.unshift(msg); c.chat=c.chat.slice(0,120); await writeDB(db); broadcastClub('chat_message',{message:publicChatMessage(msg)}); broadcastClubState(); return json(res,201,{ok:true});
     }
     if(req.method==='POST' && url==='/api/club/request'){
-      const b=await readBody(req); const name=String(b.name||'').trim().slice(0,32); const parsed=parseYoutubeLink(b.url);
-      if(!name||!parsed)return json(res,400,{error:'Érvényes YouTube-link és név szükséges'});
-      db.club ||= {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],startedAt:null};
-      const request={id:crypto.randomUUID(),at:new Date().toISOString(),name,item:parsed,status:'pending'}; db.club.requests.unshift(request); db.club.requests=db.club.requests.slice(0,100);
-      db.club.chat.unshift({id:crypto.randomUUID(),at:request.at,name,text:`Zenei kérés: ${parsed.label}`,kind:'request',requestId:request.id}); db.club.chat=db.club.chat.slice(0,120); await writeDB(db); broadcastClubState(); return json(res,201,{request});
+      const b=await readBody(req); const name=String(b.name||'').trim().slice(0,32); const token=cleanNameToken(b.token); const parsed=parseYoutubeLink(b.url);
+      if(!name||!parsed||!approvedIdentity(req,name,token))return json(res,403,{error:'Érvényes névjóváhagyás és YouTube-link szükséges'});
+      const ip=getClientIP(req), ban=activeBan(ip); if(ban)return json(res,403,{error:`Chat tiltás aktív. Indok: ${ban.reason||'nincs megadva'}`});
+      const last=clubListeners.get(`request:${ip}`)?.lastRequest||0; if(Date.now()-last<5000)return json(res,429,{error:`Várj még ${Math.ceil((5000-(Date.now()-last))/1000)} mp-et az új kérésig.`});
+      clubListeners.set(`request:${ip}`,{lastRequest:Date.now(),lastSeen:Date.now()}); const c=ensureClub(); const request={id:crypto.randomUUID(),at:new Date().toISOString(),name,ip,item:parsed,status:'pending'}; c.requests.unshift(request); c.requests=c.requests.slice(0,100); const msg={id:crypto.randomUUID(),at:request.at,name,text:`Zenei kérés: ${parsed.label}`,kind:'request',requestId:request.id}; c.chat.unshift(msg); c.chat=c.chat.slice(0,120); await writeDB(db); broadcastClub('chat_message',{message:publicChatMessage(msg)}); broadcastClub('music_request',{request:{id:request.id,name,item:parsed.label}}); broadcastClubState(); return json(res,201,{request});
+    }
+    if(req.method==='POST' && url==='/api/club/name-decision'){
+      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const id=String(b.id||''); const action=String(b.action||'').toLowerCase(); const c=ensureClub(); const nr=c.nameRequests.find(x=>x.id===id); if(!nr)return json(res,404,{error:'Névkérelem nem található'}); if(!['accept','decline'].includes(action))return json(res,400,{error:'Érvénytelen művelet'});
+      nr.status=action==='accept'?'accepted':'declined'; nr.handledBy=u.name; nr.handledAt=new Date().toISOString(); let token=null;
+      if(action==='accept'){ token=crypto.randomBytes(32).toString('hex'); c.approvedNames.push({tokenHash:crypto.createHash('sha256').update(token).digest('hex'),name:nr.name,ip:nr.ip,approvedAt:nr.handledAt,expiresAt:Date.now()+12*60*60*1000}); }
+      await writeDB(db); broadcastClub('name_decision',{clientId:nr.clientId,accepted:action==='accept',name:nr.name,token}); broadcastClubState(); return json(res,200,{ok:true});
+    }
+    if(req.method==='POST' && url==='/api/club/ban'){
+      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const ip=String(b.ip||'').trim(); const minutes=Math.max(1,Math.min(10080,Number(b.minutes)||60)); const reason=String(b.reason||'').trim().slice(0,240); if(!ip||!reason)return json(res,400,{error:'IP-cím és indok kötelező'}); const c=ensureClub(); c.bans=c.bans.filter(x=>x.ip!==ip); c.bans.push({id:crypto.randomUUID(),ip,until:Date.now()+minutes*60000,minutes,reason,by:u.name,at:new Date().toISOString()}); await writeDB(db); broadcastClub('user_banned',{until:Date.now()+minutes*60000,reason}); broadcastClubState(); return json(res,200,{ok:true});
+    }
+    if(req.method==='POST' && url==='/api/dj/player-sync'){
+      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const current=ensureClub().current; if(!current)return json(res,400,{error:'Nincs aktív szám'}); const position=Math.max(0,Number(b.position)||0); const playing=!!b.playing; const payload={videoId:current.videoId||null,playlistId:current.playlistId||null,type:current.type,position,playing,at:Date.now()}; ensureClub().current={...current,playbackPosition:position,playbackPlaying:playing,playbackAt:payload.at}; broadcastClub('player_sync',{sync:payload}); return json(res,200,{ok:true});
     }
     // ---------- DJ CONSOLE ----------
-    if(req.method==='GET' && url==='/api/dj/state'){ const u=authDJ(req,res); if(!u)return; return json(res,200,{state:clubState(),me:publicUser(db.users.find(x=>x.id===u.id)||u)}); }
+    if(req.method==='GET' && url==='/api/dj/state'){ const u=authDJ(req,res); if(!u)return; const c=ensureClub(); const st=clubState(); st.chat=(c.chat||[]).slice(0,80); return json(res,200,{state:st,me:publicUser(db.users.find(x=>x.id===u.id)||u)}); }
     if(req.method==='GET' && url==='/api/dj/events'){
       const u=authDJ(req,res); if(!u)return;
       res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-store, must-revalidate','Connection':'keep-alive','X-Accel-Buffering':'no-store'});
@@ -247,7 +279,7 @@ async function api(req,res,url){
       const u=authDJ(req,res); if(!u)return; const b=await readBody(req); db.club ||= {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],startedAt:null};
       let item=null; if(b.queueId) item=(db.club.queue||[]).find(x=>x.id===b.queueId)||null; else if(b.url) item=parseYoutubeLink(b.url);
       if(!item)return json(res,400,{error:'A lejátszandó zene nem található'});
-      if(!item.id)item.id=crypto.randomUUID(); db.club.current={...item}; db.club.startedAt=new Date().toISOString(); db.club.live=true; db.club.dj={id:u.id,name:u.name};
+      if(!item.id)item.id=crypto.randomUUID(); db.club.current={...item,playbackPosition:0,playbackPlaying:true,playbackAt:Date.now()}; db.club.startedAt=new Date().toISOString(); db.club.live=true; db.club.dj={id:u.id,name:u.name};
       audit(db,u,'DJ_TRACK_START',item.label); await writeDB(db); broadcastClubState(); return json(res,200,{state:clubState()});
     }
     if(req.method==='POST' && url==='/api/dj/request'){
