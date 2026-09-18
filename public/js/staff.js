@@ -79,6 +79,7 @@ function openActionModal({title,kicker='RED MOON / COMMAND',fields=[],confirmTex
       const attrs=tag==='input'?`type="${f.type||'text'}"`:'';
       const value=f.value??'';
       if(f.type==='multiselect')return `<div class="modal-field modal-multiselect"><label>${esc(f.label)}</label><div class="modal-check-grid">${(f.options||[]).map((o,i)=>`<label class="modal-check"><input type="checkbox" name="modal_${esc(f.id)}" value="${esc(o.value)}" ${Array.isArray(f.value)&&f.value.includes(String(o.value))?'checked':''}><span><b>${esc(o.label)}</b>${o.meta?`<small>${esc(o.meta)}</small>`:''}</span></label>`).join('')}</div></div>`;
+      if(f.readonly)return `<div class="modal-field modal-fixed-message"><label>${esc(f.label)}</label><div class="modal-fixed-text">${esc(value)}</div></div>`;
       if(tag==='select')return `<div class="modal-field"><label>${esc(f.label)}</label><select id="modal_${esc(f.id)}">${(f.options||[]).map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select></div>`;
       return `<div class="modal-field"><label>${esc(f.label)}</label><${tag} id="modal_${esc(f.id)}" ${attrs} ${f.min!=null?`min="${f.min}"`:''} ${f.step?`step="${f.step}"`:''} ${f.required?'required':''} placeholder="${esc(f.placeholder||'')}" ${tag==='textarea'?'':`value="${esc(value)}"`}>${tag==='textarea'?esc(value):''}</${tag}></div>`;
     }).join('');
@@ -105,10 +106,10 @@ function submitActionModal(){
   closeActionModal(vals);
 }
 async function rmAlert(message,title='RED MOON / ÉRTESÍTÉS'){
-  await openActionModal({title,kicker:'RED MOON / COMMAND',fields:[{id:'message',label:'ÜZENET',type:'textarea',value:String(message)}],confirmText:'RENDBEN'}).then(()=>{});
+  await openActionModal({title,kicker:'RED MOON / COMMAND',fields:[{id:'message',label:'ÜZENET',type:'textarea',value:String(message),readonly:true}],confirmText:'RENDBEN'}).then(()=>{});
 }
 async function rmConfirm(message,title='MŰVELET MEGERŐSÍTÉSE'){
-  const result=await openActionModal({title,kicker:'RED MOON / BIZTONSÁGI ELLENŐRZÉS',fields:[{id:'message',label:'ELLENŐRZÉS',type:'textarea',value:String(message)}],confirmText:'MEGERŐSÍTEM',danger:true});
+  const result=await openActionModal({title,kicker:'RED MOON / BIZTONSÁGI ELLENŐRZÉS',fields:[{id:'message',label:'ELLENŐRZÉS',type:'textarea',value:String(message),readonly:true}],confirmText:'MEGERŐSÍTEM',danger:true});
   return !!result;
 }
 $('#actionCancel').addEventListener('click',()=>closeActionModal(null));
