@@ -48,9 +48,56 @@ async function initDB(){
     db = result.rows[0].data;
   }
   await migrateDrinkCatalog();
+  if(migrateCartIds()) await writeDB(db);
 }
 
 const CANONICAL_DRINKS = [{"id":"p_kobaltas","name":"Kőbaltás","category":"drink","price":1200,"stock":24,"minStock":8,"image":"assets/menu/drinks/kobaltas.png","active":true},{"id":"p_barracho","name":"Barracho","category":"drink","price":1800,"stock":24,"minStock":8,"image":"assets/menu/drinks/barracho.png","active":true},{"id":"p_sornyito","name":"Sörnyitó","category":"drink","price":2400,"stock":18,"minStock":6,"image":"assets/menu/drinks/sornyito.png","active":true},{"id":"p_syrah","name":"Syrah vörösbor","category":"drink","price":5000,"stock":18,"minStock":6,"image":"assets/menu/drinks/syrah.png","active":true},{"id":"p_two_roosters","name":"Two Roosters rozé","category":"drink","price":5600,"stock":18,"minStock":6,"image":"assets/menu/drinks/two_roosters.png","active":true},{"id":"p_bleuterd","name":"Bleuter'D pezsgő","category":"drink","price":4800,"stock":18,"minStock":6,"image":"assets/menu/drinks/bleuterd.png","active":true},{"id":"p_mount_bourbon","name":"The Mount Bourbon Whiskey","category":"drink","price":11200,"stock":16,"minStock":5,"image":"assets/menu/drinks/mount_bourbon.png","active":true},{"id":"p_vinewood","name":"Vinewood Sauvignon Blanc fehérbor","category":"drink","price":5800,"stock":18,"minStock":6,"image":"assets/menu/drinks/vinewood.png","active":true},{"id":"p_chernekov","name":"Cherenkov Premium Vodka","category":"drink","price":12600,"stock":16,"minStock":5,"image":"assets/menu/drinks/chernekov.png","active":true},{"id":"p_cazafortunas","name":"Cazafortunas Tequila","category":"drink","price":12200,"stock":16,"minStock":5,"image":"assets/menu/drinks/cazafortunas.png","active":true},{"id":"p_sinmisito","name":"Sinmisito Tequila","category":"drink","price":15800,"stock":14,"minStock":4,"image":"assets/menu/drinks/sinmisito.png","active":true},{"id":"p_ragga","name":"Ragga rum","category":"drink","price":11200,"stock":16,"minStock":5,"image":"assets/menu/drinks/ragga.png","active":true},{"id":"p_sprunk","name":"Sprunk (dobozos)","category":"drink","price":1780,"stock":30,"minStock":10,"image":"assets/menu/drinks/sprunk.png","active":true},{"id":"p_ecola","name":"E-Cola (dobozos)","category":"drink","price":1780,"stock":30,"minStock":10,"image":"assets/menu/drinks/ecola.png","active":true},{"id":"p_raine","name":"Rainé ásványvíz","category":"drink","price":1600,"stock":32,"minStock":10,"image":"assets/menu/drinks/raine.png","active":true}];
+
+function initialsFromName(name){
+  const parts=String(name||'').trim().split(/\s+/).filter(Boolean);
+  const letters=parts.map(part=>{
+    const clean=part.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]/g,'');
+    return clean ? clean[0].toUpperCase() : '';
+  }).filter(Boolean);
+  if(letters.length>=2) return letters.slice(0,6).join('');
+  const fallback=String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+  return (fallback.slice(0,3) || 'RED');
+}
+function makeCartId(shift,user,number){
+  return `${initialsFromName(user.name)}${String(number).padStart(2,'0')}`;
+}
+function migrateCartIds(){
+  db.sales ||= [];
+  db.shifts ||= [];
+  const valid=/^[A-Z]{2,8}\d{2,}$/;
+  const counters=new Map();
+  let changed=false;
+  const groups=new Map();
+  for(const sale of db.sales){
+    const key=`${sale.shiftId||'legacy'}::${sale.userId||sale.user||'unknown'}::${sale.transactionId||sale.id}`;
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push(sale);
+  }
+  const ordered=[...groups.values()].sort((a,b)=>new Date(a[0].at||0)-new Date(b[0].at||0));
+  for(const group of ordered){
+    const first=group[0];
+    const shift=db.shifts.find(x=>x.id===first.shiftId);
+    const name=first.user||shift?.startedByName||'Red Moon';
+    const counterKey=`${first.shiftId||'legacy'}::${first.userId||name}`;
+    let n=counters.get(counterKey)||0;
+    const existing=String(first.cartId||'');
+    if(valid.test(existing)){
+      const m=existing.match(/(\d+)$/); n=Math.max(n,Number(m[1])||0); counters.set(counterKey,n);
+      if(shift){ shift.cartCounters ||= {}; shift.cartCounters[String(first.userId||name)] = Math.max(Number(shift.cartCounters[String(first.userId||name)])||0,n); }
+      continue;
+    }
+    n+=1; counters.set(counterKey,n);
+    if(shift){ shift.cartCounters ||= {}; shift.cartCounters[String(first.userId||name)] = n; }
+    const cartId=makeCartId(shift,{name},n);
+    for(const sale of group){ sale.cartId=cartId; changed=true; }
+  }
+  return changed;
+}
 
 async function migrateDrinkCatalog(){
   db.products ||= [];
@@ -453,7 +500,8 @@ async function api(req,res,url){
         revenue:0,
         salesCount:0,
         items:0,
-        notes:String(b.notes||'')
+        notes:String(b.notes||''),
+        cartCounters:{}
       };
       db.shifts.unshift(shift);
       audit(db,u,'SHIFT_OPEN',`Műszak nyitva · kezdő kassza ${openingCash} Ft · ${shift.members.join(', ')}`);
@@ -549,7 +597,11 @@ async function api(req,res,url){
       }
       const transactionId=crypto.randomUUID();
       const at=new Date().toISOString();
-      const cartId='KOS-'+new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14)+'-'+crypto.randomBytes(3).toString('hex').toUpperCase();
+      shift.cartCounters ||= {};
+      const cartKey=String(u.id);
+      const nextCartNumber=(Number(shift.cartCounters[cartKey])||0)+1;
+      shift.cartCounters[cartKey]=nextCartNumber;
+      const cartId=makeCartId(shift,u,nextCartNumber);
       const sales=checked.map(item=>{
         const p=item.p, qty=item.qty, total=p.price*qty;
         p.stock-=qty;

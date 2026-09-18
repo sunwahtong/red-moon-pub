@@ -224,7 +224,7 @@ function renderSales(sales){
         : `<button class="table-action" onclick="createDocument('${esc(s.id)}','invoice')">SZÁMLÁZÁS</button>`}
       ${canDelete?`<button class="table-action danger" onclick="deleteSale('${esc(s.id)}')">TÖRLÉS</button>`:''}
     </td>
-  </tr>`).join(''):'<tr><td colspan="6">Még nincs eladás.</td></tr>';
+  </tr>`).join(''):'<tr><td colspan="7">Még nincs eladás.</td></tr>';
 }
 
 window.saleCart=window.saleCart||[];

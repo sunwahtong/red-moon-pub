@@ -96,3 +96,5 @@ linear-gradient(145deg,#040304 0%,#090507 48%,#050304 100%);}
   letter-spacing:.04em;
   white-space:nowrap;
 }
+
+table{table-layout:fixed;min-width:920px}th,td{white-space:nowrap;vertical-align:middle}th:nth-child(1),td:nth-child(1){width:7%}th:nth-child(2),td:nth-child(2){width:13%}th:nth-child(3),td:nth-child(3){width:13%}th:nth-child(4),td:nth-child(4){width:25%;white-space:normal}th:nth-child(5),td:nth-child(5){width:6%}th:nth-child(6),td:nth-child(6){width:10%}th:nth-child(7),td:nth-child(7){width:26%}.sales-actions{white-space:nowrap}.cart-id{font-size:10px;padding:4px 7px;letter-spacing:.02em}
