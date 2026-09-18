@@ -4,6 +4,7 @@
   // Red Moon Club live indicator — public, realtime, no refresh required.
   let clubLiveSource;
   let lastClubLive=false;
+  let clubIsLive=false;
   let clubSoundReady=false;
   function ensureClubLiveIndicator(){
     let el=document.querySelector('#rmLiveIndicator');
@@ -13,7 +14,7 @@
   function djLabel(name){ const n=String(name||'').trim(); return /^dj\b/i.test(n)?n:`DJ ${n}`; }
   function unlockClubSound(){ clubSoundReady=true; try{ const C=window.AudioContext||window.webkitAudioContext; if(C){ const c=window._rmClubLiveAudio||(window._rmClubLiveAudio=new C()); if(c.state==='suspended')c.resume(); } }catch{} }
   function liveBeep(start){ if(!clubSoundReady)return; try{ const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=window._rmClubLiveAudio||(window._rmClubLiveAudio=new C());if(c.state==='suspended')c.resume();const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=start?760:420;g.gain.setValueAtTime(.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(.055,c.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.22);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.24);}catch{} }
-  function paintClubLive(state){ const el=ensureClubLiveIndicator(); const live=!!state?.live; if(live!==lastClubLive){ liveBeep(live); lastClubLive=live; } el.classList.toggle('show',live); const dj=el.querySelector('#rmLiveDJ'); if(dj)dj.textContent=live&&state.dj?djLabel(state.dj.name):''; }
+  function paintClubLive(state){ const el=ensureClubLiveIndicator(); const live=!!state?.live; if(live!==lastClubLive){ liveBeep(live); lastClubLive=live; } clubIsLive=live; el.classList.toggle('show',live); const dj=el.querySelector('#rmLiveDJ'); if(dj)dj.textContent=live&&state.dj?djLabel(state.dj.name):''; if(typeof applyAmbienceLive==='function')applyAmbienceLive(live); }
   document.addEventListener('pointerdown', unlockClubSound, {once:false, passive:true});
   async function initClubLive(){
     try{const r=await fetch('/api/club/state',{credentials:'same-origin',cache:'no-store'}); if(r.ok)paintClubLive((await r.json()).state)}catch{}
@@ -86,6 +87,7 @@
     try { await audio.play(); paintSound(); return true; } catch { paintSound(); return false; }
   }
   async function startFromGesture() {
+    if (clubIsLive) { paintSound(); return false; }
     soundOn = true;
     localStorage.setItem(STORAGE.sound, 'on');
     restoreTime();
@@ -93,8 +95,21 @@
     try { await audio.play(); paintSound(); return true; } catch { paintSound(); return false; }
   }
   function stopAudio() { saveTime(); audio.pause(); soundOn = false; localStorage.setItem(STORAGE.sound, 'off'); paintSound(); }
+  let ambiencePausedByLive=false;
+  function applyAmbienceLive(live){
+    if(live){
+      if(!audio.paused){ saveTime(); audio.pause(); ambiencePausedByLive=true; }
+      paintSound();
+      return;
+    }
+    if(ambiencePausedByLive){
+      ambiencePausedByLive=false;
+      if(soundOn && volume>0) playAudio();
+      else paintSound();
+    }
+  }
   btn?.addEventListener('click', async () => { panel?.classList.toggle('open'); if (soundOn && !audio.paused) stopAudio(); else await startFromGesture(); paintSound(); });
-  slider?.addEventListener('input', async () => { volume = Number(slider.value); localStorage.setItem(STORAGE.volume, String(volume)); audio.volume = volume / 100; if (volume === 0) { if (!audio.paused) stopAudio(); return; } if (soundOn && audio.paused) await playAudio(); paintSound(); });
+  slider?.addEventListener('input', async () => { volume = Number(slider.value); localStorage.setItem(STORAGE.volume, String(volume)); audio.volume = volume / 100; if (volume === 0) { if (!audio.paused) stopAudio(); return; } if (soundOn && audio.paused && !clubIsLive) await playAudio(); paintSound(); });
   panel?.addEventListener('click', e => e.stopPropagation());
   document.addEventListener('click', e => { if (!soundWrap?.contains(e.target)) panel?.classList.remove('open'); });
 
@@ -102,7 +117,7 @@
   // on the next public page. Browsers may still block audible autoplay after a hard reload;
   // in that case the saved position remains intact and the next user interaction resumes it.
   const resumeSavedMusic = async () => {
-    if (soundOn && volume > 0 && !initialIsIndex) await playAudio();
+    if (soundOn && volume > 0 && !initialIsIndex && !clubIsLive) await playAudio();
   };
   if (initialIsIndex && $('#loader')) {
     const loader = $('#loader'), enter = $('#enterRedMoon');
