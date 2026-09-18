@@ -78,6 +78,7 @@ function openActionModal({title,kicker='RED MOON / COMMAND',fields=[],confirmTex
       const tag=f.type==='textarea'?'textarea':f.type==='select'?'select':'input';
       const attrs=tag==='input'?`type="${f.type||'text'}"`:'';
       const value=f.value??'';
+      if(f.type==='multiselect')return `<div class="modal-field modal-multiselect"><label>${esc(f.label)}</label><div class="modal-check-grid">${(f.options||[]).map((o,i)=>`<label class="modal-check"><input type="checkbox" name="modal_${esc(f.id)}" value="${esc(o.value)}" ${Array.isArray(f.value)&&f.value.includes(String(o.value))?'checked':''}><span><b>${esc(o.label)}</b>${o.meta?`<small>${esc(o.meta)}</small>`:''}</span></label>`).join('')}</div></div>`;
       if(tag==='select')return `<div class="modal-field"><label>${esc(f.label)}</label><select id="modal_${esc(f.id)}">${(f.options||[]).map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select></div>`;
       return `<div class="modal-field"><label>${esc(f.label)}</label><${tag} id="modal_${esc(f.id)}" ${attrs} ${f.min!=null?`min="${f.min}"`:''} ${f.step?`step="${f.step}"`:''} ${f.required?'required':''} placeholder="${esc(f.placeholder||'')}" ${tag==='textarea'?'':`value="${esc(value)}"`}>${tag==='textarea'?esc(value):''}</${tag}></div>`;
     }).join('');
@@ -92,7 +93,13 @@ async function rmForm(opts){
 function submitActionModal(){
   const body=$('#actionModalBody');
   const vals={};
-  body.querySelectorAll('input,textarea,select').forEach(el=>{vals[el.id.replace(/^modal_/,'')]=el.value});
+  body.querySelectorAll('input,textarea,select').forEach(el=>{
+    const key=el.id.replace(/^modal_/,'');
+    if(el.type==='checkbox' && el.name===`modal_${key}`){
+      if(!Array.isArray(vals[key]))vals[key]=[];
+      if(el.checked)vals[key].push(el.value);
+    }else if(el.type!=='checkbox'){vals[key]=el.value}
+  });
   closeActionModal(vals);
 }
 async function rmAlert(message,title='RED MOON / ÉRTESÍTÉS'){
@@ -313,14 +320,21 @@ function renderShift(){
   }
 }
 async function openShift(){
-  const data=await rmForm({title:'Kasszanyitás',kicker:'RED MOON / CASH REGISTER · OPEN',fields:[
-    {id:'opening',label:'KEZDŐ KASSZA ÖSSZEGE (FT)',type:'number',value:'0',min:0,step:'1',required:true},
-    {id:'members',label:'MŰSZAKBAN LÉVŐK NEVEI',value:me?.name||'',placeholder:'Nevek vesszővel elválasztva',required:true}
-  ],confirmText:'KASSZA NYITÁSA'});
-  if(!data)return;
-  const opening=Number(data.opening);const members=String(data.members||'').split(',').map(x=>x.trim()).filter(Boolean);
-  if(!Number.isFinite(opening)||opening<0||!members.length){await rmAlert('Add meg a kezdő kassza összegét és legalább egy műszaktagot.','Hiányzó adatok');return}
-  try{await api('/api/shifts/open',{method:'POST',body:JSON.stringify({openingCash:opening,members})});playSfx('cash_open',0.7);await rmAlert('A műszak és a kassza sikeresen megnyílt.','Kassza megnyitva');await load()}catch(e){await rmAlert(e.message,'Kasszanyitás sikertelen')}
+  try{
+    const people=await api('/api/shifts/available-members');
+    const users=(people.users||[]).filter(x=>x.role!=='dj');
+    if(!users.length){await rmAlert('Nincs hozzáadható meglévő dolgozói fiók.','Műszaktagok');return}
+    const selected=users.filter(x=>x.id===me?.id).map(x=>x.id);
+    const data=await rmForm({title:'Kasszanyitás',kicker:'RED MOON / CASH REGISTER · OPEN',fields:[
+      {id:'opening',label:'KEZDŐ KASSZA ÖSSZEGE (FT)',type:'number',value:'0',min:0,step:'1',required:true},
+      {id:'members',label:'MŰSZAKTAGOK KIVÁLASZTÁSA',type:'multiselect',value:selected,options:users.map(x=>({value:x.id,label:x.name,meta:x.role.toUpperCase()}))}
+    ],confirmText:'KASSZA NYITÁSA'});
+    if(!data)return;
+    const opening=Number(data.opening);const memberIds=Array.isArray(data.members)?data.members:[];
+    if(!Number.isFinite(opening)||opening<0||!memberIds.length){await rmAlert('Add meg a kezdő kassza összegét és válassz legalább egy műszaktagot.','Hiányzó adatok');return}
+    await api('/api/shifts/open',{method:'POST',body:JSON.stringify({openingCash:opening,memberIds})});
+    playSfx('cash_open',0.7);await rmAlert('A műszak és a kassza sikeresen megnyílt.','Kassza megnyitva');await load();
+  }catch(e){await rmAlert(e.message,'Kasszanyitás sikertelen')}
 }
 async function addShiftMember(){
   if(!currentShift)return;

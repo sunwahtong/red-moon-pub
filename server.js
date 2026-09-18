@@ -502,10 +502,14 @@ async function api(req,res,url){
       if(existing) return json(res,409,{error:`Már van nyitott műszak: ${existing.startedByName}. Zárd le előbb.`});
       const b=await readBody(req);
       const openingCash=Number(b.openingCash)||0;
-      const members=Array.isArray(b.members)?b.members.map(String).map(x=>x.trim()).filter(Boolean):[];
-      if(!members.includes(u.name)) members.unshift(u.name);
-      const memberIds=[...new Set(members.map(name=>db.users.find(x=>x.name===name)?.id).filter(Boolean))];
+      let memberIds=Array.isArray(b.memberIds)?[...new Set(b.memberIds.map(String).filter(Boolean))]:[];
+      if(!memberIds.length && Array.isArray(b.members)){
+        memberIds=[...new Set(b.members.map(String).map(name=>db.users.find(x=>x.name===name)?.id).filter(Boolean))];
+      }
+      const memberUsers=memberIds.map(id=>db.users.find(x=>x.id===id)).filter(Boolean).filter(x=>x.role!=='dj');
+      memberIds=memberUsers.map(x=>x.id);
       if(!memberIds.includes(u.id)) memberIds.unshift(u.id);
+      const members=[...new Set(memberIds.map(id=>db.users.find(x=>x.id===id)?.name).filter(Boolean))];
       const shift={
         id:'sh_'+crypto.randomBytes(7).toString('hex'),
         status:'open',
@@ -528,6 +532,13 @@ async function api(req,res,url){
       audit(db,u,'SHIFT_OPEN',`Műszak nyitva · kezdő kassza ${openingCash} Ft · ${shift.members.join(', ')}`);
       await writeDB(db);
       return json(res,201,{shift});
+    }
+
+    if(req.method==='GET' && url==='/api/shifts/available-members'){
+      const u=auth(req,res);
+      if(!u)return;
+      const users=db.users.filter(x=>x.role!=='dj').map(publicUser);
+      return json(res,200,{users});
     }
 
     if(req.method==='GET' && url==='/api/shifts/eligible-members'){
