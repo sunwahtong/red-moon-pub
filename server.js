@@ -71,8 +71,12 @@ function broadcastClub(type='club_state', payload={}){
   const message=`data: ${JSON.stringify({type,...payload,at:new Date().toISOString()})}\n\n`;
   for(const client of [...clubRealtimeClients]){ try{client.res.write(message)}catch{clubRealtimeClients.delete(client)} }
 }
-function clubDefaults(){ return {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],nameRequests:[],approvedNames:[],bans:[],startedAt:null}; }
-function ensureClub(){ db.club ||= clubDefaults(); db.club.nameRequests ||= []; db.club.approvedNames ||= []; db.club.bans ||= []; db.club.chat ||= []; db.club.requests ||= []; db.club.queue ||= []; return db.club; }
+function clubDefaults(){ return {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],nameRequests:[],approvedNames:[],bans:[],startedAt:null,library:[]}; }
+function ensureMusicDir(){ const dir=path.join(PUBLIC,'assets','dj-music'); fs.mkdirSync(dir,{recursive:true}); return dir; }
+function sanitizeFilename(name){ let n=String(name||'track').normalize('NFKC').replace(/[^a-zA-Z0-9._ -]+/g,'_').trim(); if(!n)n='track'; return n.slice(0,100); }
+function extAllowed(name){ return ['.mp3','.wav','.ogg','.m4a','.aac','.webm'].includes(path.extname(name).toLowerCase()); }
+function readMultipartAudio(req){ return new Promise((resolve,reject)=>{ const ct=String(req.headers['content-type']||''); const m=ct.match(/boundary=(?:"([^"]+)"|([^;]+))/i); if(!m)return reject(new Error('Multipart feltöltés szükséges')); const boundary=Buffer.from('--'+(m[1]||m[2])); const chunks=[]; let total=0; req.on('data',c=>{ total+=c.length; if(total>80*1024*1024){reject(new Error('A zene maximum 80 MB lehet.')); req.destroy(); return;} chunks.push(c); }); req.on('end',()=>{ try{ const buf=Buffer.concat(chunks); const start=buf.indexOf(Buffer.from('Content-Disposition:'),'utf8'); if(start<0)throw new Error('Fájl nem található a feltöltésben'); const headerEnd=buf.indexOf(Buffer.from('\r\n\r\n'),start); if(headerEnd<0)throw new Error('Érvénytelen feltöltés'); const header=buf.slice(start,headerEnd).toString('utf8'); const fm=header.match(/filename="([^"]*)"/i); const filename=fm?fm[1]:''; const dataStart=headerEnd+4; const end=buf.indexOf(Buffer.concat([Buffer.from('\r\n'),boundary]),dataStart); if(end<0)throw new Error('Érvénytelen fájlhatár'); resolve({filename,data:buf.slice(dataStart,end)}); }catch(e){reject(e)} }); req.on('error',reject); }); }
+function ensureClub(){ db.club ||= clubDefaults(); db.club.library ||= []; db.club.nameRequests ||= []; db.club.approvedNames ||= []; db.club.bans ||= []; db.club.chat ||= []; db.club.requests ||= []; db.club.queue ||= []; return db.club; }
 function getClientIP(req){ const x=String(req.headers['x-forwarded-for']||req.headers['x-real-ip']||req.socket.remoteAddress||'').split(',')[0].trim(); return x.replace(/^::ffff:/,'') || 'unknown'; }
 function activeBan(ip){ const c=ensureClub(), now=Date.now(); c.bans=c.bans.filter(b=>!b.until || b.until>now); return c.bans.find(b=>b.ip===ip)||null; }
 function cleanNameToken(raw){ return String(raw||'').trim().slice(0,160); }
@@ -85,10 +89,10 @@ function clubState(){
   c.nameRequests=c.nameRequests.filter(x=>x.status==='pending').slice(0,80);
   c.approvedNames=c.approvedNames.filter(x=>x.expiresAt>Date.now()).slice(-300);
   c.bans=c.bans.filter(x=>!x.until||x.until>Date.now()).slice(-200);
-  return {live:!!c.live,dj:c.dj||null,title:c.title||'',current:c.current||null,queue:(c.queue||[]).slice(0,30),chat:(c.chat||[]).slice(0,80).map(publicChatMessage),requests:(c.requests||[]).filter(x=>x.status==='pending').slice(0,30).map(x=>({id:x.id,at:x.at,name:x.name,item:x.item,status:x.status})),nameRequests:c.nameRequests.slice(0,50),listenerCount:active.length,startedAt:c.startedAt||null};
+  return {live:!!c.live,dj:c.dj||null,title:c.title||'',current:c.current||null,queue:(c.queue||[]).slice(0,30),library:(c.library||[]).slice(0,200).map(x=>({id:x.id,name:x.name,url:x.url,size:x.size,addedAt:x.addedAt,addedBy:x.addedBy})),chat:(c.chat||[]).slice(0,80).map(publicChatMessage),requests:(c.requests||[]).filter(x=>x.status==='pending').slice(0,30).map(x=>({id:x.id,at:x.at,name:x.name,item:x.item,status:x.status})),nameRequests:c.nameRequests.slice(0,50),listenerCount:active.length,startedAt:c.startedAt||null};
 }
 function broadcastClubState(){ broadcastClub('club_state',{state:clubState()}); }
-function authDJ(req,res){ const u=sessionUser(req); if(!u){json(res,401,{error:'DJ bejelentkezés szükséges'});return null;} if(u.role!=='dj'){json(res,403,{error:'Ehhez a DJ jogosultság szükséges'});return null;} return u; }
+function authDJ(req,res){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if(!['dj','manager','owner'].includes(u.role)){json(res,403,{error:'Ehhez a DJ jogosultság szükséges'});return null;} return u; }
 function parseYoutubeLink(raw){
   const value=String(raw||'').trim(); if(!value)return null;
   let u; try{u=new URL(value)}catch{return null;}
@@ -242,11 +246,17 @@ async function api(req,res,url){
       const u=authDJ(req,res); if(!u)return; const id=decodeURIComponent(url.slice('/api/club/chat/'.length)); const c=ensureClub(); const idx=c.chat.findIndex(x=>x.id===id); if(idx<0)return json(res,404,{error:'Üzenet nem található'}); const [removed]=c.chat.splice(idx,1); audit(db,u,'DJ_CHAT_DELETE',`${removed.name}: ${removed.text}`); await writeDB(db); broadcastClub('chat_deleted',{id}); broadcastClubState(); return json(res,200,{ok:true});
     }
     if(req.method==='POST' && url==='/api/club/request'){
-      const b=await readBody(req); const name=String(b.name||'').trim().slice(0,32); const token=cleanNameToken(b.token); const parsed=parseYoutubeLink(b.url);
-      if(!name||!parsed||!approvedIdentity(req,name,token))return json(res,403,{error:'Érvényes névjóváhagyás és YouTube-link szükséges'});
+      const b=await readBody(req); const name=String(b.name||'').trim().slice(0,32); const token=cleanNameToken(b.token);
+      if(!name||!approvedIdentity(req,name,token))return json(res,403,{error:'Érvényes névjóváhagyás szükséges'});
       const ip=getClientIP(req), ban=activeBan(ip); if(ban)return json(res,403,{error:`Chat tiltás aktív. Indok: ${ban.reason||'nincs megadva'}`});
       const last=clubListeners.get(`request:${ip}`)?.lastRequest||0; if(Date.now()-last<5000)return json(res,429,{error:`Várj még ${Math.ceil((5000-(Date.now()-last))/1000)} mp-et az új kérésig.`});
-      clubListeners.set(`request:${ip}`,{lastRequest:Date.now(),lastSeen:Date.now()}); const c=ensureClub(); const request={id:crypto.randomUUID(),at:new Date().toISOString(),name,ip,item:parsed,status:'pending'}; c.requests.unshift(request); c.requests=c.requests.slice(0,100); const msg={id:crypto.randomUUID(),at:request.at,name,text:`Zenei kérés: ${parsed.label}`,kind:'request',requestId:request.id}; c.chat.unshift(msg); c.chat=c.chat.slice(0,120); await writeDB(db); broadcastClub('chat_message',{message:publicChatMessage(msg)}); broadcastClub('music_request',{request:{id:request.id,name,item:parsed.label}}); broadcastClubState(); return json(res,201,{request});
+      const c=ensureClub(); let item=null;
+      if(b.trackId) item=(c.library||[]).find(x=>x.id===String(b.trackId))||null;
+      if(!item && b.title){ const q=String(b.title).trim().slice(0,120); if(q)item={id:'text_'+crypto.randomUUID(),name:q,url:'',requestOnly:true}; }
+      if(!item)return json(res,400,{error:'Válassz egy feltöltött zenét.'});
+      const request={id:crypto.randomUUID(),at:new Date().toISOString(),name,ip,item:{id:item.id,name:item.name,url:item.url||''},status:'pending'}; c.requests.unshift(request); c.requests=c.requests.slice(0,100);
+      const msg={id:crypto.randomUUID(),at:request.at,name,text:`Zenei kérés: ${item.name}`,kind:'request',requestId:request.id}; c.chat.unshift(msg); c.chat=c.chat.slice(0,120);
+      clubListeners.set(`request:${ip}`,{lastRequest:Date.now(),lastSeen:Date.now()}); await writeDB(db); broadcastClub('chat_message',{message:publicChatMessage(msg)}); broadcastClub('music_request',{request:{id:request.id,name,item:item.name}}); broadcastClubState(); return json(res,201,{request});
     }
     if(req.method==='POST' && url==='/api/club/name-decision'){
       const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const id=String(b.id||''); const action=String(b.action||'').toLowerCase(); const c=ensureClub(); const nr=c.nameRequests.find(x=>x.id===id); if(!nr)return json(res,404,{error:'Névkérelem nem található'}); if(!['accept','decline'].includes(action))return json(res,400,{error:'Érvénytelen művelet'});
@@ -272,29 +282,51 @@ async function api(req,res,url){
       return;
     }
     if(req.method==='POST' && url==='/api/dj/live'){
-      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); db.club ||= {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],startedAt:null};
-      const on=!!b.live; db.club.live=on; db.club.dj=on?{id:u.id,name:u.name}:null; db.club.title=on?String(b.title||'Red Moon Live').trim().slice(0,80):''; db.club.startedAt=on?new Date().toISOString():null;
-      if(!on){db.club.current=null;db.club.queue=[];} audit(db,u,on?'DJ_LIVE_START':'DJ_LIVE_STOP',on?db.club.title:'Live leállítva'); await writeDB(db); broadcastClub('live_status',{live:on,dj:on?{id:u.id,name:u.name}:null,title:on?db.club.title:''}); broadcastClubState(); return json(res,200,{state:clubState()});
+      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const c=ensureClub();
+      const on=!!b.live; c.live=on; c.dj=on?{id:u.id,name:u.name}:null; c.title=on?String(b.title||'Red Moon Live').trim().slice(0,80):''; c.startedAt=on?new Date().toISOString():null;
+      if(!on){c.current=null;c.queue=[];} audit(db,u,on?'DJ_LIVE_START':'DJ_LIVE_STOP',on?c.title:'Live leállítva'); await writeDB(db); broadcastClub('live_status',{live:on,dj:on?{id:u.id,name:u.name}:null,title:on?db.club.title:''}); broadcastClubState(); return json(res,200,{state:clubState()});
+    }
+    if(req.method==='POST' && url==='/api/dj/upload'){
+      const u=authDJ(req,res); if(!u)return;
+      try{
+        const file=await readMultipartAudio(req); if(!file.filename||!extAllowed(file.filename))return json(res,400,{error:'Csak MP3, WAV, OGG, M4A, AAC vagy WEBM hangfájl tölthető fel.'});
+        if(file.data.length<1000)return json(res,400,{error:'A feltöltött fájl üres vagy hibás.'});
+        ensureMusicDir(); const id='track_'+crypto.randomBytes(8).toString('hex'); const safe=`${id}_${sanitizeFilename(file.filename)}`; const abs=path.join(ensureMusicDir(),safe); fs.writeFileSync(abs,file.data);
+        const item={id,name:sanitizeFilename(file.filename).replace(/\.[^.]+$/,''),url:`assets/dj-music/${safe}`,size:file.data.length,addedAt:new Date().toISOString(),addedBy:u.name}; const c=ensureClub(); c.library.unshift(item); c.library=c.library.slice(0,200); await writeDB(db); broadcastClubState(); return json(res,201,{track:item,state:clubState()});
+      }catch(e){ return json(res,400,{error:e.message||'Feltöltési hiba'}); }
+    }
+    if(req.method==='DELETE' && url.startsWith('/api/dj/library/')){
+      const u=authDJ(req,res); if(!u)return; const id=decodeURIComponent(url.slice('/api/dj/library/'.length)); const c=ensureClub(); const idx=(c.library||[]).findIndex(x=>x.id===id); if(idx<0)return json(res,404,{error:'A zene nem található'}); const [item]=c.library.splice(idx,1); try{fs.unlinkSync(path.join(PUBLIC,item.url.replace(/^assets\//,'assets/')))}catch{} c.queue=(c.queue||[]).filter(x=>x.trackId!==id); if(c.current?.id===id)c.current=null; await writeDB(db); broadcastClubState(); return json(res,200,{ok:true});
     }
     if(req.method==='POST' && url==='/api/dj/queue'){
-      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const parsed=parseYoutubeLink(b.url); if(!parsed)return json(res,400,{error:'Érvényes YouTube-link szükséges'});
-      db.club ||= {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],startedAt:null};
-      parsed.addedBy=u.name; parsed.id=crypto.randomUUID(); parsed.addedAt=new Date().toISOString(); db.club.queue.push(parsed); db.club.queue=db.club.queue.slice(-50); await writeDB(db); broadcastClubState(); return json(res,201,{item:parsed,state:clubState()});
+      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const item=ensureClub().library.find(x=>x.id===String(b.trackId)); if(!item)return json(res,404,{error:'A feltöltött zene nem található'});
+      const q={...item,trackId:item.id,id:crypto.randomUUID(),addedBy:u.name,addedAt:new Date().toISOString()}; ensureClub().queue.push(q); ensureClub().queue=ensureClub().queue.slice(-50); await writeDB(db); broadcastClubState(); return json(res,201,{item:q,state:clubState()});
     }
     if(req.method==='POST' && url==='/api/dj/play'){
-      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); db.club ||= {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],startedAt:null};
-      let item=null; if(b.queueId) item=(db.club.queue||[]).find(x=>x.id===b.queueId)||null; else if(b.url) item=parseYoutubeLink(b.url);
-      if(!item)return json(res,400,{error:'A lejátszandó zene nem található'});
-      if(!item.id)item.id=crypto.randomUUID(); db.club.current={...item,playbackPosition:0,playbackPlaying:true,playbackAt:Date.now()}; db.club.startedAt=new Date().toISOString(); db.club.live=true; db.club.dj={id:u.id,name:u.name};
-      audit(db,u,'DJ_TRACK_START',item.label); await writeDB(db); broadcastClubState(); return json(res,200,{state:clubState()});
+      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const c=ensureClub(); let item=null;
+      if(b.queueId)item=(c.queue||[]).find(x=>x.id===String(b.queueId))||null; else if(b.trackId)item=(c.library||[]).find(x=>x.id===String(b.trackId))||null;
+      if(!item)return json(res,404,{error:'A lejátszandó zene nem található'});
+      c.current={id:item.id,trackId:item.trackId||item.id,name:item.name,url:item.url,addedBy:item.addedBy||u.name,playbackPosition:0,playbackPlaying:true,playbackAt:Date.now()}; c.live=true; c.dj={id:u.id,name:u.name}; c.startedAt=new Date().toISOString(); c.queue=(c.queue||[]).filter(x=>x.id!==item.id); audit(db,u,'DJ_TRACK_START',item.name); await writeDB(db); broadcastClub('player_sync',{sync:{id:c.current.id,trackId:c.current.trackId,url:c.current.url,name:c.current.name,position:0,playing:true,at:Date.now()}}); broadcastClubState(); return json(res,200,{state:clubState()});
+    }
+    if(req.method==='POST' && url==='/api/dj/control'){
+      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const c=ensureClub(); if(!c.current)return json(res,400,{error:'Nincs lejátszott zene'});
+      const action=String(b.action||''); const currentPos=Number.isFinite(Number(b.position))?Math.max(0,Number(b.position)):Number(c.current.playbackPosition)||0;
+      if(action==='play'){c.current.playbackPosition=currentPos;c.current.playbackPlaying=true;c.current.playbackAt=Date.now();}
+      else if(action==='pause'){c.current.playbackPosition=currentPos + (c.current.playbackPlaying ? Math.max(0,(Date.now()-Number(c.current.playbackAt||Date.now()))/1000):0);c.current.playbackPlaying=false;c.current.playbackAt=null;}
+      else if(action==='seek'){c.current.playbackPosition=currentPos;c.current.playbackAt=c.current.playbackPlaying?Date.now():null;}
+      else if(action==='next'){const n=c.queue.shift(); if(!n){c.current=null;} else {c.current={id:n.id,trackId:n.trackId||n.id,name:n.name,url:n.url,addedBy:n.addedBy||u.name,playbackPosition:0,playbackPlaying:true,playbackAt:Date.now()};}}
+      else return json(res,400,{error:'Ismeretlen lejátszó művelet'});
+      await writeDB(db); broadcastClub('player_sync',{sync:{id:c.current?.id||null,trackId:c.current?.trackId||null,url:c.current?.url||null,name:c.current?.name||null,position:c.current?Number(c.current.playbackPosition)||0:0,playing:!!c.current?.playbackPlaying,at:c.current?.playbackAt||Date.now()}}); broadcastClubState(); return json(res,200,{state:clubState()});
+    }
+    if(req.method==='POST' && url==='/api/dj/player-sync'){
+      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const c=ensureClub(); if(!c.current)return json(res,200,{state:clubState()});
+      const pos=Math.max(0,Number(b.position)||0); c.current.playbackPosition=pos; c.current.playbackPlaying=!!b.playing; c.current.playbackAt=c.current.playbackPlaying?Date.now():null; await writeDB(db); broadcastClub('player_sync',{sync:{id:c.current.id,trackId:c.current.trackId,url:c.current.url,name:c.current.name,position:pos,playing:c.current.playbackPlaying,at:c.current.playbackAt||Date.now()}}); return json(res,200,{state:clubState()});
     }
     if(req.method==='POST' && url==='/api/dj/request'){
       const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const id=String(b.id||''); const reqItem=(db.club?.requests||[]).find(x=>x.id===id); if(!reqItem)return json(res,404,{error:'Kérés nem található'});
-      const action=String(b.action||'').toLowerCase(); if(!['accept','decline'].includes(action))return json(res,400,{error:'Érvénytelen művelet'});
-      reqItem.status=action==='accept'?'accepted':'declined'; reqItem.handledBy=u.name; reqItem.handledAt=new Date().toISOString();
-      if(action==='accept'){ const item={...reqItem.item,id:crypto.randomUUID(),addedBy:reqItem.name,requestId:reqItem.id,addedAt:reqItem.handledAt}; db.club.queue.push(item); db.club.queue=db.club.queue.slice(-50); }
-      db.club.chat.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),name:'Red Moon',text:action==='accept'?`${u.name} elfogadta a kérést: ${reqItem.item.label}`:`${u.name} elutasította a kérést: ${reqItem.item.label}`,kind:action==='accept'?'request-accepted':'request-declined',requestId:reqItem.id}); db.club.chat=db.club.chat.slice(0,120);
-      await writeDB(db); broadcastClubState(); return json(res,200,{state:clubState()});
+      const action=String(b.action||'').toLowerCase(); if(!['accept','decline'].includes(action))return json(res,400,{error:'Érvénytelen művelet'}); reqItem.status=action==='accept'?'accepted':'declined'; reqItem.handledBy=u.name; reqItem.handledAt=new Date().toISOString();
+      if(action==='accept' && reqItem.item?.id){ const lib=(db.club.library||[]).find(x=>x.id===reqItem.item.id); if(lib){const item={...lib,trackId:lib.id,id:crypto.randomUUID(),addedBy:reqItem.name,requestId:reqItem.id,addedAt:reqItem.handledAt}; db.club.queue.push(item); db.club.queue=db.club.queue.slice(-50);}}
+      db.club.chat.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),name:'Red Moon',text:action==='accept'?`${u.name} elfogadta a kérést: ${reqItem.item.name}`:`${u.name} elutasította a kérést: ${reqItem.item.name}`,kind:action==='accept'?'request-accepted':'request-declined',requestId:reqItem.id}); db.club.chat=db.club.chat.slice(0,120); await writeDB(db); broadcastClubState(); return json(res,200,{state:clubState()});
     }
 
     if(req.method==='GET' && url==='/api/events'){
