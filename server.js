@@ -89,7 +89,7 @@ function clubState(){
   c.nameRequests=c.nameRequests.filter(x=>x.status==='pending').slice(0,80);
   c.approvedNames=c.approvedNames.filter(x=>x.expiresAt>Date.now()).slice(-300);
   c.bans=c.bans.filter(x=>!x.until||x.until>Date.now()).slice(-200);
-  return {serverNow:Date.now(),live:!!c.live,dj:c.dj||null,title:c.title||'',provider:c.provider||'gocast',providerUrl:c.providerUrl||'https://gocast.fm/station/red-moon-pub',current:null,queue:[],library:[],chat:(c.chat||[]).slice(0,80).map(publicChatMessage),requests:[],nameRequests:c.nameRequests.slice(0,50),listenerCount:active.length,startedAt:c.startedAt||null};
+  return {serverNow:Date.now(),live:!!c.live,dj:c.dj||null,title:c.title||'',provider:c.provider||'gocast',providerUrl:c.providerUrl||'https://gocast.fm/station/red-moon-pub',current:null,queue:[],library:[],chat:(c.chat||[]).slice(0,80).map(publicChatMessage),requests:[],nameRequests:[],listenerCount:active.length,startedAt:c.startedAt||null};
 }
 function broadcastClubState(){ broadcastClub('club_state',{state:clubState()}); }
 function authDJ(req,res){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if(!['dj','manager','owner'].includes(u.role)){json(res,403,{error:'Ehhez a DJ jogosultság szükséges'});return null;} return u; }
@@ -224,6 +224,14 @@ async function api(req,res,url){
     if(req.method==='POST' && url==='/api/club/listener'){
       const b=await readBody(req); const id=String(b.id||'').trim(); if(!id)return json(res,400,{error:'Hiányzó listener azonosító'});
       clubListeners.set(id,{lastSeen:Date.now()}); broadcastClubState(); return json(res,200,{ok:true});
+    }
+    if(req.method==='GET' && url.startsWith('/api/club/name-status')){
+      const q=new URL('http://red-moon.local'+url).searchParams; const clientId=String(q.get('clientId')||'').trim();
+      if(!clientId)return json(res,400,{error:'Hiányzó kliens azonosító'}); const c=ensureClub(); const nr=c.nameRequests.find(x=>x.clientId===clientId);
+      if(!nr)return json(res,200,{status:'none'});
+      const approved=c.approvedNames.find(x=>x.ip===getClientIP(req)&&x.name===nr.name&&x.expiresAt>Date.now());
+      if(nr.status==='accepted'&&approved){ const fresh=crypto.randomBytes(32).toString('hex'); approved.tokenHash=crypto.createHash('sha256').update(fresh).digest('hex'); return json(res,200,{status:'accepted',name:nr.name,token:fresh}); }
+      return json(res,200,{status:nr.status,name:nr.name});
     }
     if(req.method==='POST' && url==='/api/club/name-request'){
       const b=await readBody(req); const name=String(b.name||'').trim().slice(0,32); const clientId=String(b.clientId||'').trim().slice(0,80);

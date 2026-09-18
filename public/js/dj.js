@@ -30,6 +30,7 @@ function cleanupRealtime(){
   if(es){es.close();es=null}
   if(poll){clearInterval(poll);poll=null}
 }
+function renderNameRequests(){const list=$('#nameRequestList'),arr=state?.nameRequests||[];const count=$('#nameRequestCount');if(count)count.textContent=arr.length;if(!list)return;if(!arr.length){list.innerHTML='<div class="empty-state">Nincs függő névkérelem.</div>';return}list.innerHTML=arr.map(r=>`<article class="request-item pending"><div class="request-main"><div class="request-avatar">👤</div><div><b>${esc(r.name)}</b><span>${time(r.at)}</span></div></div><div class="request-actions"><button class="btn btn-red" data-name-action="accept" data-id="${esc(r.id)}">✓ ELFOGAD</button><button class="btn btn-ghost" data-name-action="decline" data-id="${esc(r.id)}">ELUTASÍT</button></div></article>`).join('')}
 function renderRequests(){
   const list=$('#requestList'),arr=state?.requests||[];
   const count=$('#requestCount'); if(count)count.textContent=arr.length;
@@ -60,7 +61,7 @@ function render(){
   $('#staffNav')?.classList.toggle('hidden',!canStaff);
   $('#staffNav2')?.classList.toggle('hidden',!canStaff);
   const gs=$('#gocastStatus');if(gs){gs.textContent=live?'🔴 A Red Moon GoCast adása LIVE.':'⚫ A Red Moon GoCast adása OFFLINE.';gs.classList.toggle('live',live)}
-  renderRequests();renderChat();
+  renderNameRequests();renderRequests();renderChat();
 }
 async function loadState(){
   const d=await api('/api/dj/state');
@@ -96,6 +97,7 @@ $('#openGoCast')?.addEventListener('click',()=>window.open(GOCAST,'_blank','noop
 $('#copyGoCast')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(GOCAST);const e=$('#gocastMsg');if(e)e.textContent='GoCast link kimásolva.'}catch{const e=$('#gocastMsg');if(e)e.textContent=GOCAST}});
 $('#goLive')?.addEventListener('click',async()=>{try{const d=await api('/api/dj/live',{method:'POST',body:JSON.stringify({live:true,title:$('#showTitle').value})});state=d.state;render()}catch(e){const x=$('#gocastMsg');if(x)x.textContent=e.message}});
 $('#stopLive')?.addEventListener('click',async()=>{try{const d=await api('/api/dj/live',{method:'POST',body:JSON.stringify({live:false})});state=d.state;render()}catch(e){const x=$('#gocastMsg');if(x)x.textContent=e.message}});
+$('#nameRequestList')?.addEventListener('click',async e=>{const b=e.target.closest('[data-name-action]');if(!b)return;try{const d=await api('/api/club/name-decision',{method:'POST',body:JSON.stringify({id:b.dataset.id,action:b.dataset.nameAction})});state=d.state;render()}catch(err){const x=$('#gocastMsg');if(x)x.textContent=err.message}});
 $('#requestList')?.addEventListener('click',async e=>{
   const b=e.target.closest('button[data-id]');if(!b)return;
   try{

@@ -18,3 +18,6 @@
 .dj-login-form .form-msg:empty{display:none}
 .dj-login-form .error{color:#ff7088}
 @media(max-width:600px){.dj-login-card{padding:26px 20px}.dj-login-view{padding:28px 12px}}
+
+/* V27 audience approvals */
+.name-requests{grid-column:1 / -1}.name-requests .request-list{max-height:300px}.name-requests .request-item{display:flex;justify-content:space-between;align-items:center;gap:14px}.name-requests .request-actions{margin-top:0}@media(max-width:800px){.name-requests{grid-column:auto}.name-requests .request-item{align-items:flex-start;flex-direction:column}.name-requests .request-actions{width:100%}.name-requests .request-actions button{flex:1}}
