@@ -71,7 +71,7 @@ function broadcastClub(type='club_state', payload={}){
   const message=`data: ${JSON.stringify({type,...payload,at:new Date().toISOString()})}\n\n`;
   for(const client of [...clubRealtimeClients]){ try{client.res.write(message)}catch{clubRealtimeClients.delete(client)} }
 }
-function clubDefaults(){ return {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],nameRequests:[],approvedNames:[],bans:[],startedAt:null,library:[]}; }
+function clubDefaults(){ return {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],nameRequests:[],approvedNames:[],bans:[],startedAt:null,library:[],provider:'gocast',providerUrl:'https://gocast.fm/station/red-moon-pub'}; }
 function ensureMusicDir(){ const dir=path.join(PUBLIC,'assets','dj-music'); fs.mkdirSync(dir,{recursive:true}); return dir; }
 function sanitizeFilename(name){ let n=String(name||'track').normalize('NFKC').replace(/[^a-zA-Z0-9._ -]+/g,'_').trim(); if(!n)n='track'; return n.slice(0,100); }
 function extAllowed(name){ return ['.mp3','.wav','.ogg','.m4a','.aac','.webm'].includes(path.extname(name).toLowerCase()); }
@@ -89,7 +89,7 @@ function clubState(){
   c.nameRequests=c.nameRequests.filter(x=>x.status==='pending').slice(0,80);
   c.approvedNames=c.approvedNames.filter(x=>x.expiresAt>Date.now()).slice(-300);
   c.bans=c.bans.filter(x=>!x.until||x.until>Date.now()).slice(-200);
-  return {serverNow:Date.now(),live:!!c.live,dj:c.dj||null,title:c.title||'',current:c.current||null,queue:(c.queue||[]).slice(0,30),library:(c.library||[]).slice(0,200).map(x=>({id:x.id,name:x.name,url:x.url,size:x.size,addedAt:x.addedAt,addedBy:x.addedBy})),chat:(c.chat||[]).slice(0,80).map(publicChatMessage),requests:(c.requests||[]).filter(x=>x.status==='pending').slice(0,30).map(x=>({id:x.id,at:x.at,name:x.name,item:x.item,status:x.status})),nameRequests:c.nameRequests.slice(0,50),listenerCount:active.length,startedAt:c.startedAt||null};
+  return {serverNow:Date.now(),live:!!c.live,dj:c.dj||null,title:c.title||'',provider:c.provider||'gocast',providerUrl:c.providerUrl||'https://gocast.fm/station/red-moon-pub',current:null,queue:[],library:[],chat:(c.chat||[]).slice(0,80).map(publicChatMessage),requests:[],nameRequests:c.nameRequests.slice(0,50),listenerCount:active.length,startedAt:c.startedAt||null};
 }
 function broadcastClubState(){ broadcastClub('club_state',{state:clubState()}); }
 function authDJ(req,res){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if(!['dj','manager','owner'].includes(u.role)){json(res,403,{error:'Ehhez a DJ jogosultság szükséges'});return null;} return u; }
