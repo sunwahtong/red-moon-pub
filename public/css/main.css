@@ -180,3 +180,18 @@ html.rm-index-lock,html.rm-index-lock body{overflow:hidden}
 .rm-live-indicator{width:min(390px,calc(100vw - 24px));box-sizing:border-box;right:18px;top:84px;padding:14px 16px;border-radius:16px;gap:12px;align-items:center;background:linear-gradient(135deg,rgba(19,7,11,.97),rgba(7,4,6,.97));border:1px solid rgba(232,48,84,.48);box-shadow:0 0 36px rgba(220,24,61,.18),0 18px 55px rgba(0,0,0,.55);backdrop-filter:blur(14px)}
 .rm-live-indicator.show{display:flex}.rm-live-indicator .rm-live-dot{width:10px;height:10px;flex:0 0 auto}.rm-live-copy{display:flex;flex-direction:column;gap:3px;min-width:0}.rm-live-copy b{font-size:10px;letter-spacing:.2em;color:#ff4e70}.rm-live-copy strong{font-family:Cinzel,serif;font-size:16px;color:#f6e9ed;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rm-live-copy small{font-size:10px;color:#b8949f;letter-spacing:.08em}.rm-live-cta{margin-left:auto;font-size:9px;letter-spacing:.14em;color:#ff8298;white-space:nowrap}.rm-live-indicator:hover{border-color:#e44b6a;transform:translateY(-1px)}
 @media(max-width:700px){.rm-live-indicator{right:12px;top:76px;width:calc(100vw - 24px);padding:12px 13px}.rm-live-copy strong{font-size:14px}}
+
+/* V29 — unified Red Moon header across public, Club, DJ and Staff */
+.nav{height:76px;padding:0 clamp(20px,5vw,72px);background:rgba(6,5,6,.90);backdrop-filter:blur(14px);border-bottom:1px solid rgba(215,25,49,.14);box-shadow:0 10px 35px rgba(0,0,0,.18)}
+.nav .brand{min-width:190px;gap:11px;font-family:Cinzel,serif;font-size:15px;letter-spacing:2.4px}
+.nav .brand-mark{font-size:25px}
+.nav nav{align-items:center;gap:24px;margin:0 auto}
+.nav nav a{font-size:10px;letter-spacing:1.55px;white-space:nowrap;color:#9d9395}
+.nav nav a:hover,.nav nav a.active{color:#fff}
+.nav .staff-link{color:#d8b9be!important}
+.nav .staff-link.active{color:#ff4d68!important}
+.header-context{min-width:150px;text-align:right;color:#8f7d81;font-size:8px;letter-spacing:2.5px;text-transform:uppercase;white-space:nowrap}
+.nav .hamb{display:none;background:transparent;border:0;color:#d8c6c9;font-size:22px;cursor:pointer}
+@media(max-width:1100px){.nav nav{gap:15px}.nav nav a{font-size:9px}.header-context{min-width:120px}}
+@media(max-width:900px){.nav{height:70px}.nav nav{display:none;position:absolute;top:70px;left:0;right:0;padding:14px 5vw 18px;background:rgba(7,5,6,.98);border-bottom:1px solid #291319;flex-direction:column;align-items:flex-start;gap:14px}.nav nav.open{display:flex}.nav .hamb{display:block}.header-context{min-width:auto;margin-left:auto;margin-right:12px;font-size:7px}.nav .brand{min-width:auto}}
+@media(max-width:520px){.header-context{display:none}.nav .brand{font-size:13px}.nav .brand small{letter-spacing:2px}}

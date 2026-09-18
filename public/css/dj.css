@@ -32,3 +32,8 @@
 .request-kind{color:#ff6a83!important;border-color:#6d273a!important;background:#190910}.accepted-kind{color:#69e0ad!important;border-color:#2d7658!important;background:#0b1d16}.declined-kind{color:#ef819d!important;border-color:#713248!important;background:#1b0b11}
 .stage-listen{margin-top:10px;min-width:220px;text-align:center}.gocast-live-copy .stage-listen{margin-top:8px}.club-player-actions{justify-content:center;text-align:center;padding:8px 0 0}.club-player-actions .player-hint{margin:0;max-width:760px}
 .dj-message-compose{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:12px;padding:12px;border:1px solid #54202e;border-radius:13px;background:linear-gradient(135deg,#13080c,#0b0709)}.dj-message-compose textarea{min-height:52px;resize:vertical;background:#090708;border:1px solid #45202b;border-radius:10px;color:#f5edf0;padding:11px;font:inherit}.dj-message-compose small{grid-column:1/-1;color:#7f7077;font-size:9px;letter-spacing:.05em}.dj-message-compose button{align-self:stretch}@media(max-width:700px){.dj-message-compose{grid-template-columns:1fr}.dj-message-compose button{min-height:44px}.stage-listen{min-width:0;width:100%}}
+
+/* V29 header normalization */
+.nav nav{display:flex;gap:24px;flex-wrap:nowrap;justify-content:center}
+@media(max-width:1100px){.nav nav{gap:15px}}
+@media(max-width:900px){.nav nav{display:none;flex-direction:column;align-items:flex-start;gap:14px}.nav nav.open{display:flex}}

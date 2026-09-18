@@ -14,8 +14,7 @@
 </head>
 <body class="staff-page">
 <div class="noise"></div>
-<header class="nav"><a class="brand" href="index.html"><span class="brand-mark">月</span><span>RED MOON <small>PUB</small></span></a>
-<nav><a href="index.html">Főoldal</a><a href="menu.html">Itallap</a><a href="events.html">Rendezvények</a><a href="gallery.html">Galéria</a><a href="about.html">Rólunk</a><a href="location.html">Lokáció</a><a href="club.html">RED MOON CLUB</a><a class="staff-link active" href="staff.html">STAFF</a></nav><div class="staff-user" id="staffUser"></div></header>
+<header class="nav"><a class="brand" href="index.html"><span class="brand-mark">月</span><span>RED MOON <small>PUB</small></span></a><nav><a href="index.html">Főoldal</a><a href="menu.html">Itallap</a><a href="events.html">Rendezvények</a><a href="gallery.html">Galéria</a><a href="about.html">Rólunk</a><a href="location.html">Lokáció</a><a href="club.html">Red Moon Club</a><a class="staff-link active" href="staff.html">STAFF</a></nav><div class="header-context" id="staffUser"></div><button class="hamb" id="hamb" type="button">☰</button></header>
 
 <main class="staff-shell">
 <section id="loginView" class="staff-login">
@@ -80,4 +79,4 @@
 
 <div id="docModal" class="doc-modal"><div class="doc-box"><div class="row" style="display:flex;justify-content:space-between;gap:10px"><h2 id="docTitle">Dokumentum</h2><button class="btn btn-ghost" onclick="closeDoc()">×</button></div><div id="docContent"></div></div></div>
 <script src="js/staff.js?v=20.0"></script>
-</body></html>
+<script>(function(){const b=document.getElementById('hamb'),n=document.querySelector('header.nav nav');if(b&&n)b.addEventListener('click',()=>n.classList.toggle('open'));})();</script></body></html>
