@@ -158,64 +158,9 @@ async function api(url,opt={}){
 }
 async function boot(){const d=await api('/api/me');if(d.user){me=d.user;showApp()}else showLogin()}
 function showLogin(){$('#loginView').classList.remove('hidden');$('#appView').classList.add('hidden')}
-let djWS=null,djStream=null,djPeers=new Map();
-function djWSConnect(){
-  if(djWS&&djWS.readyState<=1)return;
-  const proto=location.protocol==='https:'?'wss':'ws';
-  djWS=new WebSocket(`${proto}://${location.host}/ws?mode=dj`);
-  djWS.onopen=()=>{ $('#djLiveInfo').textContent='DJ kapcsolat aktív — várakozás a hallgatókra.'; };
-  djWS.onmessage=async ev=>{
-    let m;try{m=JSON.parse(ev.data)}catch{return}
-    if(m.type==='live_state')updateDJState(m);
-    if(m.type==='viewer_joined')await djCreatePeer(m.viewerId);
-    if(m.type==='viewer_left')djRemovePeer(m.viewerId);
-    if(m.type==='answer'){const pc=djPeers.get(m.viewerId);if(pc)try{await pc.setRemoteDescription(m.answer)}catch{}}
-    if(m.type==='ice'){const pc=djPeers.get(m.viewerId);if(pc&&m.candidate)try{await pc.addIceCandidate(m.candidate)}catch{}}
-  };
-  djWS.onclose=()=>{if(me?.role==='dj'&&djStream){setTimeout(djWSConnect,1200)}};
-}
-async function djCreatePeer(viewerId){
-  if(!djWS||djWS.readyState!==1||!djStream)return;
-  const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
-  djPeers.set(viewerId,pc); djStream.getAudioTracks().forEach(t=>pc.addTrack(t,djStream));
-  pc.onicecandidate=e=>{if(e.candidate)djWS.send(JSON.stringify({type:'ice',targetId:viewerId,candidate:e.candidate}))};
-  pc.onconnectionstatechange=()=>{if(['failed','closed','disconnected'].includes(pc.connectionState)&&pc.connectionState!=='connected')djRemovePeer(viewerId)};
-  const offer=await pc.createOffer(); await pc.setLocalDescription(offer);
-  djWS.send(JSON.stringify({type:'offer',viewerId,offer:pc.localDescription}));
-}
-function djRemovePeer(id){const pc=djPeers.get(id);if(pc)try{pc.close()}catch{};djPeers.delete(id);$('#djViewerCount').textContent=`${djPeers.size} HALLGATÓ`;}
-function updateDJState(st){
-  const live=!!st.active; const el=$('#djStatus'); if(!el)return;
-  el.classList.toggle('live',live);el.classList.toggle('offline',!live);el.querySelector('b').textContent=live?'LIVE NOW':'OFF AIR';
-  $('#djStart').disabled=live;$('#djStop').disabled=!live; $('#djTitle').disabled=live;
-  $('#djLiveInfo').textContent=live?`LIVE NOW · ${st.title||'Red Moon Live'} · ${st.djName||me.name}`:'OFF AIR — nincs aktív adás.';
-}
-async function djStartLive(){
-  try{
-    if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('A böngésző nem támogatja a rendszerhang megosztását. Chrome/Edge használata javasolt.');
-    if(!djWS||djWS.readyState!==1)djWSConnect();
-    await new Promise((resolve,reject)=>{let n=0;const t=setInterval(()=>{if(djWS?.readyState===1){clearInterval(t);resolve()}else if(++n>40){clearInterval(t);reject(new Error('A DJ kapcsolat nem jött létre.'))}},50)});
-    djStream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});
-    if(!djStream.getAudioTracks().length){djStream.getTracks().forEach(t=>t.stop());djStream=null;throw new Error('Nem érkezett hang. A megosztási ablakban engedélyezd a hang megosztását.');}
-    const audioTrack=djStream.getAudioTracks()[0]; audioTrack.onended=()=>djStopLive(true);
-    const d=await fetch('/api/dj/start',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:$('#djTitle').value})}).then(async r=>{const x=await r.json();if(!r.ok)throw new Error(x.error||'Nem sikerült elindítani az adást.');return x});
-    updateDJState(d); playSfx('success',.7); showToast('LIVE NOW','Az élő DJ adás elindult.','success');
-  }catch(e){playSfx('error',.8);showToast('DJ adás sikertelen',e.message,'error');if(djStream){djStream.getTracks().forEach(t=>t.stop());djStream=null}}
-}
-async function djStopLive(silent=false){
-  try{await fetch('/api/dj/stop',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})}catch{}
-  for(const id of [...djPeers.keys()])djRemovePeer(id); if(djStream){djStream.getTracks().forEach(t=>t.stop());djStream=null}
-  updateDJState({active:false}); if(!silent){playSfx('success',.6);showToast('DJ OFF AIR','Az élő adás leállt.','success')}
-}
-function initDJPanel(){
-  document.querySelectorAll('#appView > *').forEach(el=>{if(!el.classList.contains('staff-head')&&!el.id?.includes('djPanel'))el.classList.add('hidden')});
-  $('#djPanel').classList.remove('hidden'); $('#staffUser').textContent=`${me.name.toUpperCase()} · DJ`; $('#welcome').textContent=`DJ pult: ${me.name}`;
-  $('#djStart').onclick=djStartLive; $('#djStop').onclick=()=>djStopLive(false); djWSConnect(); fetch('/api/live',{credentials:'same-origin'}).then(r=>r.json()).then(updateDJState).catch(()=>{});
-}
-
 function showApp(){
+  if(me?.role==='dj'){ location.href='dj.html'; return; }
   $('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');
-  if(me.role==='dj'){ initDJPanel(); return; }
   $('#staffUser').textContent=`${me.name.toUpperCase()} · ${me.role.toUpperCase()}`;
   $('#welcome').textContent=`Bejelentkezve: ${me.name} · ${me.role.toUpperCase()}`;
   $('#statRole').textContent=me.role.toUpperCase();
@@ -397,7 +342,7 @@ async function editUser(user){
   const data=await rmForm({title:`Fiók szerkesztése · ${user.name}`,kicker:'RED MOON / OWNER · ACCOUNT CONTROL',fields:[
     {id:'name',label:'TELJES NÉV',value:user.name,required:true},
     {id:'username',label:'FELHASZNÁLÓNÉV',value:user.username,required:true},
-    {id:'role',label:'JOGOSULTSÁG',type:'select',value:user.role,options:[{value:'staff',label:'STAFF'},{value:'manager',label:'MANAGER'},{value:'owner',label:'OWNER'},{value:'dj',label:'DJ'}]},
+    {id:'role',label:'JOGOSULTSÁG',type:'select',value:user.role,options:[{value:'staff',label:'STAFF'},{value:'manager',label:'MANAGER'},{value:'owner',label:'OWNER'}]},
     {id:'password',label:'ÚJ JELSZÓ · OPCIONÁLIS',type:'password',value:'',placeholder:'Hagyd üresen, ha nem változik'}
   ],confirmText:'FIÓK MENTÉSE'});
   if(!data)return;

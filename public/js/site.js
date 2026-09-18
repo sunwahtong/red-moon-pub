@@ -1,6 +1,19 @@
 (() => {
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+  // Red Moon Club live indicator — public, realtime, no refresh required.
+  let clubLiveSource;
+  function ensureClubLiveIndicator(){
+    let el=document.querySelector('#rmLiveIndicator');
+    if(!el){ el=document.createElement('a'); el.id='rmLiveIndicator'; el.className='rm-live-indicator'; el.href='club.html'; el.innerHTML='<span class="rm-live-dot"></span><b>LIVE NOW</b><small id="rmLiveDJ"></small>'; document.body.appendChild(el); }
+    return el;
+  }
+  function paintClubLive(state){ const el=ensureClubLiveIndicator(); const live=!!state?.live; el.classList.toggle('show',live); const dj=el.querySelector('#rmLiveDJ'); if(dj)dj.textContent=live&&state.dj?`DJ ${state.dj.name}`:''; }
+  async function initClubLive(){
+    try{const r=await fetch('/api/club/state',{credentials:'same-origin',cache:'no-store'}); if(r.ok)paintClubLive((await r.json()).state)}catch{}
+    try{clubLiveSource=new EventSource('/api/club/events'); clubLiveSource.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.state)paintClubLive(d.state)}catch{}}}catch{}
+    setInterval(async()=>{try{const r=await fetch('/api/club/state',{cache:'no-store'});if(r.ok)paintClubLive((await r.json()).state)}catch{}},7000);
+  }
   const initialIsIndex = /(^|\/)index\.html?$/.test(location.pathname) || /\/$/.test(location.pathname);
   const STORAGE = { volume:'redmoon-volume', sound:'redmoon-sound', time:'redmoon-audio-time' };
 
@@ -15,80 +28,6 @@
   audio.volume = volume / 100;
 
   // Tiny tactile UI click used by the public navigation and primary controls.
-
-  // LIVE DJ — one public WebRTC listener per browser tab. When live is active,
-  // the house ambience is muted and the DJ's live audio takes over.
-  let liveState={active:false,djName:'',title:'',startedAt:null};
-  let liveWS=null, livePC=null, liveAudio=null, liveViewerId=null;
-  // Global LIVE NOW indicator: lives outside <main>, so it survives every SPA page change.
-  function ensureLiveUI(){
-    let p=$('#liveDJPanel');
-    if(!p){
-      p=document.createElement('aside'); p.id='liveDJPanel'; p.className='rm-live-corner'; p.setAttribute('aria-live','polite');
-      p.innerHTML='<div class=\"rm-live-corner-dot\"></div><div class=\"rm-live-corner-copy\"><b data-live-badge>OFF AIR</b><span data-live-dj>Red Moon DJ</span></div>';
-      document.body.appendChild(p);
-    }
-    return p;
-  }
-  function livePanel(){return ensureLiveUI()}
-  function paintLive(state){
-    liveState={...liveState,...state};
-    const p=livePanel();
-    if(p){
-      p.classList.toggle('is-live',!!liveState.active);
-      p.querySelector('[data-live-badge]')?.replaceChildren(document.createTextNode(liveState.active?'LIVE NOW':'OFF AIR'));
-      p.querySelector('[data-live-dj]')?.replaceChildren(document.createTextNode(liveState.djName||'Red Moon DJ'));
-      p.querySelector('[data-live-title]')?.replaceChildren(document.createTextNode(liveState.title||'Red Moon Live'));
-    }
-    if(liveState.active){
-      audio.pause();
-      audio.currentTime=audio.currentTime||0;
-      connectLiveViewer();
-    }else{
-      disconnectLiveViewer();
-      if(soundOn && volume>0) playAudio();
-    }
-    paintSound();
-  }
-  function connectLiveViewer(){
-    if(!liveState.active)return;
-    if(liveWS&&liveWS.readyState<=1)return;
-    const proto=location.protocol==='https:'?'wss':'ws';
-    liveWS=new WebSocket(`${proto}://${location.host}/ws?mode=viewer`);
-    liveWS.onmessage=async ev=>{
-      let m;try{m=JSON.parse(ev.data)}catch{return}
-      if(m.type==='live_state'){paintLive(m);return}
-      if(m.type==='offer'){
-        try{
-          liveViewerId=m.viewerId;
-          livePC=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]});
-          livePC.onicecandidate=e=>{if(e.candidate&&liveWS?.readyState===1)liveWS.send(JSON.stringify({type:'ice',targetId:null,candidate:e.candidate}))};
-          // The DJ needs the viewer's id as the target. The server infers it from the connection.
-          livePC.ontrack=e=>{
-            if(!liveAudio){liveAudio=new Audio();liveAudio.autoplay=true;liveAudio.playsInline=true;document.body.appendChild(liveAudio)}
-            liveAudio.srcObject=e.streams[0];liveAudio.volume=volume/100;
-            liveAudio.setAttribute('playsinline','');
-            const pr=liveAudio.play();if(pr?.catch)pr.catch(()=>{});
-          };
-          await livePC.setRemoteDescription(m.offer);
-          const answer=await livePC.createAnswer();await livePC.setLocalDescription(answer);
-          liveWS.send(JSON.stringify({type:'answer',answer:livePC.localDescription}));
-        }catch{disconnectLiveViewer()}
-      }
-      if(m.type==='ice'&&livePC&&m.candidate)try{await livePC.addIceCandidate(m.candidate)}catch{}
-    };
-    liveWS.onclose=()=>{liveWS=null;livePC?.close();livePC=null;liveViewerId=null;if(liveState.active&&document.visibilityState!=='hidden')setTimeout(connectLiveViewer,900)};
-  }
-  function disconnectLiveViewer(){
-    try{livePC?.close()}catch{};livePC=null;liveViewerId=null;
-    try{liveWS?.close()}catch{};liveWS=null;
-    if(liveAudio){try{liveAudio.pause()}catch{};liveAudio.srcObject=null;liveAudio.remove();liveAudio=null}
-  }
-  ensureLiveUI();
-  // Server status gives freshly loaded pages the current live state immediately.
-  fetch('/api/live',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json()).then(paintLive).catch(()=>{});
-  setInterval(()=>{fetch('/api/live',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json()).then(paintLive).catch(()=>{})},5000);
-
   const uiClick = new Audio('assets/sounds/ui_click.wav');
   uiClick.preload = 'auto';
   uiClick.volume = 0.32;
@@ -128,16 +67,13 @@
   }
   const btn = $('#soundBtn'), icon = $('#soundIcon'), slider = $('#volumeSlider'), value = $('#volumeValue'), panel = $('#volumePanel');
   function paintSound() {
-    if(liveState.active && livePanel()){ const b=livePanel().querySelector('[data-live-badge]'); if(b)b.textContent='LIVE NOW'; }
     btn?.setAttribute('aria-pressed', String(soundOn && !audio.paused));
     btn?.setAttribute('aria-expanded', String(panel?.classList.contains('open') || false));
-    if (icon) icon.textContent = liveState.active ? (soundOn ? ')))' : '—') : (soundOn && !audio.paused ? ')))' : '—');
-    const label=btn?.querySelector('span:last-child'); if(label) label.textContent=liveState.active?'LIVE DJ':'AMBIENCE';
+    if (icon) icon.textContent = soundOn && !audio.paused ? ')))' : '—';
     if (slider) slider.value = String(volume);
     if (value) value.textContent = `${volume}%`;
   }
   async function playAudio() {
-    if (liveState.active) return false;
     if (!soundOn || volume <= 0) return false;
     restoreTime();
     audio.volume = volume / 100;
@@ -145,14 +81,13 @@
   }
   async function startFromGesture() {
     soundOn = true;
-    if(liveState.active){connectLiveViewer();return true;}
     localStorage.setItem(STORAGE.sound, 'on');
     restoreTime();
     audio.volume = volume / 100;
     try { await audio.play(); paintSound(); return true; } catch { paintSound(); return false; }
   }
   function stopAudio() { saveTime(); audio.pause(); soundOn = false; localStorage.setItem(STORAGE.sound, 'off'); paintSound(); }
-  btn?.addEventListener('click', async () => { panel?.classList.toggle('open'); if(liveState.active){ soundOn=!soundOn; localStorage.setItem(STORAGE.sound,soundOn?'on':'off'); if(soundOn){connectLiveViewer();if(liveAudio)await liveAudio.play().catch(()=>{})}else if(liveAudio)liveAudio.pause(); paintSound(); return; } if (soundOn && !audio.paused) stopAudio(); else await startFromGesture(); paintSound(); });
+  btn?.addEventListener('click', async () => { panel?.classList.toggle('open'); if (soundOn && !audio.paused) stopAudio(); else await startFromGesture(); paintSound(); });
   slider?.addEventListener('input', async () => { volume = Number(slider.value); localStorage.setItem(STORAGE.volume, String(volume)); audio.volume = volume / 100; if (volume === 0) { if (!audio.paused) stopAudio(); return; } if (soundOn && audio.paused) await playAudio(); paintSound(); });
   panel?.addEventListener('click', e => e.stopPropagation());
   document.addEventListener('click', e => { if (!soundWrap?.contains(e.target)) panel?.classList.remove('open'); });
@@ -170,6 +105,8 @@
     if (document.readyState === 'complete') showReady(); else addEventListener('load', showReady, {once:true});
     enter?.addEventListener('click', async () => { enter.disabled = true; await startFromGesture(); loader?.classList.add('gone'); document.documentElement.classList.remove('rm-index-lock'); setTimeout(() => loader?.remove(), 1250); }, {once:true});
   } else $('#loader')?.remove();
+
+  initClubLive();
 
   function markNav() {
     const page = location.pathname.split('/').pop() || 'index.html';
@@ -253,7 +190,7 @@
     const url = new URL(link.href, location.href);
     if (url.origin !== location.origin || !/\.html?$/.test(url.pathname)) return;
     // Staff keeps a full page lifecycle for its authenticated app. Public navigation stays in-SPA.
-    if (url.pathname.endsWith('/staff.html') || url.pathname.endsWith('/staff')) return;
+    if (url.pathname.endsWith('/staff.html') || url.pathname.endsWith('/staff') || url.pathname.endsWith('/club.html') || url.pathname.endsWith('/dj.html')) return;
     e.preventDefault(); spaNavigate(url,true);
   });
   addEventListener('popstate', () => spaNavigate(new URL(location.href),false));
