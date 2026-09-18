@@ -227,7 +227,61 @@ function renderSales(sales){
   </tr>`).join(''):'<tr><td colspan="6">Még nincs eladás.</td></tr>';
 }
 
-function updateSalePreview(){const p=products.find(x=>String(x.id)===$('#saleProduct')?.value);if(!p)return;$('#salePrice').textContent=money(p.price);$('#saleStock').textContent=p.stock+' db';const q=Math.max(1,Number($('#saleQty').value)||1);$('#saleTotal').textContent=money(p.price*q)}
+window.saleCart=window.saleCart||[];
+function cartTotal(){return window.saleCart.reduce((sum,i)=>sum+(i.price*i.qty),0)}
+function cartUnits(){return window.saleCart.reduce((sum,i)=>sum+i.qty,0)}
+function updateSalePreview(){
+  const p=products.find(x=>String(x.id)===$('#saleProduct')?.value);
+  if(!p)return;
+  $('#salePrice').textContent=money(p.price);
+  $('#saleStock').textContent=p.stock+' db';
+  const q=Math.max(1,Number($('#saleQty').value)||1);
+  $('#saleTotal').textContent=money(cartTotal() || p.price*q);
+}
+function renderCart(){
+  const items=$('#cartItems'), count=$('#cartCount'), total=$('#cartTotal'), checkout=$('#checkoutBtn');
+  if(!items)return;
+  count.textContent=`${cartUnits()} db · ${window.saleCart.length} tétel`;
+  total.textContent=money(cartTotal());
+  checkout.disabled=window.saleCart.length===0;
+  items.innerHTML=window.saleCart.length?window.saleCart.map((i,idx)=>`<div class="cart-item">
+    <div class="cart-item-main"><b>${esc(i.name)}</b><small>${money(i.price)} / db</small></div>
+    <div class="cart-item-controls">
+      <button type="button" class="cart-qty" onclick="changeCartQty(${idx},-1)">−</button>
+      <strong>${i.qty}</strong>
+      <button type="button" class="cart-qty" onclick="changeCartQty(${idx},1)">+</button>
+      <span class="cart-item-total">${money(i.price*i.qty)}</span>
+      <button type="button" class="cart-remove" onclick="removeCartItem(${idx})">×</button>
+    </div>
+  </div>`).join(''):'<div class="mini-note">A kosár üres. Válassz terméket és tedd a kosárba.</div>';
+}
+function addToCart(){
+  const id=$('#saleProduct').value, p=products.find(x=>x.id===id), qty=Math.max(1,Math.floor(Number($('#saleQty').value)||1));
+  if(!p)return;
+  const existing=window.saleCart.find(x=>x.productId===p.id);
+  const already=existing?.qty||0;
+  if(already+qty>p.stock){
+    playSfx('error',0.8);
+    showToast('Nincs elég készlet',`${p.name}: legfeljebb ${p.stock-already} db tehető még a kosárba.`,'error');
+    return;
+  }
+  if(existing)existing.qty+=qty; else window.saleCart.push({productId:p.id,name:p.name,price:p.price,qty});
+  playSfx('success',0.38);
+  $('#saleQty').value=1;
+  renderCart();updateSalePreview();
+}
+function changeCartQty(idx,delta){
+  const item=window.saleCart[idx], p=products.find(x=>x.id===item?.productId);
+  if(!item||!p)return;
+  const next=item.qty+delta;
+  if(next<=0){window.saleCart.splice(idx,1)}
+  else if(next>p.stock){playSfx('error',0.7);showToast('Nincs elég készlet',`${p.name}: ${p.stock} db érhető el.`,'error');return}
+  else item.qty=next;
+  renderCart();updateSalePreview();
+}
+function removeCartItem(idx){if(!window.saleCart[idx])return;playSfx('click',0.28);window.saleCart.splice(idx,1);renderCart();updateSalePreview()}
+function clearCart(){if(!window.saleCart.length)return;window.saleCart=[];playSfx('click',0.28);renderCart();updateSalePreview()}
+
 function renderShift(){
   if(!currentShift){
     $('#shiftBar').innerHTML=`<div><span class="shift-dot"></span><b>KASSZA ZÁRVA</b><div class="mini-note">Eladás előtt nyiss műszakot.</div></div><button class="btn btn-red" onclick="openShift()">MŰSZAK / KASSZA NYITÁSA</button>`;
@@ -311,8 +365,8 @@ async function createDocument(saleId,type){
 function showDocument(doc){
   const label='SZÁMLA';
   $('#docTitle').textContent=`${label} · ${doc.id}`;
-  const item=doc.items[0];
-  $('#docContent').innerHTML=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>${label}</b><br>Dokumentum: ${esc(doc.id)}<br>Dátum: ${new Date(doc.createdAt).toLocaleString('hu-HU')}</p><p><b>Vásárló:</b> ${esc(doc.customer.name)}${doc.customer.address?'<br>'+esc(doc.customer.address):''}${doc.customer.taxNumber?'<br>Adószám: '+esc(doc.customer.taxNumber):''}</p><div class="receipt-line"><span>${esc(item.product)} × ${item.qty}</span><b>${money(item.total)}</b></div><div class="receipt-line"><span>Fizetés</span><b>${doc.paymentMethod}</b></div><div class="receipt-line"><span>ÖSSZESEN</span><b>${money(doc.total)}</b></div><p style="margin-top:18px">Red Moon Pub · Zhen Yu Xiao</p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
+  const items=Array.isArray(doc.items)?doc.items:[];
+  $('#docContent').innerHTML=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>${label}</b><br>Dokumentum: ${esc(doc.id)}<br>Dátum: ${new Date(doc.createdAt).toLocaleString('hu-HU')}</p><p><b>Vásárló:</b> ${esc(doc.customer.name)}${doc.customer.address?'<br>'+esc(doc.customer.address):''}${doc.customer.taxNumber?'<br>Adószám: '+esc(doc.customer.taxNumber):''}</p>${items.map(item=>`<div class="receipt-line"><span>${esc(item.product)} × ${item.qty}</span><b>${money(item.total)}</b></div>`).join('')}<div class="receipt-line"><span>Fizetés</span><b>${doc.paymentMethod}</b></div><div class="receipt-line"><span>ÖSSZESEN</span><b>${money(doc.total)}</b></div><p style="margin-top:18px">Red Moon Pub · Zhen Yu Xiao</p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
   $('#docModal').classList.add('show');window._printHtml=$('#docContent').innerHTML;
 }
 function closeDoc(){$('#docModal').classList.remove('show')}
@@ -391,28 +445,36 @@ $('#loginForm').addEventListener('submit',async e=>{
   }
 });
 $('#logoutBtn').addEventListener('click',async()=>{await api('/api/logout',{method:'POST'});location.reload()});
-$('#saleProduct').addEventListener('change',updateSalePreview);$('#saleQty').addEventListener('input',updateSalePreview);
+$('#saleProduct').addEventListener('change',updateSalePreview);
+$('#saleQty').addEventListener('input',updateSalePreview);
 $('#qtyMinus').onclick=()=>{$('#saleQty').value=Math.max(1,Number($('#saleQty').value)-1);updateSalePreview()};
 $('#qtyPlus').onclick=()=>{$('#saleQty').value=Number($('#saleQty').value)+1;updateSalePreview()};
+$('#addToCartBtn').onclick=addToCart;
+$('#clearCartBtn').onclick=clearCart;
 $('#refreshBtn').onclick=load;
 $('#saleForm').addEventListener('submit',async e=>{
   e.preventDefault();const msg=$('#saleMsg');msg.textContent='';
   try{
-    const selected=products.find(p=>p.id===$('#saleProduct').value);
-    const wanted=Number($('#saleQty').value)||1;
-    if(selected && selected.stock<=0){
-      playSfx('error',0.9);
-      throw new Error('EZ A TERMÉK NINCS KÉSZLETEN — az eladás nem rögzíthető.');
+    if(!window.saleCart.length){playSfx('error',0.8);throw new Error('A kosár üres — előbb tegyél legalább egy terméket a kosárba.')}
+    const fresh=window.saleCart.map(i=>({ ...i, stock:products.find(p=>p.id===i.productId)?.stock??0 }));
+    for(const i of fresh){
+      if(i.qty>i.stock)throw new Error(`NINCS ELÉG KÉSZLET — ${i.name}: jelenleg ${i.stock} db van.`);
     }
-    if(selected && wanted>selected.stock){
-      playSfx('error',0.9);
-      throw new Error(`NINCS ELÉG KÉSZLET — jelenleg ${selected.stock} db van.`);
-    }
-    const d=await api('/api/sales',{method:'POST',body:JSON.stringify({productId:$('#saleProduct').value,qty:wanted,paymentMethod:$('#paymentMethod').value})});
-    latestSale=d.sale;playSfx('success',0.55);msg.style.color='#69e0ac';msg.innerHTML=`Eladás rögzítve: ${money(d.sale.total)} · <button type="button" class="btn" onclick="createDocument('${d.sale.id}','invoice')">SZÁMLA KÉSZÍTÉSE</button>`;
-    $('#saleQty').value=1;await load();
+    const d=await api('/api/sales',{method:'POST',body:JSON.stringify({
+      items:window.saleCart.map(i=>({productId:i.productId,qty:i.qty})),
+      paymentMethod:$('#paymentMethod').value
+    })});
+    latestSale=d.sales?.[0]||d.sale;
+    playSfx('success',0.55);
+    const first=latestSale;
+    const invoiceBtn=first?` · <button type="button" class="btn" onclick="createDocument('${first.id}','invoice')">SZÁMLA KÉSZÍTÉSE</button>`:'';
+    msg.style.color='#69e0ac';
+    msg.innerHTML=`Kosár eladva: ${d.sales?.length||1} tétel · ${money(d.total)}${invoiceBtn}`;
+    window.saleCart=[];$('#saleQty').value=1;renderCart();await load();
   }catch(err){playSfx('error',0.8);msg.style.color='#ff657a';msg.textContent=err.message}
 });
+renderCart();
+
 $('#productForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/products',{method:'POST',body:JSON.stringify({name:$('#pName').value,category:$('#pCategory').value,price:Number($('#pPrice').value),stock:Number($('#pStock').value),minStock:Number($('#pMin').value)})});e.target.reset();await load();playSfx('success',0.5);showToast('Raktár frissítve','Az új termék sikeresen hozzáadva.','success')}catch(err){await rmAlert(err.message,'Termék létrehozása sikertelen')}});
 $('#userForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/users',{method:'POST',body:JSON.stringify({name:$('#uName').value,username:$('#uUsername').value,password:$('#uPassword').value,role:$('#uRole').value})});e.target.reset();await loadUsers();await rmAlert('A felhasználó létrehozva.','Fiók létrehozva')}catch(err){await rmAlert(err.message,'Fiók létrehozása sikertelen')}});
 boot().catch(e=>{console.error(e);showLogin();if($('#loginError'))$('#loginError').textContent=e.message});

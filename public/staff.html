@@ -33,12 +33,21 @@
 <div class="stat-grid"><article><span>MAI BEVÉTEL</span><strong id="statRevenue">0 Ft</strong><small>összes rögzített eladás</small></article><article><span>MAI ELADÁS</span><strong id="statItems">0 db</strong><small>eladott darab</small></article><article><span>ALACSONY KÉSZLET</span><strong id="statLow">0</strong><small>figyelmeztetés</small></article><article><span>JOGOSULTSÁG</span><strong id="statRole">STAFF</strong><small>hozzáférési szint</small></article></div>
 
 <div class="staff-grid">
-<section class="panel sale-panel"><div class="panel-head"><div><span>01 / POS</span><h2>Új eladás</h2></div><div class="live-dot">LIVE</div></div>
-<form id="saleForm"><div class="field"><label>TERMÉK</label><select id="saleProduct" required></select></div><div class="sale-preview"><div><span>EGYSÉGÁR</span><b id="salePrice">0 Ft</b></div><div><span>KÉSZLET</span><b id="saleStock">0 db</b></div></div>
-<div class="qty-row"><button type="button" id="qtyMinus">−</button><input id="saleQty" type="number" min="1" value="1"><button type="button" id="qtyPlus">+</button></div>
-<div class="field"><label>FIZETÉSI MÓD</label><select id="paymentMethod"><option value="cash">Készpénz</option><option value="card">Bankkártya</option><option value="transfer">Átutalás</option></select></div>
-<div class="total-line"><span>ÖSSZESEN</span><strong id="saleTotal">0 Ft</strong></div>
-<button class="btn btn-red wide" type="submit">ELADÁS RÖGZÍTÉSE ↗</button><div id="saleMsg" class="form-msg"></div></form></section>
+<section class="panel sale-panel"><div class="panel-head"><div><span>01 / POS</span><h2>Új eladás</h2><small class="pos-subtitle">Több termék egy kosárban</small></div><div class="live-dot">LIVE</div></div>
+<form id="saleForm">
+  <div class="field"><label>TERMÉK</label><select id="saleProduct" required></select></div>
+  <div class="sale-preview"><div><span>EGYSÉGÁR</span><b id="salePrice">0 Ft</b></div><div><span>KÉSZLET</span><b id="saleStock">0 db</b></div></div>
+  <div class="qty-row"><button type="button" id="qtyMinus">−</button><input id="saleQty" type="number" min="1" value="1"><button type="button" id="qtyPlus">+</button></div>
+  <button class="btn btn-ghost wide add-cart-btn" type="button" id="addToCartBtn">＋ KOSÁRBA TESZEM</button>
+  <div class="cart-box">
+    <div class="cart-head"><div><span>KOSÁR</span><b id="cartCount">0 tétel</b></div><button type="button" id="clearCartBtn" class="table-action danger">ÜRÍTÉS</button></div>
+    <div id="cartItems" class="cart-items"><div class="mini-note">A kosár üres.</div></div>
+    <div class="cart-total"><span>KOSÁR ÖSSZESEN</span><strong id="cartTotal">0 Ft</strong></div>
+  </div>
+  <div class="field"><label>FIZETÉSI MÓD</label><select id="paymentMethod"><option value="cash">Készpénz</option><option value="card">Bankkártya</option><option value="transfer">Átutalás</option></select></div>
+  <div class="total-line"><span>FIZETENDŐ</span><strong id="saleTotal">0 Ft</strong></div>
+  <button class="btn btn-red wide" type="submit" id="checkoutBtn">KOSÁR ELADÁSA ↗</button><div id="saleMsg" class="form-msg"></div>
+</form></section>
 
 <section class="panel inventory-panel"><div class="panel-head"><div><span>02 / STOCK</span><h2>Raktár</h2></div><button id="refreshBtn" class="icon-btn">↻</button></div><div id="inventory" class="inventory"></div></section>
 </div>

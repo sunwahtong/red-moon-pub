@@ -182,7 +182,7 @@ async function api(req,res,url){
   dbState.sales ||= [];
   dbState.audit ||= [];
   dbState.notifications ||= [];
-  for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; }
+  for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; s.transactionId ??= s.id; }
   try{
     if(req.method==='GET' && url==='/api/health'){
       return json(res,200,{ok:true,service:'red-moon-staff',version:'19.0-realtime-neon',time:new Date().toISOString()});
@@ -531,23 +531,38 @@ async function api(req,res,url){
       const shift=db.shifts.find(s=>s.status==='open');
       if(!shift)return json(res,409,{error:'Eladás előtt nyisd meg a kasszát / műszakot.'});
       const b=await readBody(req);
-      const p=db.products.find(x=>x.id===b.productId && x.active);
-      const qty=Math.floor(Number(b.qty));
-      if(!p)return json(res,400,{error:'A termék nem található'});
-      if(!Number.isInteger(qty)||qty<1)return json(res,400,{error:'Érvénytelen mennyiség'});
-      if(p.stock<qty)return json(res,400,{error:`Nincs elég készlet. Jelenleg ${p.stock} db van.`});
-      const total=p.price*qty;
-      p.stock-=qty;
+      const rawItems=Array.isArray(b.items)?b.items:[{productId:b.productId,qty:b.qty}];
+      const items=rawItems.map(x=>({productId:String(x.productId||''),qty:Math.floor(Number(x.qty))})).filter(x=>x.productId);
+      if(!items.length)return json(res,400,{error:'A kosár üres.'});
       const paymentMethod=['cash','card','transfer'].includes(b.paymentMethod)?b.paymentMethod:'cash';
-      const sale={
-        id:crypto.randomUUID(),at:new Date().toISOString(),userId:u.id,user:u.name,
-        productId:p.id,product:p.name,category:p.category,qty,unitPrice:p.price,total,
-        shiftId:shift.id,paymentMethod,documentId:null
-      };
-      db.sales.unshift(sale);
-      audit(db,u,'SALE',`${p.name} × ${qty} · ${total} Ft · ${paymentMethod} · műszak ${shift.id}`);
+      const checked=[];
+      for(const item of items){
+        if(!Number.isInteger(item.qty)||item.qty<1)return json(res,400,{error:'Érvénytelen mennyiség a kosárban.'});
+        const p=db.products.find(x=>x.id===item.productId && x.active);
+        if(!p)return json(res,400,{error:'A kosár egyik terméke már nem elérhető.'});
+        if(p.category!=='drink')return json(res,400,{error:'Csak ital értékesíthető.'});
+        const already=checked.find(x=>x.p.id===p.id);
+        if(already)already.qty+=item.qty; else checked.push({p,qty:item.qty});
+      }
+      for(const item of checked){
+        if(item.p.stock<item.qty)return json(res,400,{error:`Nincs elég készlet. ${item.p.name}: jelenleg ${item.p.stock} db van.`});
+      }
+      const transactionId=crypto.randomUUID();
+      const at=new Date().toISOString();
+      const sales=checked.map(item=>{
+        const p=item.p, qty=item.qty, total=p.price*qty;
+        p.stock-=qty;
+        return {
+          id:crypto.randomUUID(),transactionId,at,userId:u.id,user:u.name,
+          productId:p.id,product:p.name,category:p.category,qty,unitPrice:p.price,total,
+          shiftId:shift.id,paymentMethod,documentId:null
+        };
+      });
+      db.sales.unshift(...sales);
+      const total=sales.reduce((sum,s)=>sum+s.total,0);
+      audit(db,u,'SALE',`${sales.map(s=>`${s.product} × ${s.qty}`).join(' + ')} · ${total} Ft · ${paymentMethod} · műszak ${shift.id}`);
       await writeDB(db);
-      return json(res,201,{sale,product:p,shift});
+      return json(res,201,{sales,product:checked[0]?.p,shift,total,transactionId});
     }
 
     if(req.method==='DELETE' && url.startsWith('/api/sales/')){
@@ -577,27 +592,29 @@ async function api(req,res,url){
       const b=await readBody(req);
       const sale=db.sales.find(s=>s.id===b.saleId);
       if(!sale)return json(res,404,{error:'Az eladás nem található'});
+      const transactionId=sale.transactionId||sale.id;
+      const transactionSales=db.sales.filter(s=>((s.transactionId||s.id)===transactionId));
       const type='invoice';
       const doc={
         id:'DOC-'+new Date().toISOString().replace(/\D/g,'').slice(0,14)+'-'+crypto.randomBytes(3).toString('hex').toUpperCase(),
         type,
         createdAt:new Date().toISOString(),
         createdById:u.id,createdByName:u.name,
-        saleId:sale.id,shiftId:sale.shiftId,
+        saleId:sale.id,transactionId,shiftId:sale.shiftId,
         customer:{
           name:String(b.customer?.name||'Vásárló'),
           address:String(b.customer?.address||''),
           taxNumber:String(b.customer?.taxNumber||'')
         },
         seller:{name:'Red Moon Pub',owner:'Zhen Yu Xiao'},
-        items:[{product:sale.product,qty:sale.qty,unitPrice:sale.unitPrice,total:sale.total}],
-        total:sale.total,
+        items:transactionSales.map(s=>({product:s.product,qty:s.qty,unitPrice:s.unitPrice,total:s.total})),
+        total:transactionSales.reduce((sum,s)=>sum+s.total,0),
         paymentMethod:sale.paymentMethod
       };
       db.documents.unshift(doc);
-      sale.documentId=doc.id;
-      audit(db,u,'INVOICE_CREATE',`${doc.id} · ${sale.product} · ${sale.total} Ft`);
-      notifyManagersOwners(db,'Új számla készült',`${u.name} számlát készített: ${doc.id} · ${sale.product} · ${sale.total} Ft`,{documentId:doc.id,saleId:sale.id,createdBy:u.name});
+      transactionSales.forEach(s=>{s.documentId=doc.id});
+      audit(db,u,'INVOICE_CREATE',`${doc.id} · ${transactionSales.map(s=>s.product).join(', ')} · ${doc.total} Ft`);
+      notifyManagersOwners(db,'Új számla készült',`${u.name} számlát készített: ${doc.id} · ${transactionSales.length} tétel · ${doc.total} Ft`,{documentId:doc.id,saleId:sale.id,createdBy:u.name});
       await writeDB(db);
       return json(res,201,{document:doc});
     }
@@ -610,7 +627,7 @@ async function api(req,res,url){
       if(idx<0)return json(res,404,{error:'A számla nem található'});
       const doc=db.documents[idx];
       const sale=db.sales.find(x=>x.id===doc.saleId);
-      if(sale && sale.documentId===doc.id)sale.documentId=null;
+      db.sales.filter(x=>(x.transactionId||x.id)===(doc.transactionId||doc.saleId)).forEach(s=>{if(s.documentId===doc.id)s.documentId=null});
       db.documents.splice(idx,1);
       audit(db,u,'INVOICE_DELETE',`${doc.id} · ${doc.total} Ft`);
       await writeDB(db);
