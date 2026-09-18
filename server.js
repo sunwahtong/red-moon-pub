@@ -91,7 +91,6 @@ async function api(req,res,url){
   dbState.audit ||= [];
   dbState.notifications ||= [];
   for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; }
-  const db = dbState;
   try{
     if(req.method==='GET' && url==='/api/health'){
       return json(res,200,{ok:true,service:'red-moon-staff',version:'17.1-online',time:new Date().toISOString()});
