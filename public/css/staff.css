@@ -133,3 +133,15 @@ table{table-layout:fixed;min-width:920px}th,td{white-space:nowrap;vertical-align
   .sales-actions .table-action{min-height:40px;padding:9px 12px;font-size:9px}
   .cart-id{font-size:10px;padding:6px 9px}
 }
+
+/* V36 — sales action controls: contained, aligned, no overflow */
+.sales-log-panel td[data-label="Kezelés"]{min-width:0;overflow:hidden}
+.sales-log-panel .sales-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:center;justify-content:stretch;gap:6px;width:100%;min-width:0}
+.sales-log-panel .sales-actions .table-action{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;padding:7px 6px;font-size:8px;line-height:1;letter-spacing:.9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sales-log-panel th:nth-child(7),.sales-log-panel td:nth-child(7){width:23%}
+.sales-log-panel th{font-size:7.5px;letter-spacing:1.35px}
+
+@media(max-width:900px){
+  .sales-log-panel .sales-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
+  .sales-log-panel .sales-actions .table-action{min-height:38px;padding:9px 8px;font-size:9px;white-space:nowrap;overflow:visible;text-overflow:clip}
+}
