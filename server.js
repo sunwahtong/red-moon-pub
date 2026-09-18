@@ -115,8 +115,22 @@ async function migrateDrinkCatalog(){
   if(pool) await writeDB(db);
 }
 function broadcastClub(type='club_state', payload={}){
-  const message=`data: ${JSON.stringify({type,...payload,at:new Date().toISOString()})}\n\n`;
-  for(const client of [...clubRealtimeClients]){ try{client.res.write(message)}catch{clubRealtimeClients.delete(client)} }
+  for(const client of [...clubRealtimeClients]){
+    try{
+      let data={type,...payload,at:new Date().toISOString()};
+      if(type==='club_state'&&payload.state&&client.userId){
+        const viewer=db.users?.find(x=>x.id===client.userId);
+        if(viewer&&['dj','manager','owner'].includes(viewer.role)){
+          const c=ensureClub();
+          data.state={...payload.state,
+            requests:(c.requests||[]).slice(0,100).map(r=>({...r,ip:r.ip||null})),
+            nameRequests:(c.nameRequests||[]).slice(0,80)
+          };
+        }
+      }
+      client.res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }catch{clubRealtimeClients.delete(client)}
+  }
 }
 function clubDefaults(){ return {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],nameRequests:[],approvedNames:[],bans:[],startedAt:null,library:[],provider:'gocast',providerUrl:'https://gocast.fm/station/red-moon-pub'}; }
 function ensureMusicDir(){ const dir=path.join(PUBLIC,'assets','dj-music'); fs.mkdirSync(dir,{recursive:true}); return dir; }
@@ -128,7 +142,8 @@ function getClientIP(req){ const x=String(req.headers['x-forwarded-for']||req.he
 function activeBan(ip){ const c=ensureClub(), now=Date.now(); c.bans=c.bans.filter(b=>!b.until || b.until>now); return c.bans.find(b=>b.ip===ip)||null; }
 function cleanNameToken(raw){ return String(raw||'').trim().slice(0,160); }
 function approvedIdentity(req,name,token){ const c=ensureClub(), ip=getClientIP(req), n=String(name||'').trim().slice(0,32), t=cleanNameToken(token); if(!n||!t)return false; const ban=activeBan(ip); if(ban)return false; const hash=crypto.createHash('sha256').update(t).digest('hex'); return c.approvedNames.some(x=>x.tokenHash===hash && x.ip===ip && x.name===n && x.expiresAt>Date.now()); }
-function clubState(){
+function approvedIdentityByToken(req,token){ const c=ensureClub(), ip=getClientIP(req), t=cleanNameToken(token); if(!t)return null; const ban=activeBan(ip); if(ban)return null; const hash=crypto.createHash('sha256').update(t).digest('hex'); return c.approvedNames.find(x=>x.tokenHash===hash && x.ip===ip && x.expiresAt>Date.now())||null; }
+function clubState(req=null){
   const c=ensureClub();
   purgeExpiredChat();
   const active=[...clubListeners.entries()].filter(([id,x])=>!id.startsWith('chat:')&&!id.startsWith('request:')&&x.lastSeen>Date.now()-30000);
@@ -136,7 +151,9 @@ function clubState(){
   c.nameRequests=c.nameRequests.filter(x=>x.status==='pending').slice(0,80);
   c.approvedNames=c.approvedNames.filter(x=>x.expiresAt>Date.now()).slice(-300);
   c.bans=c.bans.filter(x=>!x.until||x.until>Date.now()).slice(-200);
-  return {serverNow:Date.now(),live:!!c.live,dj:c.dj||null,title:c.title||'',provider:c.provider||'gocast',providerUrl:c.providerUrl||'https://gocast.fm/station/red-moon-pub',current:null,queue:[],library:[],chat:(c.chat||[]).slice(0,8).map(publicChatMessage),requests:[],nameRequests:[],listenerCount:active.length,startedAt:c.startedAt||null};
+  const viewer=req?sessionUser(req):null;
+  const canModerate=!!viewer&&['dj','manager','owner'].includes(viewer.role);
+  return {serverNow:Date.now(),live:!!c.live,dj:c.dj||null,title:c.title||'',provider:c.provider||'gocast',providerUrl:c.providerUrl||'https://gocast.fm/station/red-moon-pub',current:null,queue:[],library:[],chat:(c.chat||[]).slice(0,8).map(publicChatMessage),requests:canModerate?(c.requests||[]).slice(0,100).map(r=>({...r,item:r.item?{id:r.item.id,name:r.item.name,url:''}:null})):[],nameRequests:canModerate?(c.nameRequests||[]).slice(0,80):[],listenerCount:active.length,startedAt:c.startedAt||null};
 }
 function broadcastClubState(){ broadcastClub('club_state',{state:clubState()}); }
 function authDJ(req,res){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if(!['dj','manager','owner'].includes(u.role)){json(res,403,{error:'Ehhez a DJ jogosultság szükséges'});return null;} return u; }
@@ -259,10 +276,10 @@ async function api(req,res,url){
 
     // ---------- REALTIME STAFF CHANNEL ----------
     // ---------- RED MOON CLUB PUBLIC REALTIME ----------
-    if(req.method==='GET' && url==='/api/club/state'){ return json(res,200,{state:clubState()}); }
+    if(req.method==='GET' && url==='/api/club/state'){ return json(res,200,{state:clubState(req)}); }
     if(req.method==='GET' && url==='/api/club/events'){
       res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-store, must-revalidate','Connection':'keep-alive','X-Accel-Buffering':'no-store'});
-      res.write(`data: ${JSON.stringify({type:'connected',state:clubState(),at:new Date().toISOString()})}\n\n`);
+      res.write(`data: ${JSON.stringify({type:'connected',state:clubState(req),at:new Date().toISOString()})}\n\n`);
       const client={res}; clubRealtimeClients.add(client);
       const keepAlive=setInterval(()=>{try{res.write(': keepalive\n\n')}catch{}},20000);
       req.on('close',()=>{clearInterval(keepAlive);clubRealtimeClients.delete(client);try{res.end()}catch{}});
@@ -301,8 +318,8 @@ async function api(req,res,url){
       const u=authDJ(req,res); if(!u)return; const id=decodeURIComponent(url.slice('/api/club/chat/'.length)); const c=ensureClub(); const idx=c.chat.findIndex(x=>x.id===id); if(idx<0)return json(res,404,{error:'Üzenet nem található'}); const [removed]=c.chat.splice(idx,1); audit(db,u,'DJ_CHAT_DELETE',`${removed.name}: ${removed.text}`); await writeDB(db); broadcastClub('chat_deleted',{id}); broadcastClubState(); return json(res,200,{ok:true});
     }
     if(req.method==='POST' && url==='/api/club/request'){
-      const b=await readBody(req); const name=String(b.name||'').trim().slice(0,32); const token=cleanNameToken(b.token);
-      if(!name||!approvedIdentity(req,name,token))return json(res,403,{error:'Érvényes névjóváhagyás szükséges'});
+      const b=await readBody(req); const token=cleanNameToken(b.token); const identity=approvedIdentityByToken(req,token); const name=identity?.name||'';
+      if(!identity)return json(res,403,{error:'Érvényes névjóváhagyás szükséges'});
       const ip=getClientIP(req), ban=activeBan(ip); if(ban)return json(res,403,{error:`Chat tiltás aktív. Indok: ${ban.reason||'nincs megadva'}`});
       const last=clubListeners.get(`request:${ip}`)?.lastRequest||0; if(Date.now()-last<5000)return json(res,429,{error:`Várj még ${Math.ceil((5000-(Date.now()-last))/1000)} mp-et az új kérésig.`});
       const c=ensureClub(); let item=null;
@@ -327,7 +344,7 @@ async function api(req,res,url){
     if(req.method==='GET' && url==='/api/dj/events'){
       const u=authDJ(req,res); if(!u)return;
       res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-store, must-revalidate','Connection':'keep-alive','X-Accel-Buffering':'no-store'});
-      res.write(`data: ${JSON.stringify({type:'connected',state:clubState(),at:new Date().toISOString()})}\n\n`);
+      res.write(`data: ${JSON.stringify({type:'connected',state:clubState(req),at:new Date().toISOString()})}\n\n`);
       const client={res,userId:u.id}; clubRealtimeClients.add(client);
       const keepAlive=setInterval(()=>{try{res.write(': keepalive\n\n')}catch{}},20000);
       req.on('close',()=>{clearInterval(keepAlive);clubRealtimeClients.delete(client);try{res.end()}catch{}});

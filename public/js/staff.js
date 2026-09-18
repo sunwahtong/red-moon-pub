@@ -206,7 +206,26 @@ function renderProducts(){
   const active=products.filter(p=>p.active);
   $('#saleProduct').innerHTML=active.map(p=>`<option value="${p.id}">${esc(p.name)} · ${money(p.price)}</option>`).join('');
   updateSalePreview();
-  $('#inventory').innerHTML=active.map(p=>`<div class="stock-row ${p.stock<=p.minStock?'low':''}"><div class="stock-product"><img class="stock-thumb" src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><div><b>${esc(p.name)}</b><small>${p.name==='Sörnyitó'?'BAR KELLÉK':'ITAL'} · minimum ${p.minStock} db</small></div></div><span class="stock-num">${p.stock} db</span><span>${p.stock<=p.minStock?'⚠':''}</span></div>`).join('')
+  $('#inventory').innerHTML=active.map(p=>`<article class="product-card ${p.stock<=p.minStock?'low':''}">
+    <div class="product-card-art"><img src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><span class="product-stock">${p.stock} DB</span></div>
+    <div class="product-card-body"><b>${esc(p.name)}</b><small>${money(p.price)} · minimum ${p.minStock} db</small></div>
+    <button type="button" class="product-add" onclick="quickAddToCart('${esc(p.id)}')" ${p.stock<1?'disabled':''}>${p.stock<1?'ELFOGYOTT':'＋ KOSÁRBA'}</button>
+  </article>`).join('');
+}
+function quickAddToCart(id){
+  const p=products.find(x=>x.id===id);
+  if(!p||p.stock<1)return;
+  const existing=window.saleCart.find(x=>x.productId===p.id);
+  if((existing?.qty||0)+1>p.stock){
+    playSfx('error',0.8);
+    showToast('Nincs elég készlet',`${p.name}: jelenleg ${p.stock} db van.`,'error');
+    return;
+  }
+  if(existing)existing.qty+=1;
+  else window.saleCart.push({productId:p.id,name:p.name,price:p.price,qty:1});
+  playSfx('success',0.32);
+  renderCart();
+  updateSalePreview();
 }
 function renderDashboard(d){
   $('#statRevenue').textContent=money(d.today.revenue);$('#statItems').textContent=d.today.items+' db';$('#statLow').textContent=d.lowStock.length;
