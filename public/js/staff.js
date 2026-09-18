@@ -217,7 +217,7 @@ function renderSales(sales){
   const canDelete=me && (me.role==='manager'||me.role==='owner');
   $('#salesTable').innerHTML=sales.length?sales.slice(0,20).map(s=>`<tr>
     <td>${new Date(s.at).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</td>
-    <td>${esc(s.user)}</td><td>${esc(s.product)}</td><td>${s.qty}</td><td>${money(s.total)}</td>
+    <td>${esc(s.user)}</td><td><span class="cart-id">${esc(s.cartId||s.transactionId||'—')}</span></td><td>${esc(s.product)}</td><td>${s.qty}</td><td>${money(s.total)}</td>
     <td class="sales-actions">
       ${s.documentId
         ? `<button class="table-action" onclick="loadDocumentById('${esc(s.documentId)}')">MEGNYITÁS</button>`
@@ -469,7 +469,7 @@ $('#saleForm').addEventListener('submit',async e=>{
     const first=latestSale;
     const invoiceBtn=first?` · <button type="button" class="btn" onclick="createDocument('${first.id}','invoice')">SZÁMLA KÉSZÍTÉSE</button>`:'';
     msg.style.color='#69e0ac';
-    msg.innerHTML=`Kosár eladva: ${d.sales?.length||1} tétel · ${money(d.total)}${invoiceBtn}`;
+    msg.innerHTML=`Kosár eladva · <b>${esc(d.cartId||d.transactionId||'—')}</b> · ${d.sales?.length||1} tétel · ${money(d.total)}${invoiceBtn}`;
     window.saleCart=[];$('#saleQty').value=1;renderCart();await load();
   }catch(err){playSfx('error',0.8);msg.style.color='#ff657a';msg.textContent=err.message}
 });

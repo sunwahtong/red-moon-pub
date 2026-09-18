@@ -83,3 +83,16 @@ linear-gradient(145deg,#040304 0%,#090507 48%,#050304 100%);}
   .cart-item-controls{width:100%;justify-content:flex-end}
   .cart-item-total{margin-left:auto}
 }
+
+.cart-id{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 8px;
+  border:1px solid rgba(255,80,80,.22);
+  border-radius:6px;
+  background:rgba(120,0,0,.12);
+  color:#ffb1b1;
+  font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.04em;
+  white-space:nowrap;
+}

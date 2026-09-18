@@ -549,11 +549,12 @@ async function api(req,res,url){
       }
       const transactionId=crypto.randomUUID();
       const at=new Date().toISOString();
+      const cartId='KOS-'+new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14)+'-'+crypto.randomBytes(3).toString('hex').toUpperCase();
       const sales=checked.map(item=>{
         const p=item.p, qty=item.qty, total=p.price*qty;
         p.stock-=qty;
         return {
-          id:crypto.randomUUID(),transactionId,at,userId:u.id,user:u.name,
+          id:crypto.randomUUID(),transactionId,cartId,at,userId:u.id,user:u.name,
           productId:p.id,product:p.name,category:p.category,qty,unitPrice:p.price,total,
           shiftId:shift.id,paymentMethod,documentId:null
         };
@@ -562,7 +563,7 @@ async function api(req,res,url){
       const total=sales.reduce((sum,s)=>sum+s.total,0);
       audit(db,u,'SALE',`${sales.map(s=>`${s.product} × ${s.qty}`).join(' + ')} · ${total} Ft · ${paymentMethod} · műszak ${shift.id}`);
       await writeDB(db);
-      return json(res,201,{sales,product:checked[0]?.p,shift,total,transactionId});
+      return json(res,201,{sales,product:checked[0]?.p,shift,total,transactionId,cartId});
     }
 
     if(req.method==='DELETE' && url.startsWith('/api/sales/')){
