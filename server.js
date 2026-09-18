@@ -79,6 +79,7 @@ function cleanNameToken(raw){ return String(raw||'').trim().slice(0,160); }
 function approvedIdentity(req,name,token){ const c=ensureClub(), ip=getClientIP(req), n=String(name||'').trim().slice(0,32), t=cleanNameToken(token); if(!n||!t)return false; const ban=activeBan(ip); if(ban)return false; const hash=crypto.createHash('sha256').update(t).digest('hex'); return c.approvedNames.some(x=>x.tokenHash===hash && x.ip===ip && x.name===n && x.expiresAt>Date.now()); }
 function clubState(){
   const c=ensureClub();
+  purgeExpiredChat();
   const active=[...clubListeners.entries()].filter(([id,x])=>!id.startsWith('chat:')&&!id.startsWith('request:')&&x.lastSeen>Date.now()-30000);
   for(const [id,x] of clubListeners) if(x.lastSeen<=Date.now()-30000) clubListeners.delete(id);
   c.nameRequests=c.nameRequests.filter(x=>x.status==='pending').slice(0,80);
@@ -105,6 +106,8 @@ function parseYoutubeLink(raw){
   return {type:videoId?'video':'playlist',videoId,playlistId,url:value,label:videoId?`YouTube · ${videoId}`:`YouTube playlist · ${playlistId}`};
 }
 function publicChatMessage(m){return {id:m.id,at:m.at,name:m.name,text:m.text,kind:m.kind||'chat',requestId:m.requestId||null};}
+function djChatMessage(m){return {...publicChatMessage(m),ip:m.ip||null};}
+function purgeExpiredChat(){ const c=ensureClub(), cutoff=Date.now()-30000; const before=c.chat.length; c.chat=c.chat.filter(m=>new Date(m.at).getTime()>cutoff); return before!==c.chat.length; }
 function broadcastRealtime(type='state', payload={}){
   const message=`data: ${JSON.stringify({type,...payload,at:new Date().toISOString()})}\n\n`;
   for(const client of [...realtimeClients]){
@@ -235,6 +238,9 @@ async function api(req,res,url){
       const last=clubListeners.get(`chat:${ip}`)?.lastChat||0; if(Date.now()-last<5000)return json(res,429,{error:`Várj még ${Math.ceil((5000-(Date.now()-last))/1000)} mp-et az új üzenetig.`});
       clubListeners.set(`chat:${ip}`,{lastChat:Date.now(),lastSeen:Date.now()}); const c=ensureClub(); const msg={id:crypto.randomUUID(),at:new Date().toISOString(),name,text,kind:'chat'}; c.chat.unshift(msg); c.chat=c.chat.slice(0,120); await writeDB(db); broadcastClub('chat_message',{message:publicChatMessage(msg)}); broadcastClubState(); return json(res,201,{ok:true});
     }
+    if(req.method==='DELETE' && url.startsWith('/api/club/chat/')){
+      const u=authDJ(req,res); if(!u)return; const id=decodeURIComponent(url.slice('/api/club/chat/'.length)); const c=ensureClub(); const idx=c.chat.findIndex(x=>x.id===id); if(idx<0)return json(res,404,{error:'Üzenet nem található'}); const [removed]=c.chat.splice(idx,1); audit(db,u,'DJ_CHAT_DELETE',`${removed.name}: ${removed.text}`); await writeDB(db); broadcastClub('chat_deleted',{id}); broadcastClubState(); return json(res,200,{ok:true});
+    }
     if(req.method==='POST' && url==='/api/club/request'){
       const b=await readBody(req); const name=String(b.name||'').trim().slice(0,32); const token=cleanNameToken(b.token); const parsed=parseYoutubeLink(b.url);
       if(!name||!parsed||!approvedIdentity(req,name,token))return json(res,403,{error:'Érvényes névjóváhagyás és YouTube-link szükséges'});
@@ -255,7 +261,7 @@ async function api(req,res,url){
       const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const current=ensureClub().current; if(!current)return json(res,400,{error:'Nincs aktív szám'}); const position=Math.max(0,Number(b.position)||0); const playing=!!b.playing; const payload={videoId:current.videoId||null,playlistId:current.playlistId||null,type:current.type,position,playing,at:Date.now()}; ensureClub().current={...current,playbackPosition:position,playbackPlaying:playing,playbackAt:payload.at}; broadcastClub('player_sync',{sync:payload}); return json(res,200,{ok:true});
     }
     // ---------- DJ CONSOLE ----------
-    if(req.method==='GET' && url==='/api/dj/state'){ const u=authDJ(req,res); if(!u)return; const c=ensureClub(); const st=clubState(); st.chat=(c.chat||[]).slice(0,80); return json(res,200,{state:st,me:publicUser(db.users.find(x=>x.id===u.id)||u)}); }
+    if(req.method==='GET' && url==='/api/dj/state'){ const u=authDJ(req,res); if(!u)return; const c=ensureClub(); const st=clubState(); purgeExpiredChat(); st.chat=(c.chat||[]).slice(0,80).map(djChatMessage); return json(res,200,{state:st,me:publicUser(db.users.find(x=>x.id===u.id)||u)}); }
     if(req.method==='GET' && url==='/api/dj/events'){
       const u=authDJ(req,res); if(!u)return;
       res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-store, must-revalidate','Connection':'keep-alive','X-Accel-Buffering':'no-store'});
@@ -268,7 +274,7 @@ async function api(req,res,url){
     if(req.method==='POST' && url==='/api/dj/live'){
       const u=authDJ(req,res); if(!u)return; const b=await readBody(req); db.club ||= {live:false,dj:null,title:'',current:null,queue:[],chat:[],requests:[],startedAt:null};
       const on=!!b.live; db.club.live=on; db.club.dj=on?{id:u.id,name:u.name}:null; db.club.title=on?String(b.title||'Red Moon Live').trim().slice(0,80):''; db.club.startedAt=on?new Date().toISOString():null;
-      if(!on){db.club.current=null;db.club.queue=[];} audit(db,u,on?'DJ_LIVE_START':'DJ_LIVE_STOP',on?db.club.title:'Live leállítva'); await writeDB(db); broadcastClubState(); return json(res,200,{state:clubState()});
+      if(!on){db.club.current=null;db.club.queue=[];} audit(db,u,on?'DJ_LIVE_START':'DJ_LIVE_STOP',on?db.club.title:'Live leállítva'); await writeDB(db); broadcastClub('live_status',{live:on,dj:on?{id:u.id,name:u.name}:null,title:on?db.club.title:''}); broadcastClubState(); return json(res,200,{state:clubState()});
     }
     if(req.method==='POST' && url==='/api/dj/queue'){
       const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const parsed=parseYoutubeLink(b.url); if(!parsed)return json(res,400,{error:'Érvényes YouTube-link szükséges'});

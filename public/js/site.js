@@ -3,12 +3,18 @@
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
   // Red Moon Club live indicator — public, realtime, no refresh required.
   let clubLiveSource;
+  let lastClubLive=false;
+  let clubSoundReady=false;
   function ensureClubLiveIndicator(){
     let el=document.querySelector('#rmLiveIndicator');
     if(!el){ el=document.createElement('a'); el.id='rmLiveIndicator'; el.className='rm-live-indicator'; el.href='club.html'; el.innerHTML='<span class="rm-live-dot"></span><b>LIVE NOW</b><small id="rmLiveDJ"></small>'; document.body.appendChild(el); }
     return el;
   }
-  function paintClubLive(state){ const el=ensureClubLiveIndicator(); const live=!!state?.live; el.classList.toggle('show',live); const dj=el.querySelector('#rmLiveDJ'); if(dj)dj.textContent=live&&state.dj?`DJ ${state.dj.name}`:''; }
+  function djLabel(name){ const n=String(name||'').trim(); return /^dj\b/i.test(n)?n:`DJ ${n}`; }
+  function unlockClubSound(){ clubSoundReady=true; try{ const C=window.AudioContext||window.webkitAudioContext; if(C){ const c=window._rmClubLiveAudio||(window._rmClubLiveAudio=new C()); if(c.state==='suspended')c.resume(); } }catch{} }
+  function liveBeep(start){ if(!clubSoundReady)return; try{ const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=window._rmClubLiveAudio||(window._rmClubLiveAudio=new C());if(c.state==='suspended')c.resume();const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=start?760:420;g.gain.setValueAtTime(.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(.055,c.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.22);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+.24);}catch{} }
+  function paintClubLive(state){ const el=ensureClubLiveIndicator(); const live=!!state?.live; if(live!==lastClubLive){ liveBeep(live); lastClubLive=live; } el.classList.toggle('show',live); const dj=el.querySelector('#rmLiveDJ'); if(dj)dj.textContent=live&&state.dj?djLabel(state.dj.name):''; }
+  document.addEventListener('pointerdown', unlockClubSound, {once:false, passive:true});
   async function initClubLive(){
     try{const r=await fetch('/api/club/state',{credentials:'same-origin',cache:'no-store'}); if(r.ok)paintClubLive((await r.json()).state)}catch{}
     try{clubLiveSource=new EventSource('/api/club/events'); clubLiveSource.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.state)paintClubLive(d.state)}catch{}}}catch{}
@@ -108,6 +114,10 @@
 
   initClubLive();
 
+  function ensureClubNavLink(root=document){
+    const nav=root.querySelector('header.nav nav'); if(!nav)return;
+    if(!nav.querySelector('a[href$="club.html"]')){ const a=document.createElement('a'); a.href='club.html'; a.textContent='RED MOON CLUB'; nav.appendChild(a); }
+  }
   function markNav() {
     const page = location.pathname.split('/').pop() || 'index.html';
     $$('header.nav nav a').forEach(a => {
@@ -165,6 +175,7 @@
       const nextMain = doc.querySelector('main');
       if (!nextMain) throw new Error('main');
       ensureStyles(doc);
+      ensureClubNavLink(doc);
       document.body.className = doc.body.className;
       document.title = doc.title;
       $('main')?.replaceWith(nextMain);
@@ -195,7 +206,7 @@
   });
   addEventListener('popstate', () => spaNavigate(new URL(location.href),false));
   $('#hamb')?.addEventListener('click', () => $('header.nav nav')?.classList.toggle('open'));
-  markNav(); initReveals(); initCountdowns(); paintSound();
+  ensureClubNavLink(); markNav(); initReveals(); initCountdowns(); paintSound();
   // Attempt autoplay only after the page UI is ready, so navigation can continue
   // from the exact saved timestamp whenever the browser allows audible playback.
   resumeSavedMusic();
