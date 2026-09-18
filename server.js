@@ -268,7 +268,7 @@ async function api(req,res,url){
       const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const ip=String(b.ip||'').trim(); const minutes=Math.max(1,Math.min(10080,Number(b.minutes)||60)); const reason=String(b.reason||'').trim().slice(0,240); if(!ip||!reason)return json(res,400,{error:'IP-cím és indok kötelező'}); const c=ensureClub(); c.bans=c.bans.filter(x=>x.ip!==ip); c.bans.push({id:crypto.randomUUID(),ip,until:Date.now()+minutes*60000,minutes,reason,by:u.name,at:new Date().toISOString()}); await writeDB(db); broadcastClub('user_banned',{until:Date.now()+minutes*60000,reason}); broadcastClubState(); return json(res,200,{ok:true});
     }
     // ---------- DJ CONSOLE ----------
-    if(req.method==='GET' && url==='/api/dj/state'){ const u=authDJ(req,res); if(!u)return; const c=ensureClub(); const st=clubState(); purgeExpiredChat(); st.chat=(c.chat||[]).slice(0,80).map(djChatMessage); return json(res,200,{state:st,me:publicUser(db.users.find(x=>x.id===u.id)||u)}); }
+    if(req.method==='GET' && url==='/api/dj/state'){ const u=authDJ(req,res); if(!u)return; const c=ensureClub(); const st=clubState(); purgeExpiredChat(); st.chat=(c.chat||[]).slice(0,80).map(djChatMessage); st.requests=(c.requests||[]).slice(0,100).map(r=>({...r,ip:r.ip||null})); st.nameRequests=(c.nameRequests||[]).slice(0,80); return json(res,200,{state:st,me:publicUser(db.users.find(x=>x.id===u.id)||u)}); }
     if(req.method==='GET' && url==='/api/dj/events'){
       const u=authDJ(req,res); if(!u)return;
       res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-store, must-revalidate','Connection':'keep-alive','X-Accel-Buffering':'no-store'});
@@ -324,6 +324,9 @@ async function api(req,res,url){
       const action=String(b.action||'').toLowerCase(); if(!['accept','decline'].includes(action))return json(res,400,{error:'Érvénytelen művelet'}); reqItem.status=action==='accept'?'accepted':'declined'; reqItem.handledBy=u.name; reqItem.handledAt=new Date().toISOString();
       if(action==='accept' && reqItem.item?.id){ const lib=(db.club.library||[]).find(x=>x.id===reqItem.item.id); if(lib){const item={...lib,trackId:lib.id,id:crypto.randomUUID(),addedBy:reqItem.name,requestId:reqItem.id,addedAt:reqItem.handledAt}; db.club.queue.push(item); db.club.queue=db.club.queue.slice(-50);}}
       db.club.chat.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),name:'Red Moon',text:action==='accept'?`${u.name} elfogadta a kérést: ${reqItem.item.name}`:`${u.name} elutasította a kérést: ${reqItem.item.name}`,kind:action==='accept'?'request-accepted':'request-declined',requestId:reqItem.id}); db.club.chat=db.club.chat.slice(0,120); await writeDB(db); broadcastClubState(); return json(res,200,{state:clubState()});
+    }
+    if(req.method==='DELETE' && url.startsWith('/api/dj/request/')){
+      const u=authDJ(req,res); if(!u)return; const id=decodeURIComponent(url.slice('/api/dj/request/'.length)); const c=ensureClub(); const idx=c.requests.findIndex(x=>x.id===id); if(idx<0)return json(res,404,{error:'Kérés nem található'}); const [removed]=c.requests.splice(idx,1); c.chat=(c.chat||[]).filter(m=>m.requestId!==id); audit(db,u,'DJ_REQUEST_DELETE',`${removed.name}: ${removed.item?.name||''}`); await writeDB(db); broadcastClub('request_deleted',{id}); broadcastClubState(); return json(res,200,{ok:true,state:clubState()});
     }
 
     if(req.method==='GET' && url==='/api/events'){
