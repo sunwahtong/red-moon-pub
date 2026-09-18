@@ -1,6 +1,6 @@
 {
   "name": "red-moon-pub-v15",
-  "version": "18.2.0",
+  "version": "18.3.0",
   "private": true,
   "description": "Red Moon Pub public website + server-side staff POS and inventory system",
   "scripts": {

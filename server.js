@@ -79,7 +79,24 @@ function writeDB(next){
 }
 function json(res,status,obj){ const body=JSON.stringify(obj); const origin=res.req?.headers?.origin; const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','X-Frame-Options':'SAMEORIGIN','Referrer-Policy':'same-origin'}; if(origin==='null' || origin===`http://localhost:${PORT}` || origin===`http://127.0.0.1:${PORT}`){headers['Access-Control-Allow-Origin']=origin;headers['Access-Control-Allow-Credentials']='true';headers['Access-Control-Allow-Headers']='Content-Type';headers['Access-Control-Allow-Methods']='GET,POST,PATCH,DELETE,OPTIONS';} res.writeHead(status,headers); res.end(body); }
 function parseCookies(req){ const out={}; (req.headers.cookie||'').split(';').forEach(p=>{const i=p.indexOf('='); if(i>0) out[p.slice(0,i).trim()]=decodeURIComponent(p.slice(i+1));}); return out; }
-function sessionUser(req){ const sid=parseCookies(req).rm_session; const s=sid&&sessions.get(sid); return s||null; }
+function sessionUser(req){
+  const sid=parseCookies(req).rm_session;
+  const s=sid&&sessions.get(sid);
+  if(s) s.lastSeen=Date.now();
+  return s||null;
+}
+function onlineUsers(){
+  const cutoff=Date.now()-45000;
+  const seen=new Map();
+  for(const session of sessions.values()){
+    if(!session?.id || !session.lastSeen || session.lastSeen<cutoff) continue;
+    const current=seen.get(session.id);
+    if(!current || session.lastSeen>current.lastSeen){
+      seen.set(session.id,{id:session.id,username:session.username,name:session.name,role:session.role,lastSeen:session.lastSeen});
+    }
+  }
+  return [...seen.values()].sort((a,b)=>a.name.localeCompare(b.name,'hu'));
+}
 function roleAtLeast(role,need){ const r={staff:1,manager:2,owner:3}; return (r[role]||0)>=(r[need]||99); }
 function auth(req,res,need='staff'){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if(!roleAtLeast(u.role,need)){json(res,403,{error:'Nincs jogosultságod ehhez a művelethez'});return null;} return u; }
 function readBody(req){return new Promise((resolve,reject)=>{let d='';req.on('data',c=>{d+=c;if(d.length>1e6) req.destroy();});req.on('end',()=>{try{resolve(d?JSON.parse(d):{})}catch(e){reject(e)}});req.on('error',reject)})}
@@ -112,7 +129,7 @@ async function api(req,res,url){
   for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; }
   try{
     if(req.method==='GET' && url==='/api/health'){
-      return json(res,200,{ok:true,service:'red-moon-staff',version:'18.0-online',time:new Date().toISOString()});
+      return json(res,200,{ok:true,service:'red-moon-staff',version:'18.3-online',time:new Date().toISOString()});
     }
 
     if(req.method==='POST' && url==='/api/login'){
@@ -120,7 +137,7 @@ async function api(req,res,url){
       const u=db.users.find(x=>x.username.toLowerCase()===String(b.username||'').trim().toLowerCase());
       if(!u || !verifyPassword(String(b.password||''),u.passwordHash)) return json(res,401,{error:'Hibás felhasználónév vagy jelszó'});
       const sid=crypto.randomBytes(32).toString('hex');
-      sessions.set(sid,{id:u.id,username:u.username,name:u.name,role:u.role});
+      sessions.set(sid,{id:u.id,username:u.username,name:u.name,role:u.role,lastSeen:Date.now()});
       res.setHeader('Set-Cookie',`rm_session=${sid}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800${process.env.NODE_ENV==='production'?' ; Secure':''}`.replace(' ; Secure','; Secure'));
       audit(db,u,'LOGIN','Sikeres belépés'); await writeDB(db);
       return json(res,200,{user:publicUser(u)});
@@ -135,6 +152,20 @@ async function api(req,res,url){
 
     if(req.method==='GET' && url==='/api/me'){
       const u=sessionUser(req); return json(res,200,{user:u||null});
+    }
+
+    if(req.method==='POST' && url==='/api/presence/heartbeat'){
+      const u=auth(req,res); if(!u)return;
+      const sid=parseCookies(req).rm_session;
+      const session=sid&&sessions.get(sid);
+      if(session) session.lastSeen=Date.now();
+      return json(res,200,{ok:true,at:new Date().toISOString()});
+    }
+
+    if(req.method==='GET' && url==='/api/presence'){
+      const u=auth(req,res); if(!u)return;
+      const online=onlineUsers();
+      return json(res,200,{online,onlineCount:online.length,generatedAt:new Date().toISOString()});
     }
 
     if(req.method==='GET' && url==='/api/products'){
@@ -409,14 +440,52 @@ async function api(req,res,url){
       return json(res,201,{user:publicUser(nu)});
     }
 
+    if(req.method==='PATCH' && url.startsWith('/api/users/')){
+      const u=auth(req,res,'owner'); if(!u)return;
+      const id=decodeURIComponent(url.split('/').pop());
+      const target=db.users.find(x=>x.id===id);
+      if(!target)return json(res,404,{error:'Felhasználó nem található'});
+      const b=await readBody(req);
+      const nextName=String(b.name??target.name).trim();
+      const nextUsername=String(b.username??target.username).trim();
+      const nextRole=String(b.role??target.role).toLowerCase();
+      const newPassword=String(b.password??'');
+      if(!nextName||!nextUsername)return json(res,400,{error:'A név és a felhasználónév kötelező'});
+      if(!['staff','manager','owner'].includes(nextRole))return json(res,400,{error:'Érvénytelen jogosultsági szint'});
+      const duplicate=db.users.find(x=>x.id!==id && x.username.toLowerCase()===nextUsername.toLowerCase());
+      if(duplicate)return json(res,409,{error:'Ez a felhasználónév már használatban van'});
+      if(target.role==='owner' && nextRole!=='owner' && db.users.filter(x=>x.role==='owner').length<=1){
+        return json(res,400,{error:'Az utolsó OWNER jogosultság nem vehető el.'});
+      }
+      target.name=nextName;
+      target.username=nextUsername;
+      target.role=nextRole;
+      if(newPassword){
+        const hp=hashPassword(newPassword);
+        target.passwordHash=`PBKDF2:310000:sha256:${hp.salt}:${hp.hash}`;
+      }
+      for(const session of sessions.values()){
+        if(session.id===target.id){
+          session.username=target.username;
+          session.name=target.name;
+          session.role=target.role;
+          session.lastSeen=Date.now();
+        }
+      }
+      audit(db,u,'USER_UPDATE',`${target.name} (${target.username}) · ${target.role}${newPassword?' · jelszó frissítve':''}`);
+      await writeDB(db);
+      return json(res,200,{user:publicUser(target)});
+    }
+
     if(req.method==='DELETE' && url.startsWith('/api/users/')){
       const u=auth(req,res,'owner'); if(!u)return;
-      const id=url.split('/').pop();
+      const id=decodeURIComponent(url.split('/').pop());
       if(id===u.id)return json(res,400,{error:'A saját OWNER fiókodat nem törölheted.'});
       const target=db.users.find(x=>x.id===id);
       if(!target)return json(res,404,{error:'Felhasználó nem található'});
       if(target.role==='owner' && db.users.filter(x=>x.role==='owner').length<=1)return json(res,400,{error:'Az utolsó OWNER fiók nem törölhető.'});
       db.users=db.users.filter(x=>x.id!==id);
+      for(const [sid,session] of sessions.entries()) if(session.id===id) sessions.delete(sid);
       audit(db,u,'USER_DELETE',`${target.name} (${target.username})`);
       await writeDB(db);
       return json(res,200,{ok:true});

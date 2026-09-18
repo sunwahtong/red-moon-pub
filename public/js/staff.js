@@ -1,6 +1,6 @@
 if(location.protocol==='file:'){ location.replace('http://localhost:8787/staff'); }
 const $=s=>document.querySelector(s);
-let me=null,products=[],currentShift=null,latestSale=null;
+let me=null,products=[],currentShift=null,latestSale=null, presenceTimer=null, heartbeatTimer=null;
 const money=n=>new Intl.NumberFormat('hu-HU').format(Number(n)||0)+' Ft';
 const SOUND_BASE='/assets/sounds/';
 const soundCache={};
@@ -128,7 +128,33 @@ function showApp(){
   $('#statRole').textContent=me.role.toUpperCase();
   if(me.role==='manager'||me.role==='owner')$('#managerPanel').classList.remove('hidden');
   if(me.role==='owner')$('#ownerPanel').classList.remove('hidden');
+  loadPresence();
+  clearInterval(heartbeatTimer); clearInterval(presenceTimer);
+  sendPresenceHeartbeat();
+  heartbeatTimer=setInterval(sendPresenceHeartbeat,20000);
+  presenceTimer=setInterval(loadPresence,10000);
   load();
+}
+async function sendPresenceHeartbeat(){
+  if(!me)return;
+  try{await api('/api/presence/heartbeat',{method:'POST',body:'{}'})}catch{}
+}
+async function loadPresence(){
+  if(!me)return;
+  const body=$('#presenceBody'),count=$('#presenceCount');
+  if(!body||!count)return;
+  try{
+    const d=await api('/api/presence');
+    count.textContent=`${d.onlineCount} ONLINE`;
+    body.innerHTML=d.online.length?d.online.map(u=>`<div class="presence-user ${u.id===me.id?'self':''}">
+      <span class="presence-dot"></span>
+      <div><b>${esc(u.name)}</b><small>${esc(u.role.toUpperCase())}${u.id===me.id?' · TE VAGY':''}</small></div>
+      <span class="presence-time">ONLINE</span>
+    </div>`).join(''):'<div class="mini-note">Jelenleg nincs aktív dolgozó.</div>';
+  }catch{
+    count.textContent='—';
+    body.innerHTML='<div class="mini-note">Az online lista pillanatnyilag nem érhető el.</div>';
+  }
 }
 async function load(){
   const [p,d,s,sh]=await Promise.all([api('/api/products'),api('/api/dashboard'),api('/api/sales'),api('/api/shifts/current')]);
@@ -266,7 +292,31 @@ function renderManager(){
 }
 async function loadUsers(){
   const d=await api('/api/users');
-  $('#usersList').innerHTML='<div class="mini-note" style="margin:12px 0">OWNER jogosultsággal Owner rang is létrehozható. Saját fiók nem törölhető; az utolsó OWNER sem.</div>'+d.users.map(u=>`<div class="user-row"><b>${esc(u.name)}</b><span>${esc(u.username)}</span><span class="role">${u.role.toUpperCase()}</span><button class="danger-btn" onclick="deleteUser('${u.id}','${esc(u.name)}')">TÖRLÉS</button></div>`).join('')
+  $('#usersList').innerHTML='<div class="mini-note" style="margin:12px 0">OWNER jogosultsággal meglévő fiókok is szerkeszthetők. Saját fiók nem törölhető; az utolsó OWNER rang nem vehető el.</div>'+d.users.map(u=>`<div class="user-row">
+    <div><b>${esc(u.name)}</b><small class="user-meta">${esc(u.username)}</small></div>
+    <span class="role">${u.role.toUpperCase()}</span>
+    <div class="user-actions"><button class="table-action" onclick='editUser(${JSON.stringify(u).replace(/</g,'\\u003c')})'>SZERKESZTÉS</button><button class="danger-btn" onclick="deleteUser('${esc(u.id)}','${esc(u.name)}')">TÖRLÉS</button></div>
+  </div>`).join('')
+}
+async function editUser(user){
+  if(me?.role!=='owner')return;
+  const data=await rmForm({title:`Fiók szerkesztése · ${user.name}`,kicker:'RED MOON / OWNER · ACCOUNT CONTROL',fields:[
+    {id:'name',label:'TELJES NÉV',value:user.name,required:true},
+    {id:'username',label:'FELHASZNÁLÓNÉV',value:user.username,required:true},
+    {id:'role',label:'JOGOSULTSÁG',type:'select',value:user.role,options:[{value:'staff',label:'STAFF'},{value:'manager',label:'MANAGER'},{value:'owner',label:'OWNER'}]},
+    {id:'password',label:'ÚJ JELSZÓ · OPCIONÁLIS',type:'password',value:'',placeholder:'Hagyd üresen, ha nem változik'}
+  ],confirmText:'FIÓK MENTÉSE'});
+  if(!data)return;
+  const payload={name:String(data.name||'').trim(),username:String(data.username||'').trim(),role:String(data.role||'staff')};
+  if(String(data.password||''))payload.password=String(data.password);
+  if(!payload.name||!payload.username){await rmAlert('A név és a felhasználónév kötelező.','Hiányzó adatok');return}
+  if(user.id===me.id && payload.role!=='owner'){await rmAlert('A saját OWNER rangodat ebből a fiókból nem veheted el.','Jogosultság');return}
+  try{
+    const d=await api('/api/users/'+encodeURIComponent(user.id),{method:'PATCH',body:JSON.stringify(payload)});
+    if(user.id===me.id)me=d.user;
+    await loadUsers(); await loadPresence();
+    await rmAlert('A fiók adatai frissültek.','Fiók mentve');
+  }catch(e){await rmAlert(e.message,'Fiók szerkesztése sikertelen')}
 }
 async function deleteUser(id,name){if(!await rmConfirm(`Biztosan törlöd: ${name}?`,'Fiók törlése'))return;try{await api('/api/users/'+encodeURIComponent(id),{method:'DELETE'});await loadUsers();await rmAlert('A fiók törölve.','Fiók törölve')}catch(e){await rmAlert(e.message,'Fiók törlése sikertelen')}}
 async function loadPerformance(){

@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Red Moon — Staff Command V18.2</title>
+<title>Red Moon — Staff Command V18.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/main.css?v=15.2"><link rel="stylesheet" href="css/premium-v13.css?v=15.2"><link rel="stylesheet" href="css/staff.css?v=18.2">
@@ -27,6 +27,10 @@
 <div class="staff-head"><div><div class="section-kicker">RED MOON / COMMAND CENTER</div><h1>Kassza &amp; <em>Raktár</em></h1><p id="welcome"></p></div><button id="logoutBtn" class="btn btn-ghost">KIJELENTKEZÉS</button></div>
 
 <div id="shiftBar" class="shift-status staff-extra"></div>
+<section id="presencePanel" class="panel presence-panel staff-extra">
+<div class="panel-head"><div><span>00 / LIVE TEAM</span><h2>Jelenleg online</h2></div><span id="presenceCount" class="live-dot">0 ONLINE</span></div>
+<div id="presenceBody" class="presence-list"><div class="mini-note">Kapcsolódás…</div></div>
+</section>
 <div class="stat-grid"><article><span>MAI BEVÉTEL</span><strong id="statRevenue">0 Ft</strong><small>összes rögzített eladás</small></article><article><span>MAI ELADÁS</span><strong id="statItems">0 db</strong><small>eladott darab</small></article><article><span>ALACSONY KÉSZLET</span><strong id="statLow">0</strong><small>figyelmeztetés</small></article><article><span>JOGOSULTSÁG</span><strong id="statRole">STAFF</strong><small>hozzáférési szint</small></article></div>
 
 <div class="staff-grid">
@@ -59,7 +63,7 @@
 
 <section id="ownerPanel" class="panel owner-panel hidden owner-only staff-extra"><div class="panel-head"><div><span>08 / OWNER</span><h2>Fiókok &amp; műszak statisztika</h2></div></div>
 <form id="userForm" class="mini-form"><input id="uName" placeholder="Név" required><input id="uUsername" placeholder="Felhasználónév" required><input id="uPassword" type="password" placeholder="Ideiglenes jelszó" required><select id="uRole"><option value="staff">Staff</option><option value="manager">Manager</option><option value="owner">Owner</option></select><button class="btn btn-red" type="submit">FELHASZNÁLÓ LÉTREHOZÁSA</button></form>
-<div id="usersList" class="users-list"></div><div id="performance" style="margin-top:18px"></div><div id="ownerShifts" style="margin-top:18px"></div>
+<div class="mini-note owner-users-hint">Meglévő fiókok szerkesztése: név, felhasználónév, rang és opcionálisan jelszó.</div><div id="usersList" class="users-list"></div><div id="performance" style="margin-top:18px"></div><div id="ownerShifts" style="margin-top:18px"></div>
 </section>
 </section></main>
 
@@ -75,5 +79,5 @@
 <div id="toastModal" class="toast-modal" aria-hidden="true"><div class="toast-box"><div class="toast-icon">✓</div><div><b id="toastTitle">Red Moon</b><span id="toastText"></span></div><button type="button" data-toast-close>×</button></div></div>
 
 <div id="docModal" class="doc-modal"><div class="doc-box"><div class="row" style="display:flex;justify-content:space-between;gap:10px"><h2 id="docTitle">Dokumentum</h2><button class="btn btn-ghost" onclick="closeDoc()">×</button></div><div id="docContent"></div></div></div>
-<script src="js/staff.js?v=18.2"></script>
+<script src="js/staff.js?v=18.3"></script>
 </body></html>

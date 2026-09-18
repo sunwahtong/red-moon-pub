@@ -43,3 +43,14 @@ linear-gradient(145deg,#040304 0%,#090507 48%,#050304 100%);}
 .manager-thumb{width:52px;height:52px;flex-basis:52px}
 .stock-product>div,.manager-product>div{min-width:0}
 .stock-product b,.manager-product b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* V18.3 LIVE TEAM + OWNER ACCOUNT CONTROL */
+.presence-panel{margin-top:18px}
+.presence-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.presence-user{display:flex;align-items:center;gap:11px;padding:12px 13px;background:#090607;border:1px solid #211116;border-radius:9px;min-width:0}
+.presence-user.self{border-color:rgba(225,29,63,.42);background:rgba(225,29,63,.055)}
+.presence-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#65dfa5;box-shadow:0 0 12px rgba(101,223,165,.72)}
+.presence-user>div{min-width:0;flex:1}.presence-user b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.presence-user small,.user-meta{display:block;color:#766267;font-size:8px;letter-spacing:1px;margin-top:4px}
+.presence-time{font-size:7px;letter-spacing:1.6px;color:#6fe0ab}
+.user-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}.owner-users-hint{margin-top:10px}
+@media(max-width:760px){.presence-list{grid-template-columns:1fr}.user-row{grid-template-columns:1fr auto}.user-actions{grid-column:1/-1;justify-content:flex-start}}
