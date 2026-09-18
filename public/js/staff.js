@@ -58,6 +58,56 @@ function checkStockAlerts(list){
 }
 
 const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+
+let _modalResolve=null;
+function closeActionModal(result=null){
+  const m=$('#actionModal'); if(!m)return;
+  m.classList.remove('show');m.setAttribute('aria-hidden','true');
+  const resolve=_modalResolve;_modalResolve=null;
+  if(resolve)resolve(result);
+}
+function openActionModal({title,kicker='RED MOON / COMMAND',fields=[],confirmText='MEGERŐSÍTÉS',danger=false}){
+  return new Promise(resolve=>{
+    _modalResolve=resolve;
+    $('#actionModalKicker').textContent=kicker;
+    $('#actionModalTitle').textContent=title;
+    $('#actionConfirm').textContent=confirmText;
+    $('#actionConfirm').classList.toggle('danger-btn',!!danger);
+    $('#actionConfirm').classList.toggle('btn-red',!danger);
+    $('#actionModalBody').innerHTML=fields.map(f=>{
+      const tag=f.type==='textarea'?'textarea':f.type==='select'?'select':'input';
+      const attrs=tag==='input'?`type="${f.type||'text'}"`:'';
+      const value=f.value??'';
+      if(tag==='select')return `<div class="modal-field"><label>${esc(f.label)}</label><select id="modal_${esc(f.id)}">${(f.options||[]).map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select></div>`;
+      return `<div class="modal-field"><label>${esc(f.label)}</label><${tag} id="modal_${esc(f.id)}" ${attrs} ${f.min!=null?`min="${f.min}"`:''} ${f.step?`step="${f.step}"`:''} ${f.required?'required':''} placeholder="${esc(f.placeholder||'')}" ${tag==='textarea'?'':`value="${esc(value)}"`}>${tag==='textarea'?esc(value):''}</${tag}></div>`;
+    }).join('');
+    $('#actionModal').classList.add('show');$('#actionModal').setAttribute('aria-hidden','false');
+    setTimeout(()=>{const first=$('#actionModalBody input,#actionModalBody textarea,#actionModalBody select');if(first){first.focus();if(first.select)first.select()}},30);
+  });
+}
+async function rmForm(opts){
+  const result=await openActionModal(opts);
+  return result;
+}
+function submitActionModal(){
+  const body=$('#actionModalBody');
+  const vals={};
+  body.querySelectorAll('input,textarea,select').forEach(el=>{vals[el.id.replace(/^modal_/,'')]=el.value});
+  closeActionModal(vals);
+}
+async function rmAlert(message,title='RED MOON / ÉRTESÍTÉS'){
+  await openActionModal({title,kicker:'RED MOON / COMMAND',fields:[{id:'message',label:'ÜZENET',type:'textarea',value:String(message)}],confirmText:'RENDBEN'}).then(()=>{});
+}
+async function rmConfirm(message,title='MŰVELET MEGERŐSÍTÉSE'){
+  const result=await openActionModal({title,kicker:'RED MOON / BIZTONSÁGI ELLENŐRZÉS',fields:[{id:'message',label:'ELLENŐRZÉS',type:'textarea',value:String(message)}],confirmText:'MEGERŐSÍTEM',danger:true});
+  return !!result;
+}
+$('#actionCancel').addEventListener('click',()=>closeActionModal(null));
+$('#actionConfirm').addEventListener('click',submitActionModal);
+document.querySelectorAll('[data-modal-close]').forEach(el=>el.addEventListener('click',()=>closeActionModal(null)));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#actionModal')?.classList.contains('show'))closeActionModal(null)});
+
+
 async function api(url,opt={}){
   try{
     const r=await fetch(url,{credentials:'same-origin',headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt});
@@ -124,20 +174,24 @@ function renderShift(){
   }
 }
 async function openShift(){
-  const opening=prompt('Kezdő kassza összege (Ft):','0'); if(opening===null)return;
-  const members=prompt('Műszakban lévők nevei, vesszővel elválasztva:',me.name); if(members===null)return;
-  try{await api('/api/shifts/open',{method:'POST',body:JSON.stringify({openingCash:Number(opening),members:members.split(',').map(x=>x.trim()).filter(Boolean)})});alert('Műszak megnyitva.');await load()}catch(e){alert(e.message)}
+  const data=await rmForm({title:'Kasszanyitás',kicker:'RED MOON / CASH REGISTER · OPEN',fields:[
+    {id:'opening',label:'KEZDŐ KASSZA ÖSSZEGE (FT)',type:'number',value:'0',min:0,step:'1',required:true},
+    {id:'members',label:'MŰSZAKBAN LÉVŐK NEVEI',value:me?.name||'',placeholder:'Nevek vesszővel elválasztva',required:true}
+  ],confirmText:'KASSZA NYITÁSA'});
+  if(!data)return;
+  const opening=Number(data.opening);const members=String(data.members||'').split(',').map(x=>x.trim()).filter(Boolean);
+  if(!Number.isFinite(opening)||opening<0||!members.length){await rmAlert('Add meg a kezdő kassza összegét és legalább egy műszaktagot.','Hiányzó adatok');return}
+  try{await api('/api/shifts/open',{method:'POST',body:JSON.stringify({openingCash:opening,members})});playSfx('cash_open',0.7);await rmAlert('A műszak és a kassza sikeresen megnyílt.','Kassza megnyitva');await load()}catch(e){await rmAlert(e.message,'Kasszanyitás sikertelen')}
 }
 async function closeShift(){
   if(!currentShift)return;
-  const closing=prompt('Záró kassza összege (Ft):','0'); if(closing===null)return;
-  const notes=prompt('Zárási megjegyzés (opcionális):','')??'';
-  try{
-    const d=await api('/api/shifts/close',{method:'POST',body:JSON.stringify({closingCash:Number(closing),notes})});
-    playSfx('cash_close',0.65);
-    showShiftCloseDocument(d.shift,d.transfer);
-    currentShift=null;await load();
-  }catch(e){alert(e.message)}
+  const data=await rmForm({title:'Kasszazárás',kicker:'RED MOON / CASH REGISTER · CLOSE',fields:[
+    {id:'closing',label:'ZÁRÓ KASSZA ÖSSZEGE (FT)',type:'number',value:'0',min:0,step:'1',required:true},
+    {id:'notes',label:'ZÁRÁSI MEGJEGYZÉS · OPCIONÁLIS',type:'textarea',value:'',placeholder:'Megjegyzés'}
+  ],confirmText:'KASSZA ZÁRÁSA'});
+  if(!data)return;
+  const closing=Number(data.closing);if(!Number.isFinite(closing)||closing<0){await rmAlert('Adj meg érvényes záró kassza összeget.','Hibás összeg');return}
+  try{const d=await api('/api/shifts/close',{method:'POST',body:JSON.stringify({closingCash:closing,notes:String(data.notes||'')})});playSfx('cash_close',0.65);showShiftCloseDocument(d.shift,d.transfer);currentShift=null;await load()}catch(e){await rmAlert(e.message,'Kasszazárás sikertelen')}
 }
 function showShiftCloseDocument(s,t){
   $('#docTitle').textContent='Műszakzárási dokumentáció';
@@ -168,29 +222,26 @@ async function deleteSale(id){
   const sale=(window._lastSales||[]).find(x=>x.id===id);
   const label=sale?`${sale.product} · ${money(sale.total)}`:'ezt az eladást';
   const extra=sale?.documentId?`\n\nAz eladáshoz tartozó számla megmarad. Számlát csak OWNER tud törölni a Számla fülön.`:'';
-  if(!confirm(`Biztosan törlöd ${label} az eladási listából?\n\nA készlet az eladott mennyiséggel vissza lesz állítva.${extra}`))return;
+  if(!await rmConfirm(`Biztosan törlöd: ${label}\n\nA készlet az eladott mennyiséggel vissza lesz állítva.${extra}`,'Eladás törlése'))return;
   try{await api('/api/sales/'+encodeURIComponent(id),{method:'DELETE'});playSfx('success',0.45);await load()}
-  catch(e){playSfx('error',0.8);alert(e.message)}
+  catch(e){playSfx('error',0.8);await rmAlert(e.message,'Művelet sikertelen')}
 }
 async function deleteInvoice(id){
-  if(me?.role!=='owner'){playSfx('error',0.6);alert('Számlát csak OWNER jogosultsággal lehet törölni.');return}
-  if(!confirm(`Biztosan törlöd a(z) ${id} számlát?\n\nAz eredeti eladás ettől nem törlődik.`))return;
+  if(me?.role!=='owner'){playSfx('error',0.6);await rmAlert('Számlát csak OWNER jogosultsággal lehet törölni.','Nincs jogosultság');return}
+  if(!await rmConfirm(`Biztosan törlöd a(z) ${id} számlát?\n\nAz eredeti eladás ettől nem törlődik.`,'Számla törlése'))return;
   try{await api('/api/documents/'+encodeURIComponent(id),{method:'DELETE'});playSfx('success',0.45);await load()}
-  catch(e){playSfx('error',0.8);alert(e.message)}
+  catch(e){playSfx('error',0.8);await rmAlert(e.message,'Művelet sikertelen')}
 }
 async function createDocument(saleId,type){
-  let customer={name:'Vásárló',address:'',taxNumber:''};
-  if(true){
-    const name=prompt('Számlázási név:', ''); if(name===null)return;
-    const address=prompt('Számlázási cím:', ''); if(address===null)return;
-    const tax=prompt('Adószám (opcionális):',''); if(tax===null)return;
-    customer={name,address,taxNumber:tax};
-  }
-  try{
-    const d=await api('/api/documents',{method:'POST',body:JSON.stringify({saleId,type:'invoice',customer})});
-    showDocument(d.document);
-    await load();
-  }catch(e){alert(e.message)}
+  const data=await rmForm({title:'Számla létrehozása',kicker:'RED MOON / DOCUMENTS · INVOICE',fields:[
+    {id:'name',label:'SZÁMLÁZÁSI NÉV',value:'',placeholder:'Név / cégnév',required:true},
+    {id:'address',label:'SZÁMLÁZÁSI CÍM',value:'',placeholder:'Cím',required:true},
+    {id:'tax',label:'ADÓSZÁM · OPCIONÁLIS',value:'',placeholder:'Adószám'}
+  ],confirmText:'SZÁMLA LÉTREHOZÁSA'});
+  if(!data)return;
+  const name=String(data.name||'').trim(),address=String(data.address||'').trim(),tax=String(data.tax||'').trim();
+  if(!name||!address){await rmAlert('A számlázási név és cím megadása kötelező.','Hiányzó számlázási adatok');return}
+  try{const d=await api('/api/documents',{method:'POST',body:JSON.stringify({saleId,type:'invoice',customer:{name,address,taxNumber:tax}})});showDocument(d.document);await load()}catch(e){await rmAlert(e.message,'Számlázás sikertelen')}
 }
 function showDocument(doc){
   const label='SZÁMLA';
@@ -204,20 +255,20 @@ async function loadDocumentById(id){
   try{
     const d=await api('/api/documents');
     const doc=d.documents.find(x=>x.id===id);
-    if(doc)showDocument(doc); else alert('A számla nem található.');
-  }catch(e){alert(e.message)}
+    if(doc)showDocument(doc); else await rmAlert('A számla nem található.','Dokumentum')
+  }catch(e){await rmAlert(e.message,'Művelet sikertelen')}
 }
 function printCurrentDoc(){if(!window._printHtml)return;const w=window.open('','_blank','width=700,height=900');w.document.write('<html><head><title>Red Moon Document</title><style>body{font-family:Arial;padding:30px}.receipt-paper{max-width:560px;margin:auto;border:1px solid #ddd;padding:28px}.receipt-line{display:flex;justify-content:space-between;border-bottom:1px dashed #999;padding:9px 0}</style></head><body>'+window._printHtml+'</body></html>');w.document.close();w.focus();w.print()}
 
 function renderManager(){
   $('#managerInventory').innerHTML=products.filter(p=>p.active).map(p=>`<div class="manager-row"><div class="manager-product"><img class="stock-thumb manager-thumb" src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><div><b>${esc(p.name)}</b><div class="role">ITAL · ${money(p.price)}</div></div></div><span>${p.stock} db</span><input data-stock="${p.id}" type="number" min="0" value="${p.stock}" style="width:80px;background:#090506;border:1px solid #3a171f;color:white;padding:7px"><button data-save="${p.id}">MENTÉS</button></div>`).join('');
-  document.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.save;const inp=document.querySelector(`[data-stock="${id}"]`);try{const newStock=Number(inp.value);await api('/api/inventory/adjust',{method:'POST',body:JSON.stringify({productId:id,stock:newStock})});if(newStock===0)playSfx('error',0.75);else if(newStock<=products.find(p=>p.id===id)?.minStock)playSfx('low_stock',0.7);await load()}catch(e){alert(e.message)}})
+  document.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.save;const inp=document.querySelector(`[data-stock="${id}"]`);try{const newStock=Number(inp.value);await api('/api/inventory/adjust',{method:'POST',body:JSON.stringify({productId:id,stock:newStock})});if(newStock===0)playSfx('error',0.75);else if(newStock<=products.find(p=>p.id===id)?.minStock)playSfx('low_stock',0.7);await load()}catch(e){await rmAlert(e.message,'Művelet sikertelen')}})
 }
 async function loadUsers(){
   const d=await api('/api/users');
   $('#usersList').innerHTML='<div class="mini-note" style="margin:12px 0">OWNER jogosultsággal Owner rang is létrehozható. Saját fiók nem törölhető; az utolsó OWNER sem.</div>'+d.users.map(u=>`<div class="user-row"><b>${esc(u.name)}</b><span>${esc(u.username)}</span><span class="role">${u.role.toUpperCase()}</span><button class="danger-btn" onclick="deleteUser('${u.id}','${esc(u.name)}')">TÖRLÉS</button></div>`).join('')
 }
-async function deleteUser(id,name){if(!confirm(`Biztosan törlöd: ${name}?`))return;try{await api('/api/users/'+encodeURIComponent(id),{method:'DELETE'});await loadUsers();alert('Fiók törölve.')}catch(e){alert(e.message)}}
+async function deleteUser(id,name){if(!await rmConfirm(`Biztosan törlöd: ${name}?`,'Fiók törlése'))return;try{await api('/api/users/'+encodeURIComponent(id),{method:'DELETE'});await loadUsers();await rmAlert('A fiók törölve.','Fiók törölve')}catch(e){await rmAlert(e.message,'Fiók törlése sikertelen')}}
 async function loadPerformance(){
   try{
     const d=await api('/api/owner/performance');
@@ -250,8 +301,8 @@ $('#saleForm').addEventListener('submit',async e=>{
     $('#saleQty').value=1;await load();
   }catch(err){playSfx('error',0.8);msg.style.color='#ff657a';msg.textContent=err.message}
 });
-$('#productForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/products',{method:'POST',body:JSON.stringify({name:$('#pName').value,category:$('#pCategory').value,price:Number($('#pPrice').value),stock:Number($('#pStock').value),minStock:Number($('#pMin').value)})});e.target.reset();await load()}catch(err){alert(err.message)}});
-$('#userForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/users',{method:'POST',body:JSON.stringify({name:$('#uName').value,username:$('#uUsername').value,password:$('#uPassword').value,role:$('#uRole').value})});e.target.reset();await loadUsers();alert('Felhasználó létrehozva.')}catch(err){alert(err.message)}});
+$('#productForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/products',{method:'POST',body:JSON.stringify({name:$('#pName').value,category:$('#pCategory').value,price:Number($('#pPrice').value),stock:Number($('#pStock').value),minStock:Number($('#pMin').value)})});e.target.reset();await load();await rmAlert('A termék hozzáadva.','Termék létrehozva')}catch(err){await rmAlert(err.message,'Termék létrehozása sikertelen')}});
+$('#userForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/users',{method:'POST',body:JSON.stringify({name:$('#uName').value,username:$('#uUsername').value,password:$('#uPassword').value,role:$('#uRole').value})});e.target.reset();await loadUsers();await rmAlert('A felhasználó létrehozva.','Fiók létrehozva')}catch(err){await rmAlert(err.message,'Fiók létrehozása sikertelen')}});
 boot().catch(e=>{console.error(e);showLogin();if($('#loginError'))$('#loginError').textContent=e.message});
 
 async function loadNotifications(){
