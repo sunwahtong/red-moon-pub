@@ -30,18 +30,18 @@
   text-shadow:0 0 12px rgba(227,24,69,.5);
 }
 
-/* Two independent, elegant arrows — no shared box/line. */
+/* Two clean, symmetric branch arrows — separated and aligned to the manager cards. */
 .rm17-tree-branch{
-  width:min(620px,76%);
-  height:74px;
+  width:min(940px,100%);
+  height:76px;
   position:relative;
 }
 .rm17-tree-branch-line{display:none}
 .rm17-tree-branch-arrow{
   position:absolute;
-  top:5px;
-  width:82px;
-  height:54px;
+  top:0;
+  width:92px;
+  height:76px;
   font-size:0;
   color:transparent;
 }
@@ -50,27 +50,27 @@
   position:absolute;
   top:0;
   width:1px;
-  height:47px;
-  background:linear-gradient(to bottom,rgba(227,24,69,.45),rgba(227,24,69,.92));
+  height:62px;
+  background:linear-gradient(to bottom,rgba(227,24,69,.28),rgba(227,24,69,.9));
   transform-origin:top center;
-  filter:drop-shadow(0 0 4px rgba(227,24,69,.28));
+  filter:drop-shadow(0 0 4px rgba(227,24,69,.25));
 }
 .rm17-tree-branch-arrow::after{
   content:"";
   position:absolute;
-  top:43px;
-  width:7px;
-  height:7px;
+  top:57px;
+  width:8px;
+  height:8px;
   border-right:1px solid #e31845;
   border-bottom:1px solid #e31845;
-  filter:drop-shadow(0 0 5px rgba(227,24,69,.48));
+  filter:drop-shadow(0 0 5px rgba(227,24,69,.45));
 }
-.rm17-tree-branch-arrow.left{left:calc(50% - 112px)}
-.rm17-tree-branch-arrow.left::before{left:18px;transform:rotate(-34deg)}
-.rm17-tree-branch-arrow.left::after{left:9px;transform:rotate(45deg)}
-.rm17-tree-branch-arrow.right{right:calc(50% - 112px)}
-.rm17-tree-branch-arrow.right::before{right:18px;transform:rotate(34deg)}
-.rm17-tree-branch-arrow.right::after{right:9px;transform:rotate(45deg)}
+.rm17-tree-branch-arrow.left{left:calc(50% - 300px)}
+.rm17-tree-branch-arrow.left::before{left:45px;transform:rotate(-42deg)}
+.rm17-tree-branch-arrow.left::after{left:17px;transform:rotate(45deg)}
+.rm17-tree-branch-arrow.right{right:calc(50% - 300px)}
+.rm17-tree-branch-arrow.right::before{right:45px;transform:rotate(42deg)}
+.rm17-tree-branch-arrow.right::after{right:17px;transform:rotate(45deg)}
 
 .rm17-tree-managers{
   width:min(940px,100%);
@@ -87,8 +87,8 @@
 @media(max-width:700px){
   .rm17-tree-node{width:100%}
   .rm17-tree-branch{width:100%;height:64px}
-  .rm17-tree-branch-arrow.left{left:calc(50% - 86px)}
-  .rm17-tree-branch-arrow.right{right:calc(50% - 86px)}
+  .rm17-tree-branch-arrow.left{left:calc(50% - 190px)}
+  .rm17-tree-branch-arrow.right{right:calc(50% - 190px)}
   .rm17-tree-managers{grid-template-columns:1fr;gap:16px}
 }
 @media(max-width:560px){
@@ -96,5 +96,7 @@
   .rm17-tree-connector-main .rm17-tree-line{height:36px}
   .rm17-tree-card h3{font-size:23px}
   .rm17-tree-branch{height:58px}
-  .rm17-tree-branch-arrow{top:2px}
+  .rm17-tree-branch-arrow{top:0}
+  .rm17-tree-branch-arrow.left{left:calc(50% - 135px)}
+  .rm17-tree-branch-arrow.right{right:calc(50% - 135px)}
 }
