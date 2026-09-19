@@ -1,53 +1,137 @@
-/* V54.11 — precision ownership connectors */
-.rm17-tree-branch{
-  width:min(940px,100%);
-  height:78px;
-  position:relative;
+/* V54.12 — simple, clean ownership family tree */
+.rm17-ownership-tree{
+  width:min(1120px,100%);
   margin:0 auto;
-  flex:0 0 78px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0;
+  padding:24px 0 12px;
 }
-.rm17-tree-branch-svg{
-  display:block;
+
+/* Keep the hierarchy cards compact and centered instead of stretching full width. */
+.rm17-ownership-tree .rm17-tree-node{
+  width:min(760px,100%);
+  flex:0 0 auto;
+}
+.rm17-ownership-tree .rm17-owner{
   width:100%;
-  height:100%;
-  overflow:visible;
+  min-height:280px!important;
+  box-sizing:border-box;
 }
-.rm17-tree-branch-svg path{
-  fill:none;
-  stroke:rgba(227,24,69,.88);
-  stroke-width:1.25;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-  filter:drop-shadow(0 0 4px rgba(227,24,69,.28));
+.rm17-ownership-tree .rm17-tree-card{
+  min-width:0;
+  min-height:360px!important;
 }
-.rm17-tree-branch-svg path:nth-child(n+3){
-  stroke:rgba(227,24,69,.95);
-  stroke-width:1.4;
-  filter:drop-shadow(0 0 5px rgba(227,24,69,.4));
+
+/* One plain vertical arrow: owner -> business manager. */
+.rm17-tree-connector-main{
+  position:relative;
+  width:1px;
+  height:54px;
+  flex:0 0 54px;
+  margin:0;
+}
+.rm17-tree-connector-main .rm17-tree-line{
+  position:absolute;
+  left:0;
+  top:0;
+  width:1px;
+  height:40px;
+  background:rgba(227,24,69,.82);
+  box-shadow:0 0 5px rgba(227,24,69,.22);
+}
+.rm17-tree-connector-main .rm17-tree-arrow{
+  position:absolute;
+  left:-4px;
+  bottom:5px;
+  width:8px;
+  height:8px;
+  border-right:1px solid rgba(227,24,69,.9);
+  border-bottom:1px solid rgba(227,24,69,.9);
+  transform:rotate(45deg);
+  font-size:0;
+}
+
+/* Two separate, symmetric arrows: manager -> the two managers. */
+.rm17-tree-branch{
+  position:relative;
+  width:min(760px,100%);
+  height:62px;
+  flex:0 0 62px;
+  margin:0 auto;
+}
+.rm17-tree-branch-arrow{
+  position:absolute;
+  top:0;
+  width:1px;
+  height:48px;
+  background:rgba(227,24,69,.82);
+  box-shadow:0 0 5px rgba(227,24,69,.18);
+  transform-origin:top center;
+}
+.rm17-tree-branch-arrow::after{
+  content:"";
+  position:absolute;
+  bottom:-1px;
+  left:-4px;
+  width:7px;
+  height:7px;
+  border-right:1px solid rgba(227,24,69,.9);
+  border-bottom:1px solid rgba(227,24,69,.9);
+}
+.rm17-tree-branch-arrow-left{
+  left:25%;
+  transform:rotate(55deg);
+}
+.rm17-tree-branch-arrow-left::after{
+  transform:rotate(45deg);
+}
+.rm17-tree-branch-arrow-right{
+  right:25%;
+  transform:rotate(-55deg);
+}
+.rm17-tree-branch-arrow-right::after{
+  transform:rotate(45deg);
 }
 
 .rm17-tree-managers{
-  width:min(940px,100%);
+  width:min(1120px,100%);
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:28px;
+  gap:24px;
   position:relative;
 }
-.rm17-tree-card{min-width:0}
-.rm17-tree-card .rm17-avatar{font-size:clamp(22px,2vw,34px);white-space:nowrap}
-.rm17-tree-card h3{font-size:clamp(20px,1.8vw,29px);line-height:1.15}
+.rm17-tree-card .rm17-avatar{
+  font-size:clamp(22px,2vw,34px);
+  white-space:nowrap;
+}
+.rm17-tree-card h3{
+  font-size:clamp(20px,1.8vw,29px);
+  line-height:1.15;
+}
 .rm17-tree-card p{font-size:10px}
 
-@media(max-width:700px){
-  .rm17-tree-branch{height:68px;flex-basis:68px}
-  .rm17-tree-managers{grid-template-columns:1fr;gap:16px}
-  .rm17-tree-branch-svg{height:68px}
-  .rm17-tree-branch-svg path:nth-child(1){d:path("M470 2 L470 50")}
-  .rm17-tree-branch-svg path:nth-child(2){display:none}
-  .rm17-tree-branch-svg path:nth-child(3){d:path("M470 50 L462 42 M470 50 L478 42")}
-  .rm17-tree-branch-svg path:nth-child(n+4){display:none}
+@media(max-width:900px){
+  .rm17-ownership-tree .rm17-tree-node{width:min(680px,100%)}
+  .rm17-tree-managers{width:min(760px,100%);gap:18px}
+  .rm17-tree-branch{width:min(620px,100%)}
 }
+
+@media(max-width:700px){
+  .rm17-ownership-tree{padding-left:12px;padding-right:12px}
+  .rm17-ownership-tree .rm17-tree-node{width:100%}
+  .rm17-ownership-tree .rm17-owner{min-height:300px!important}
+  .rm17-tree-branch{height:52px;flex-basis:52px;width:100%}
+  .rm17-tree-branch-arrow-left{left:25%;height:40px;transform:rotate(55deg)}
+  .rm17-tree-branch-arrow-right{right:25%;height:40px;transform:rotate(-55deg)}
+  .rm17-tree-managers{grid-template-columns:1fr;gap:16px;width:100%}
+  .rm17-tree-card{min-height:320px!important}
+}
+
 @media(max-width:560px){
-  .rm17-tree-branch{height:60px;flex-basis:60px}
-  .rm17-tree-branch-svg{height:60px}
+  .rm17-tree-connector-main{height:46px;flex-basis:46px}
+  .rm17-tree-connector-main .rm17-tree-line{height:32px}
+  .rm17-tree-branch{height:46px;flex-basis:46px}
+  .rm17-tree-branch-arrow-left,.rm17-tree-branch-arrow-right{height:34px}
 }
