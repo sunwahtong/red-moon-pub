@@ -1,0 +1,77 @@
+/* RED MOON V41 — cinematic atmosphere, responsive polish & containment */
+:root{--rm-v41-red:#e51d42;--rm-v41-red-soft:rgba(229,29,66,.16);--rm-v41-white:#f7f1f3;--rm-v41-muted:#9d8e94;--rm-v41-panel:rgba(10,7,9,.82)}
+html,body{max-width:100%;overflow-x:hidden}
+body{isolation:isolate}
+body>*{position:relative;z-index:1}
+/* Cinematic smoke: deliberately soft and low-contrast so content stays readable. */
+.rm-atmosphere{position:fixed!important;inset:0!important;z-index:0!important;pointer-events:none!important;overflow:hidden;contain:strict;opacity:.72}
+.rm-smoke{position:absolute;display:block;width:52vw;height:22vw;min-width:380px;min-height:150px;border-radius:50%;filter:blur(48px);mix-blend-mode:screen;opacity:.12;background:radial-gradient(ellipse at center,rgba(230,225,227,.38) 0%,rgba(229,29,66,.12) 30%,transparent 72%);animation:rmV41Smoke 25s ease-in-out infinite alternate}
+.rm-smoke.s1{left:-16vw;bottom:8vh;transform:rotate(-8deg);animation-duration:29s}
+.rm-smoke.s2{right:-18vw;top:18vh;transform:rotate(12deg) scale(.88);opacity:.10;animation-duration:34s;animation-delay:-8s}
+.rm-smoke.s3{left:24vw;top:42vh;transform:rotate(-3deg) scale(.72);opacity:.075;animation-duration:38s;animation-delay:-15s}
+.rm-smoke.s4{right:8vw;bottom:-7vh;transform:rotate(-16deg) scale(.9);opacity:.09;animation-duration:31s;animation-delay:-20s}
+.rm-smoke.s5{left:-8vw;top:7vh;transform:rotate(17deg) scale(.7);opacity:.055;animation-duration:42s;animation-delay:-11s}
+@keyframes rmV41Smoke{0%{margin-left:-4vw;margin-top:2vh;transform:translate3d(0,0,0) rotate(-7deg) scale(.94)}50%{opacity:.72}100%{margin-left:6vw;margin-top:-3vh;transform:translate3d(0,-2vh,0) rotate(7deg) scale(1.08)}}
+.rm-atmosphere:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 20%,transparent 0 30%,rgba(0,0,0,.16) 78%,rgba(0,0,0,.32));}
+/* Universal containment */
+img,video,canvas,iframe{max-width:100%}
+button,input,select,textarea{max-width:100%;box-sizing:border-box}
+.panel,.dj-panel,.club-player,.club-side,.club-chat,.cart-box,.sale-panel,.inventory-panel,.sales-log-panel,.owner-panel,.manager-panel,.shift-panel,.documents-panel{min-width:0}
+/* Club request composer: one predictable row, never a grid collision. */
+.club-side .request-form{display:block!important;min-width:0}
+.club-side .request-form .request-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:9px!important;align-items:stretch!important}
+.club-side .request-form .request-row input{width:100%!important;min-width:0!important}
+.club-side .request-form .request-row .btn{min-width:112px;white-space:nowrap}
+.club-side .request-form small{max-width:100%;overflow-wrap:anywhere}
+.club-side .chat-form{display:block!important}
+.club-side .chat-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:9px!important;align-items:stretch!important}
+.club-side .chat-row input{width:100%;min-width:0}
+.club-side .chat-row .btn{min-width:112px;white-space:nowrap}
+/* DJ controls stay inside their cards at every width. */
+.dj-grid,.dj-grid.lower{min-width:0}
+.dj-buttons,.dj-message-compose,.gocast-callout,.station-card{min-width:0}
+.dj-buttons{display:flex;flex-wrap:wrap;gap:9px}
+.dj-buttons .btn{min-width:0;flex:1 1 210px}
+.gocast-callout{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.gocast-callout>div{min-width:0;flex:1 1 220px}
+.gocast-callout .btn{flex:0 1 auto}
+.dj-message-compose{grid-template-columns:minmax(0,1fr) auto!important}
+.dj-message-compose textarea{width:100%;min-width:0}
+/* Staff: long names and action groups can never push neighbouring columns. */
+.staff-app,.staff-grid,.staff-grid.lower,.stat-grid{min-width:0}
+.user-row,.stock-row,.manager-row,.notification,.doc-item,.shift-member-row{min-width:0}
+.user-row>*,.stock-row>*,.manager-row>*,.notification>*,.doc-item>*,.shift-member-row>*{min-width:0}
+.user-row b,.stock-row b,.manager-row b,.doc-item b{overflow-wrap:anywhere}
+.sales-log-panel table{max-width:100%}
+.sales-log-panel td,.sales-log-panel th{overflow-wrap:anywhere}
+.sales-log-panel .sales-actions{min-width:0}
+/* Modal/toast safety */
+.action-box,.toast-card,.doc-box{max-width:calc(100vw - 24px);box-sizing:border-box}
+.toast-card{overflow:hidden}
+.modal-fixed-text{overflow-wrap:anywhere}
+/* Better tap targets */
+@media(max-width:900px){
+  .panel{padding:16px!important}
+  .club-shell{width:min(100% - 28px,1180px)!important}
+  .club-grid{padding-left:0!important;padding-right:0!important}
+  .dj-top{padding-left:16px!important;padding-right:16px!important}
+  .dj-live-card{margin-left:16px!important;margin-right:16px!important}
+  .dj-panel{padding:16px!important}
+  .dj-buttons .btn,.gocast-callout .btn{min-height:44px}
+  .sales-log-panel .table-wrap{width:100%;max-width:100%;overflow:visible!important}
+}
+@media(max-width:640px){
+  .rm-smoke{filter:blur(34px);min-width:280px;min-height:120px;width:90vw;height:38vw}
+  .rm-atmosphere{opacity:.58}
+  .club-side .request-form .request-row,.club-side .chat-row{grid-template-columns:1fr!important}
+  .club-side .request-form .request-row .btn,.club-side .chat-row .btn{width:100%;min-width:0}
+  .dj-message-compose{grid-template-columns:1fr!important}
+  .dj-message-compose small{grid-column:auto!important}
+  .gocast-callout{align-items:stretch}
+  .gocast-callout .btn{width:100%;flex-basis:100%}
+  .station-card{grid-template-columns:1fr!important;align-items:start!important}
+  .station-card .btn{width:100%}
+  .staff-head{gap:14px!important}
+  .stat-grid{grid-template-columns:1fr!important}
+}
+@media(prefers-reduced-motion:reduce){.rm-smoke{animation:none!important}.rm-atmosphere{opacity:.3}}
