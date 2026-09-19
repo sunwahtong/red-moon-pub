@@ -138,7 +138,18 @@ function sanitizeFilename(name){ let n=String(name||'track').normalize('NFKC').r
 function extAllowed(name){ return ['.mp3','.wav','.ogg','.m4a','.aac','.webm'].includes(path.extname(name).toLowerCase()); }
 function readMultipartAudio(req){ return new Promise((resolve,reject)=>{ const ct=String(req.headers['content-type']||''); const m=ct.match(/boundary=(?:"([^"]+)"|([^;]+))/i); if(!m)return reject(new Error('Multipart feltöltés szükséges')); const boundary=Buffer.from('--'+(m[1]||m[2])); const chunks=[]; let total=0; req.on('data',c=>{ total+=c.length; if(total>80*1024*1024){reject(new Error('A zene maximum 80 MB lehet.')); req.destroy(); return;} chunks.push(c); }); req.on('end',()=>{ try{ const buf=Buffer.concat(chunks); const start=buf.indexOf(Buffer.from('Content-Disposition:'),'utf8'); if(start<0)throw new Error('Fájl nem található a feltöltésben'); const headerEnd=buf.indexOf(Buffer.from('\r\n\r\n'),start); if(headerEnd<0)throw new Error('Érvénytelen feltöltés'); const header=buf.slice(start,headerEnd).toString('utf8'); const fm=header.match(/filename="([^"]*)"/i); const filename=fm?fm[1]:''; const dataStart=headerEnd+4; const end=buf.indexOf(Buffer.concat([Buffer.from('\r\n'),boundary]),dataStart); if(end<0)throw new Error('Érvénytelen fájlhatár'); resolve({filename,data:buf.slice(dataStart,end)}); }catch(e){reject(e)} }); req.on('error',reject); }); }
 function ensureClub(){ db.club ||= clubDefaults(); db.club.library ||= []; db.club.nameRequests ||= []; db.club.approvedNames ||= []; db.club.bans ||= []; db.club.chat ||= []; db.club.requests ||= []; db.club.queue ||= []; return db.club; }
-function getClientIP(req){ const x=String(req.headers['x-forwarded-for']||req.headers['x-real-ip']||req.socket.remoteAddress||'').split(',')[0].trim(); return x.replace(/^::ffff:/,'') || 'unknown'; }
+function getClientIP(req){
+  const raw=String(
+    req.headers['cf-connecting-ip'] ||
+    req.headers['true-client-ip'] ||
+    req.headers['x-real-ip'] ||
+    req.headers['x-forwarded-for'] ||
+    req.socket.remoteAddress ||
+    ''
+  ).split(',')[0].trim();
+  const ip=raw.replace(/^::ffff:/,'').replace(/^\[|\]$/g,'');
+  return ip || 'unknown';
+}
 function activeBan(ip){ const c=ensureClub(), now=Date.now(); c.bans=c.bans.filter(b=>!b.until || b.until>now); return c.bans.find(b=>b.ip===ip)||null; }
 function cleanNameToken(raw){ return String(raw||'').trim().slice(0,160); }
 function approvedIdentity(req,name,token){ const c=ensureClub(), ip=getClientIP(req), n=String(name||'').trim().slice(0,32), t=cleanNameToken(token); if(!n||!t)return false; const ban=activeBan(ip); if(ban)return false; const hash=crypto.createHash('sha256').update(t).digest('hex'); return c.approvedNames.some(x=>x.tokenHash===hash && x.ip===ip && x.name===n && x.expiresAt>Date.now()); }
@@ -246,7 +257,7 @@ async function api(req,res,url){
   dbState.sales ||= [];
   dbState.audit ||= [];
   dbState.notifications ||= [];
-  for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; s.transactionId ??= s.id; }
+  for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; if(s.paymentMethod==='card') s.paymentMethod='cash'; s.transactionId ??= s.id; }
   try{
     if(req.method==='GET' && url==='/api/health'){
       return json(res,200,{ok:true,service:'red-moon-staff',version:'19.0-realtime-neon',time:new Date().toISOString()});
@@ -339,7 +350,21 @@ async function api(req,res,url){
       await writeDB(db); broadcastClub('name_decision',{clientId:nr.clientId,accepted:action==='accept',name:nr.name,token}); broadcastClubState(); return json(res,200,{ok:true});
     }
     if(req.method==='POST' && url==='/api/club/ban'){
-      const u=authDJ(req,res); if(!u)return; const b=await readBody(req); const ip=String(b.ip||'').trim(); const minutes=Math.max(1,Math.min(10080,Number(b.minutes)||60)); const reason=String(b.reason||'').trim().slice(0,240); if(!ip||!reason)return json(res,400,{error:'IP-cím és indok kötelező'}); const c=ensureClub(); c.bans=c.bans.filter(x=>x.ip!==ip); c.bans.push({id:crypto.randomUUID(),ip,until:Date.now()+minutes*60000,minutes,reason,by:u.name,at:new Date().toISOString()}); await writeDB(db); broadcastClub('user_banned',{until:Date.now()+minutes*60000,reason}); broadcastClubState(); return json(res,200,{ok:true});
+      const u=authDJ(req,res); if(!u)return;
+      const b=await readBody(req);
+      const ip=String(b.ip||'').trim().replace(/^::ffff:/,'').replace(/^\[|\]$/g,'');
+      const minutes=Math.max(1,Math.min(10080,Number(b.minutes)||60));
+      const reason=String(b.reason||'').trim().slice(0,240);
+      if(!ip||ip==='unknown'||!reason)return json(res,400,{error:'Érvényes IP-cím és indok kötelező'});
+      const c=ensureClub();
+      const until=Date.now()+minutes*60000;
+      c.bans=c.bans.filter(x=>x.ip!==ip);
+      c.bans.push({id:crypto.randomUUID(),ip,until,minutes,reason,by:u.name,at:new Date().toISOString()});
+      c.approvedNames=(c.approvedNames||[]).filter(x=>x.ip!==ip);
+      await writeDB(db);
+      broadcastClub('user_banned',{ip,until,reason,by:u.name});
+      broadcastClubState();
+      return json(res,200,{ok:true,ip,until,minutes,state:clubState()});
     }
     // ---------- DJ CONSOLE ----------
     if(req.method==='GET' && url==='/api/dj/state'){ const u=authDJ(req,res); if(!u)return; const c=ensureClub(); const st=clubState(); purgeExpiredChat(); st.chat=(c.chat||[]).slice(0,8).map(djChatMessage); st.requests=(c.requests||[]).slice(0,100).map(r=>({...r,ip:r.ip||null})); st.nameRequests=(c.nameRequests||[]).slice(0,80); return json(res,200,{state:st,me:publicUser(db.users.find(x=>x.id===u.id)||u)}); }
@@ -663,7 +688,7 @@ async function api(req,res,url){
       const rawItems=Array.isArray(b.items)?b.items:[{productId:b.productId,qty:b.qty}];
       const items=rawItems.map(x=>({productId:String(x.productId||''),qty:Math.floor(Number(x.qty))})).filter(x=>x.productId);
       if(!items.length)return json(res,400,{error:'A kosár üres.'});
-      const paymentMethod=['cash','card','transfer'].includes(b.paymentMethod)?b.paymentMethod:'cash';
+      const paymentMethod=['cash','transfer'].includes(b.paymentMethod)?b.paymentMethod:'cash';
       const checked=[];
       for(const item of items){
         if(!Number.isInteger(item.qty)||item.qty<1)return json(res,400,{error:'Érvénytelen mennyiség a kosárban.'});

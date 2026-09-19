@@ -248,19 +248,28 @@ function renderSales(sales){
   const canDelete=me && (me.role==='manager'||me.role==='owner');
   $('#salesTable').innerHTML=sales.length?sales.slice(0,20).map(s=>`<tr>
     <td data-label="Idő">${new Date(s.at).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</td>
-    <td data-label="Dolgozó">${esc(s.user)}</td><td data-label="Kosár ID"><span class="cart-id">${esc(s.cartId||s.transactionId||'—')}</span></td><td data-label="Termék" class="sale-product-cell">${esc(s.product)}</td><td data-label="Db">${s.qty}</td><td data-label="Összeg">${money(s.total)}</td>
+    <td data-label="Dolgozó">${esc(s.user)}</td><td data-label="Kosár ID"><span class="cart-id">${esc(s.cartId||s.transactionId||'—')}</span></td><td data-label="Termék" class="sale-product-cell">${esc(s.product)}</td><td data-label="Db">${s.qty}</td><td data-label="Összeg">${money(s.total)}</td><td data-label="Fizetés">${paymentBadge(s.paymentMethod)}</td>
     <td data-label="Kezelés" class="sales-actions">
       ${s.documentId
         ? `<button class="table-action" onclick="loadDocumentById('${esc(s.documentId)}')">Megnyitás</button>`
         : `<button class="table-action" onclick="createDocument('${esc(s.id)}','invoice')">Számlázás</button>`}
       ${canDelete?`<button class="table-action danger" onclick="deleteSale('${esc(s.id)}')">Törlés</button>`:''}
     </td>
-  </tr>`).join(''):'<tr><td colspan="7">Még nincs eladás.</td></tr>';
+  </tr>`).join(''):'<tr><td colspan="8">Még nincs eladás.</td></tr>';
 }
 
 window.saleCart=window.saleCart||[];
 function cartTotal(){return window.saleCart.reduce((sum,i)=>sum+(i.price*i.qty),0)}
 function cartUnits(){return window.saleCart.reduce((sum,i)=>sum+i.qty,0)}
+function setPaymentMethod(method){
+  const m=method==='transfer'?'transfer':'cash';
+  const select=document.querySelector('#paymentMethod'); if(select)select.value=m;
+  document.querySelectorAll('.payment-choice').forEach(b=>b.classList.toggle('active',b.dataset.payment===m));
+}
+function paymentBadge(method){
+  const m=method==='transfer'?'transfer':'cash';
+  return m==='transfer' ? '<span class="payment-badge transfer" title="Átutalás" aria-label="Átutalás"><span>📱</span><b>Átutalás</b></span>' : '<span class="payment-badge cash" title="Készpénz" aria-label="Készpénz"><span>💵</span><b>Készpénz</b></span>';
+}
 function updateSalePreview(){
   const p=products.find(x=>String(x.id)===$('#saleProduct')?.value);
   if(!p)return;
@@ -422,7 +431,7 @@ function showDocument(doc){
   const label='SZÁMLA';
   $('#docTitle').textContent=`${label} · ${doc.id}`;
   const items=Array.isArray(doc.items)?doc.items:[];
-  $('#docContent').innerHTML=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>${label}</b><br>Dokumentum: ${esc(doc.id)}<br>Dátum: ${new Date(doc.createdAt).toLocaleString('hu-HU')}</p><p><b>Vásárló:</b> ${esc(doc.customer.name)}${doc.customer.address?'<br>'+esc(doc.customer.address):''}${doc.customer.taxNumber?'<br>Adószám: '+esc(doc.customer.taxNumber):''}</p>${items.map(item=>`<div class="receipt-line"><span>${esc(item.product)} × ${item.qty}</span><b>${money(item.total)}</b></div>`).join('')}<div class="receipt-line"><span>Fizetés</span><b>${doc.paymentMethod}</b></div><div class="receipt-line"><span>ÖSSZESEN</span><b>${money(doc.total)}</b></div><p style="margin-top:18px">Red Moon Pub · Zhen Yu Xiao</p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
+  $('#docContent').innerHTML=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>${label}</b><br>Dokumentum: ${esc(doc.id)}<br>Dátum: ${new Date(doc.createdAt).toLocaleString('hu-HU')}</p><p><b>Vásárló:</b> ${esc(doc.customer.name)}${doc.customer.address?'<br>'+esc(doc.customer.address):''}${doc.customer.taxNumber?'<br>Adószám: '+esc(doc.customer.taxNumber):''}</p>${items.map(item=>`<div class="receipt-line"><span>${esc(item.product)} × ${item.qty}</span><b>${money(item.total)}</b></div>`).join('')}<div class="receipt-line"><span>Fizetés</span><b>${doc.paymentMethod==='transfer'?'📱 Átutalás':'💵 Készpénz'}</b></div><div class="receipt-line"><span>ÖSSZESEN</span><b>${money(doc.total)}</b></div><p style="margin-top:18px">Red Moon Pub · Zhen Yu Xiao</p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
   $('#docModal').classList.add('show');window._printHtml=$('#docContent').innerHTML;
 }
 function closeDoc(){$('#docModal').classList.remove('show')}

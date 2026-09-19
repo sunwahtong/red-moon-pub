@@ -18,7 +18,7 @@
 .modal-fixed-message{margin:14px 0 4px}
 .modal-fixed-text{min-height:54px;padding:14px 16px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.035);color:#f4edf0;font-size:15px;line-height:1.55;white-space:pre-wrap;word-break:break-word;box-sizing:border-box;user-select:text}
 </style>
-<link rel="stylesheet" href="css/v40-staff.css?v=40"><link rel="stylesheet" href="css/v41-premium.css?v=41"><link rel="stylesheet" href="css/v42-experience.css?v=42"></head>
+<link rel="stylesheet" href="css/v40-staff.css?v=40"><link rel="stylesheet" href="css/v41-premium.css?v=41"><link rel="stylesheet" href="css/v42-experience.css?v=42"><link rel="stylesheet" href="css/v43-nightlife.css?v=43"></head>
 <body class="staff-page">
 <div class="noise"></div>
 <header class="nav"><a class="brand" href="index.html"><span class="brand-mark">月</span><span>RED MOON <small>PUB</small></span></a><nav><a href="index.html">Főoldal</a><a href="menu.html">Itallap</a><a href="events.html">Rendezvények</a><a href="gallery.html">Galéria</a><a href="about.html">Rólunk</a><a href="location.html">Lokáció</a><a href="club.html">Red Moon Club</a><a class="staff-link active" href="staff.html">STAFF</a></nav><div class="header-context" id="staffUser"></div><button class="hamb" id="hamb" type="button">☰</button></header>
@@ -51,7 +51,10 @@
     <div id="cartItems" class="cart-items"><div class="mini-note">A kosár üres.</div></div>
     <div class="cart-total"><span>KOSÁR ÖSSZESEN</span><strong id="cartTotal">0 Ft</strong></div>
   </div>
-  <div class="field"><label>FIZETÉSI MÓD</label><select id="paymentMethod"><option value="cash">Készpénz</option><option value="card">Bankkártya</option><option value="transfer">Átutalás</option></select></div>
+  <div class="field payment-field"><label>FIZETÉSI MÓD</label><div class="payment-methods" id="paymentMethods" role="group" aria-label="Fizetési mód">
+  <button type="button" class="payment-choice active" data-payment="cash"><span class="payment-icon">💵</span><span><b>Készpénz</b><small>Készpénzes fizetés</small></span></button>
+  <button type="button" class="payment-choice" data-payment="transfer"><span class="payment-icon">📱</span><span><b>Átutalás</b><small>Banki átutalás</small></span></button>
+</div><select id="paymentMethod" class="sr-only-select" aria-hidden="true" tabindex="-1"><option value="cash">Készpénz</option><option value="transfer">Átutalás</option></select></div>
   <div class="total-line"><span>FIZETENDŐ</span><strong id="saleTotal">0 Ft</strong></div>
   <button class="btn btn-red wide" type="submit" id="checkoutBtn">KOSÁR ELADÁSA ↗</button><div id="saleMsg" class="form-msg"></div>
 </form></section>
@@ -60,7 +63,7 @@
 </div>
 
 <div class="staff-grid lower">
-<section class="panel sales-log-panel"><div class="panel-head"><div><span>03 / SALES LOG</span><h2>Legutóbbi eladások</h2></div></div><div class="table-wrap"><table><thead><tr><th>Idő</th><th>Dolgozó</th><th>Kosár ID</th><th>Termék</th><th>Db</th><th>Összeg</th><th>Számlázás / kezelés</th></tr></thead><tbody id="salesTable"></tbody></table></div></section>
+<section class="panel sales-log-panel"><div class="panel-head"><div><span>03 / SALES LOG</span><h2>Legutóbbi eladások</h2></div></div><div class="table-wrap"><table><thead><tr><th>Idő</th><th>Dolgozó</th><th>Kosár ID</th><th>Termék</th><th>Db</th><th>Összeg</th><th>Fizetés</th><th>Számlázás / kezelés</th></tr></thead><tbody id="salesTable"></tbody></table></div></section>
 <section class="panel"><div class="panel-head"><div><span>04 / ALERTS</span><h2>Alacsony készlet</h2></div></div><div id="alerts" class="alerts"></div></section>
 </div>
 
@@ -95,4 +98,4 @@
 
 <div id="docModal" class="doc-modal"><div class="doc-box"><div class="row" style="display:flex;justify-content:space-between;gap:10px"><h2 id="docTitle">Dokumentum</h2><button class="btn btn-ghost" onclick="closeDoc()">×</button></div><div id="docContent"></div></div></div>
 <script src="js/staff.js?v=20.0"></script>
-<script>(function(){const b=document.getElementById('hamb'),n=document.querySelector('header.nav nav');if(b&&n)b.addEventListener('click',()=>n.classList.toggle('open'));})();</script><script src="js/v40-premium.js?v=41"></script><script src="js/v41-premium.js?v=41"></script><script src="js/v42-experience.js?v=42"></script></body></html>
+<script>(function(){const b=document.getElementById('hamb'),n=document.querySelector('header.nav nav');if(b&&n)b.addEventListener('click',()=>n.classList.toggle('open'));})();</script><script src="js/v40-premium.js?v=41"></script><script src="js/v41-premium.js?v=41"></script><script src="js/v42-experience.js?v=42"></script><script src="js/v43-nightlife.js?v=43"></script></body></html>

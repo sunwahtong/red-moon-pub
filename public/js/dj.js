@@ -125,9 +125,21 @@ $('#requestList')?.addEventListener('click',async e=>{
 $('#djChat')?.addEventListener('click',async e=>{
   const banBtn=e.target.closest('[data-chat-ban-ip]');
   if(banBtn){
-    const ip=banBtn.dataset.chatBanIp, name=banBtn.dataset.chatBanName||'vendég';
+    const ip=String(banBtn.dataset.chatBanIp||'').trim(), name=banBtn.dataset.chatBanName||'vendég';
+    if(!ip||ip==='unknown'){playSfx('error',.72);showToast('TILTÁS SIKERTELEN','Ehhez a felhasználóhoz nem tartozik érvényes IP-cím.','error');return}
     if(!confirm(`Biztosan letiltod ${name} IP-címét a Chatről?\n\nIP: ${ip}\nIdőtartam: 60 perc`))return;
-    try{const d=await api('/api/club/ban',{method:'POST',body:JSON.stringify({ip,minutes:60,reason:`Chat tiltás · ${name}`})});playSfx('delete',.42);showToast('CHAT TILTÁS AKTÍV',`${name} IP-címe 60 percre letiltva.`);state=d.state||state;render()}catch(err){playSfx('error',.72);showToast('TILTÁS SIKERTELEN',err.message,'error')}
+    banBtn.disabled=true;
+    try{
+      const d=await api('/api/club/ban',{method:'POST',body:JSON.stringify({ip,minutes:60,reason:`Chat tiltás · ${name}`})});
+      state=d.state||state;
+      playSfx('delete',.42);
+      showToast('CHAT TILTÁS AKTÍV',`${name} IP-címe 60 percre letiltva.`);
+      render();
+    }catch(err){
+      banBtn.disabled=false;
+      playSfx('error',.72);
+      showToast('TILTÁS SIKERTELEN',err.message,'error');
+    }
     return;
   }
   const b=e.target.closest('[data-chat-delete]');if(!b)return;
