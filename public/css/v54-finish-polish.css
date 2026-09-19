@@ -1,0 +1,50 @@
+/* V54.4 — readability + gallery finish polish */
+
+/* Never let dark inherited text disappear against the Red Moon panels. */
+.club-page .gocast-offline b,
+.club-page .gocast-live-copy strong,
+.club-page .panel-head h2,
+.club-page .club-hero h1,
+.dj-page .dj-live-card h2,
+.dj-page .panel-head h2 {
+  color:#f8f1f2 !important;
+  -webkit-text-fill-color:#f8f1f2 !important;
+}
+
+.club-page #gocastStatus,
+.club-page .club-hero > p,
+.club-page .club-player-actions .player-hint {
+  color:#b9aab0 !important;
+}
+
+.club-page .gocast-offline small,
+.club-page .gocast-live-copy > span:not(.live-kicker),
+.club-page .listener-big {
+  color:#c3b2b8 !important;
+}
+
+.dj-page .dj-live-card #gocastStatus,
+.dj-page .panel-note,
+.dj-page .empty-state,
+.dj-page .form-msg {
+  color:#b9aab0 !important;
+}
+
+.dj-page .request-item,
+.dj-page .request-main b,
+.dj-page .queue-item,
+.dj-page .station-card b,
+.dj-page .gocast-callout b {
+  color:#eee5e8;
+}
+
+/* Gallery: the new temporary Red Moon DJ crowd image gets the hero tile. */
+.rm17-gallery .shot-a {
+  background-image:url('../assets/gallery/red-moon-dj-crowd.webp') !important;
+  background-position:center center;
+}
+
+/* Keep gallery captions crisp over bright parts of the photo. */
+.rm17-gallery .rm17-shot span {
+  text-shadow:0 2px 12px rgba(0,0,0,.9),0 0 8px rgba(0,0,0,.7);
+}
