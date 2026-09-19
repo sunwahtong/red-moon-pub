@@ -1,4 +1,4 @@
-/* V54.7 — Red Moon ownership family-tree hierarchy */
+/* V54.9 — clean ownership family-tree arrows */
 .rm17-ownership-tree{
   position:relative;
   width:min(1180px,100%);
@@ -10,22 +10,18 @@
 }
 .rm17-tree-node{width:min(520px,100%)}
 .rm17-tree-node .rm17-owner,
-.rm17-tree-card{
-  width:100%;
-  box-sizing:border-box;
-}
+.rm17-tree-card{width:100%;box-sizing:border-box}
 .rm17-tree-connector-main{
   height:72px;
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  position:relative;
 }
 .rm17-tree-connector-main .rm17-tree-line{
   width:1px;
   height:46px;
-  background:linear-gradient(to bottom,rgba(220,30,65,.15),rgba(220,30,65,.85));
+  background:linear-gradient(to bottom,rgba(220,30,65,.14),rgba(220,30,65,.82));
 }
 .rm17-tree-arrow{
   color:#e31845;
@@ -33,73 +29,49 @@
   line-height:1;
   text-shadow:0 0 12px rgba(227,24,69,.5);
 }
+
+/* Two independent, elegant arrows — no shared box/line. */
 .rm17-tree-branch{
-  width:min(940px,100%);
-  height:82px;
+  width:min(620px,76%);
+  height:74px;
   position:relative;
 }
-.rm17-tree-branch-line{
-  position:absolute;
-  left:50%;
-  top:0;
-  width:70%;
-  height:48px;
-  transform:translateX(-50%);
-}
-/* Egy tiszta középső szár + vízszintes elágazás, két külön lefelé mutató nyíllal. */
-.rm17-tree-branch-line::before{
-  content:"";
-  position:absolute;
-  left:50%;
-  top:0;
-  width:1px;
-  height:26px;
-  transform:translateX(-50%);
-  background:linear-gradient(to bottom,rgba(227,24,69,.18),rgba(227,24,69,.82));
-}
-.rm17-tree-branch-line::after{
-  content:"";
-  position:absolute;
-  left:0;
-  right:0;
-  top:26px;
-  height:1px;
-  background:linear-gradient(90deg,transparent,rgba(227,24,69,.7) 8%,rgba(227,24,69,.78) 50%,rgba(227,24,69,.7) 92%,transparent);
-}
+.rm17-tree-branch-line{display:none}
 .rm17-tree-branch-arrow{
   position:absolute;
-  top:25px;
-  width:50%;
-  height:38px;
-  color:#e31845;
+  top:5px;
+  width:82px;
+  height:54px;
   font-size:0;
-  text-shadow:0 0 12px rgba(227,24,69,.45);
+  color:transparent;
 }
 .rm17-tree-branch-arrow::before{
   content:"";
   position:absolute;
   top:0;
   width:1px;
-  height:30px;
-  background:linear-gradient(to bottom,rgba(227,24,69,.78),rgba(227,24,69,.92));
+  height:47px;
+  background:linear-gradient(to bottom,rgba(227,24,69,.45),rgba(227,24,69,.92));
+  transform-origin:top center;
+  filter:drop-shadow(0 0 4px rgba(227,24,69,.28));
 }
 .rm17-tree-branch-arrow::after{
   content:"";
   position:absolute;
-  top:24px;
+  top:43px;
   width:7px;
   height:7px;
   border-right:1px solid #e31845;
   border-bottom:1px solid #e31845;
-  transform:rotate(45deg);
-  filter:drop-shadow(0 0 5px rgba(227,24,69,.55));
+  filter:drop-shadow(0 0 5px rgba(227,24,69,.48));
 }
-.rm17-tree-branch-arrow.left{left:0}
-.rm17-tree-branch-arrow.left::before{right:0}
-.rm17-tree-branch-arrow.left::after{right:-3px}
-.rm17-tree-branch-arrow.right{right:0}
-.rm17-tree-branch-arrow.right::before{left:0}
-.rm17-tree-branch-arrow.right::after{left:-3px}
+.rm17-tree-branch-arrow.left{left:calc(50% - 112px)}
+.rm17-tree-branch-arrow.left::before{left:18px;transform:rotate(-34deg)}
+.rm17-tree-branch-arrow.left::after{left:9px;transform:rotate(45deg)}
+.rm17-tree-branch-arrow.right{right:calc(50% - 112px)}
+.rm17-tree-branch-arrow.right::before{right:18px;transform:rotate(34deg)}
+.rm17-tree-branch-arrow.right::after{right:9px;transform:rotate(45deg)}
+
 .rm17-tree-managers{
   width:min(940px,100%);
   display:grid;
@@ -111,21 +83,18 @@
 .rm17-tree-card .rm17-avatar{font-size:clamp(22px,2vw,34px);white-space:nowrap}
 .rm17-tree-card h3{font-size:clamp(20px,1.8vw,29px);line-height:1.15}
 .rm17-tree-card p{font-size:10px}
+
 @media(max-width:700px){
   .rm17-tree-node{width:100%}
   .rm17-tree-branch{width:100%;height:64px}
-  .rm17-tree-branch-line{width:78%;height:40px}
-  .rm17-tree-branch-line::before{height:21px}
-  .rm17-tree-branch-line::after{top:21px}
-  .rm17-tree-branch-arrow{top:20px;height:34px}
-  .rm17-tree-branch-arrow::before{height:25px}
-  .rm17-tree-branch-arrow::after{top:19px}
+  .rm17-tree-branch-arrow.left{left:calc(50% - 86px)}
+  .rm17-tree-branch-arrow.right{right:calc(50% - 86px)}
   .rm17-tree-managers{grid-template-columns:1fr;gap:16px}
-  .rm17-tree-branch-arrow.left{left:0}
-  .rm17-tree-branch-arrow.right{right:0}
 }
 @media(max-width:560px){
   .rm17-tree-connector-main{height:60px}
   .rm17-tree-connector-main .rm17-tree-line{height:36px}
   .rm17-tree-card h3{font-size:23px}
+  .rm17-tree-branch{height:58px}
+  .rm17-tree-branch-arrow{top:2px}
 }
