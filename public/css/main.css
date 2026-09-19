@@ -195,3 +195,7 @@ html.rm-index-lock,html.rm-index-lock body{overflow:hidden}
 @media(max-width:1100px){.nav nav{gap:15px}.nav nav a{font-size:9px}.header-context{min-width:120px}}
 @media(max-width:900px){.nav{height:70px}.nav nav{display:none;position:absolute;top:70px;left:0;right:0;padding:14px 5vw 18px;background:rgba(7,5,6,.98);border-bottom:1px solid #291319;flex-direction:column;align-items:flex-start;gap:14px}.nav nav.open{display:flex}.nav .hamb{display:block}.header-context{min-width:auto;margin-left:auto;margin-right:12px;font-size:7px}.nav .brand{min-width:auto}}
 @media(max-width:520px){.header-context{display:none}.nav .brand{font-size:13px}.nav .brand small{letter-spacing:2px}}
+
+/* V54.2 volume slider stability: the thumb is controlled only by user input. */
+#volumeSlider{touch-action:none;appearance:auto;-webkit-appearance:auto;will-change:auto}
+#volumeSlider::-webkit-slider-thumb{will-change:auto}

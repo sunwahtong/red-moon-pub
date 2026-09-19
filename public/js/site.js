@@ -73,11 +73,13 @@
     soundWrap = wrap;
   }
   const btn = $('#soundBtn'), icon = $('#soundIcon'), slider = $('#volumeSlider'), value = $('#volumeValue'), panel = $('#volumePanel');
-  function paintSound() {
+  function paintSound(syncSlider=false) {
     btn?.setAttribute('aria-pressed', String(soundOn && !audio.paused));
     btn?.setAttribute('aria-expanded', String(panel?.classList.contains('open') || false));
     if (icon) icon.textContent = soundOn && !audio.paused ? ')))' : '—';
-    if (slider) slider.value = String(volume);
+    // The slider is a user-controlled visual control. Do not rewrite its
+    // value from audio/time/live events while the user is interacting with it.
+    if (syncSlider && slider) slider.value = String(volume);
     if (value) value.textContent = `${volume}%`;
   }
   async function playAudio() {
@@ -109,7 +111,19 @@
     }
   }
   btn?.addEventListener('click', async () => { panel?.classList.toggle('open'); if (soundOn && !audio.paused) stopAudio(); else await startFromGesture(); paintSound(); });
-  slider?.addEventListener('input', async () => { volume = Number(slider.value); localStorage.setItem(STORAGE.volume, String(volume)); audio.volume = volume / 100; if (volume === 0) { if (!audio.paused) stopAudio(); return; } if (soundOn && audio.paused && !clubIsLive) await playAudio(); paintSound(); });
+  slider?.addEventListener('input', () => {
+    volume = Math.max(0, Math.min(100, Number(slider.value) || 0));
+    localStorage.setItem(STORAGE.volume, String(volume));
+    audio.volume = volume / 100;
+    if (value) value.textContent = `${volume}%`;
+    if (volume === 0) {
+      if (!audio.paused) stopAudio();
+      return;
+    }
+    // Starting playback is intentionally not awaited from the slider input.
+    // This prevents async play() completions from repainting/repositioning the thumb.
+    if (soundOn && audio.paused && !clubIsLive) playAudio();
+  });
   panel?.addEventListener('click', e => e.stopPropagation());
   document.addEventListener('click', e => { if (!soundWrap?.contains(e.target)) panel?.classList.remove('open'); });
 
@@ -128,6 +142,8 @@
   } else $('#loader')?.remove();
 
   initClubLive();
+  // Initial one-time sync only; later audio state changes never move the thumb.
+  paintSound(true);
 
   function ensureClubNavLink(root=document){
     const nav=root.querySelector('header.nav nav'); if(!nav)return;
@@ -221,7 +237,7 @@
   });
   addEventListener('popstate', () => spaNavigate(new URL(location.href),false));
   $('#hamb')?.addEventListener('click', () => $('header.nav nav')?.classList.toggle('open'));
-  ensureClubNavLink(); markNav(); initReveals(); initCountdowns(); paintSound();
+  ensureClubNavLink(); markNav(); initReveals(); initCountdowns();
   // Attempt autoplay only after the page UI is ready, so navigation can continue
   // from the exact saved timestamp whenever the browser allows audible playback.
   resumeSavedMusic();
