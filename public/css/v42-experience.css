@@ -1,0 +1,43 @@
+/* RED MOON V42 — Experience layer: cinematic, responsive, restrained */
+:root{--rm42-red:#e31d43;--rm42-red2:#ff365c;--rm42-ink:#070507;--rm42-line:rgba(255,255,255,.09);--rm42-soft:rgba(255,255,255,.045)}
+html{scroll-behavior:smooth} body{background:#070507;overflow-x:clip}
+/* deep atmospheric lighting */
+.rm-atmosphere{opacity:.9!important;filter:saturate(1.08)}
+.rm-atmosphere:before{content:"";position:absolute;inset:-20%;background:radial-gradient(circle at 72% 12%,rgba(227,29,67,.13),transparent 24%),radial-gradient(circle at 18% 72%,rgba(190,20,52,.09),transparent 28%),radial-gradient(circle at 50% 45%,rgba(255,255,255,.025),transparent 42%);animation:rm42Light 18s ease-in-out infinite alternate}
+.rm-smoke{filter:blur(58px)!important;opacity:.16!important;background:radial-gradient(ellipse at 40% 50%,rgba(255,244,247,.42) 0%,rgba(227,29,67,.16) 28%,rgba(120,10,30,.06) 48%,transparent 74%)!important}
+.rm-smoke.s1{width:64vw;height:28vw;animation-duration:31s!important}.rm-smoke.s2{width:58vw;height:25vw;animation-duration:37s!important}.rm-smoke.s3{width:48vw;height:22vw;animation-duration:43s!important}.rm-smoke.s4{width:62vw;height:27vw;animation-duration:35s!important}.rm-smoke.s5{width:42vw;height:19vw;animation-duration:47s!important}
+@keyframes rm42Light{from{transform:translate3d(-1%,0,0) scale(1)}to{transform:translate3d(2%,-1%,0) scale(1.04)}}
+/* unified premium surfaces */
+.panel,.dj-login-card,.dj-live-card,.club-hero,.club-side,.club-player,.club-chat{border-color:var(--rm42-line)!important;box-shadow:0 24px 70px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.035)!important}
+.panel{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.btn{position:relative;isolation:isolate;overflow:hidden;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background .22s ease!important}
+.btn:after{content:"";position:absolute;inset:0;transform:translateX(-110%);background:linear-gradient(100deg,transparent,rgba(255,255,255,.10),transparent);transition:transform .55s ease;pointer-events:none}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.28)}.btn:hover:after{transform:translateX(110%)}.btn:active{transform:translateY(0) scale(.985)}
+input,textarea,select{transition:border-color .2s ease,box-shadow .2s ease,background .2s ease!important}input:focus,textarea:focus,select:focus{outline:none!important;border-color:rgba(227,29,67,.55)!important;box-shadow:0 0 0 3px rgba(227,29,67,.10),0 8px 24px rgba(0,0,0,.16)!important}
+/* navigation */
+header.nav{backdrop-filter:blur(18px)!important;-webkit-backdrop-filter:blur(18px)!important;background:linear-gradient(180deg,rgba(7,5,7,.94),rgba(7,5,7,.72))!important;border-bottom:1px solid rgba(255,255,255,.065)!important}
+.brand{letter-spacing:.06em}.brand-mark{box-shadow:0 0 26px rgba(227,29,67,.22)}
+/* live pulse */
+.live-badge,.dj-state{transition:all .3s ease}.live-badge:not(:empty){text-shadow:0 0 18px rgba(227,29,67,.35)}
+.room-pulse i,.live-orb i{box-shadow:0 0 0 0 rgba(227,29,67,.55);animation:rm42Pulse 1.8s infinite}
+@keyframes rm42Pulse{70%{box-shadow:0 0 0 12px rgba(227,29,67,0)}100%{box-shadow:0 0 0 0 rgba(227,29,67,0)}}
+/* Club */
+.club-hero{position:relative;overflow:hidden}.club-hero:after{content:"";position:absolute;right:-12%;top:-45%;width:430px;height:430px;border-radius:50%;background:radial-gradient(circle,rgba(227,29,67,.16),transparent 68%);pointer-events:none}
+.club-actions{gap:10px!important}.club-action{min-width:0;transition:.22s ease!important}.club-action:hover{transform:translateY(-2px);border-color:rgba(227,29,67,.35)!important}
+.request-row,.chat-row{min-width:0}.request-row>*,.chat-row>*{min-width:0}.request-row .btn,.chat-row .btn{width:auto;max-width:100%}
+/* DJ cockpit */
+.dj-live-card{position:relative;overflow:hidden}.dj-live-card:after{content:"";position:absolute;inset:auto -10% -70% 30%;height:260px;background:radial-gradient(circle,rgba(227,29,67,.18),transparent 68%);pointer-events:none}
+.dj-buttons .btn,.gocast-callout .btn,.station-card .btn{min-width:0}.request-list,.dj-chat,.chat-list{min-width:0;overflow:hidden}
+/* Staff command centre */
+.staff-shell{position:relative}.staff-head,.staff-toolbar,.stat-grid,.staff-grid{min-width:0}.user-row,.stock-row,.manager-row,.doc-item,.shift-member-row{overflow:hidden}.user-row b,.stock-row b,.manager-row b,.doc-item b{overflow-wrap:anywhere}
+/* tables never escape cards */
+table{max-width:100%;border-collapse:collapse}.table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+/* toast: luxury notification */
+.toast-modal{z-index:10000!important}.toast-card{border:1px solid rgba(255,255,255,.10)!important;background:linear-gradient(135deg,rgba(20,12,15,.96),rgba(8,6,8,.97))!important;box-shadow:0 22px 70px rgba(0,0,0,.55),0 0 40px rgba(227,29,67,.08)!important;backdrop-filter:blur(20px)}
+/* page reveal */
+body.rm42-ready main,body.rm42-ready footer{animation:rm42In .55s ease both}@keyframes rm42In{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* responsive hardening */
+@media(max-width:900px){header.nav{padding-inline:14px!important}.nav nav.open{max-width:calc(100vw - 20px);overflow:auto}.panel{overflow:hidden}.club-grid,.dj-grid,.dj-grid.lower{min-width:0}.request-row,.chat-row{grid-template-columns:minmax(0,1fr) auto!important}.request-row .btn,.chat-row .btn{min-width:108px!important;padding-inline:14px!important}}
+@media(max-width:640px){.rm-atmosphere{opacity:.72!important}.rm-smoke{filter:blur(38px)!important}.request-row,.chat-row{grid-template-columns:1fr!important}.request-row .btn,.chat-row .btn{width:100%!important;min-width:0!important}.club-actions{grid-template-columns:1fr!important}.club-action{width:100%}.toast-card{max-width:calc(100vw - 24px)!important}.dj-top{min-width:0}.dj-top>*{min-width:0;max-width:100%}.dj-top .btn{white-space:normal}.brand span:last-child{font-size:.86rem}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.rm-atmosphere:before,.room-pulse i,.live-orb i,body.rm42-ready main,body.rm42-ready footer{animation:none!important}.btn{transition:none!important}}
+.rm42-pointer{position:fixed;left:-70px;top:-70px;width:140px;height:140px;border-radius:50%;pointer-events:none;z-index:0;background:radial-gradient(circle,rgba(227,29,67,.055),transparent 68%);filter:blur(4px);mix-blend-mode:screen}.rm42-active{color:#fff!important;text-shadow:0 0 16px rgba(227,29,67,.25)}
