@@ -472,7 +472,7 @@ function formatLastActive(at){
 async function loadUsers(){
   const d=await api('/api/users');
   $('#usersList').innerHTML='<div class="mini-note" style="margin:12px 0">OWNER jogosultsággal meglévő fiókok is szerkeszthetők. Saját fiók nem törölhető; az utolsó OWNER rang nem vehető el.</div>'+d.users.map(u=>`<div class="user-row">
-    <div class="user-main"><b>${esc(u.name)}</b><small class="user-meta">${esc(u.username)}</small><small class="user-last-active">UTOLSÓ AKTIVITÁS · ${esc(formatLastActive(u.lastActiveAt))}</small></div>
+    <div class="user-main"><b>${esc(u.name)}</b>${u.nickname?`<small class="user-meta">${esc(u.nickname)}</small>`:''}<small class="user-meta">${esc(u.username)}</small><small class="user-last-active">UTOLSÓ AKTIVITÁS · ${esc(formatLastActive(u.lastActiveAt))}</small></div>
     <span class="role">${u.role.toUpperCase()}</span>
     <div class="user-actions"><button class="table-action" onclick='editUser(${JSON.stringify(u).replace(/</g,'\\u003c')})'>SZERKESZTÉS</button><button class="danger-btn" onclick="deleteUser('${esc(u.id)}','${esc(u.name)}')">Törlés</button></div>
   </div>`).join('')
@@ -481,12 +481,13 @@ async function editUser(user){
   if(me?.role!=='owner')return;
   const data=await rmForm({title:`Fiók szerkesztése · ${user.name}`,kicker:'RED MOON / OWNER · ACCOUNT CONTROL',fields:[
     {id:'name',label:'TELJES NÉV',value:user.name,required:true},
+    {id:'nickname',label:'BECENÉV · OPCIONÁLIS',value:user.nickname||'',placeholder:'Pl. Rei'},
     {id:'username',label:'FELHASZNÁLÓNÉV',value:user.username,required:true},
     {id:'role',label:'JOGOSULTSÁG',type:'select',value:user.role,options:[{value:'staff',label:'STAFF'},{value:'manager',label:'MANAGER'},{value:'owner',label:'OWNER'}]},
     {id:'password',label:'ÚJ JELSZÓ · OPCIONÁLIS',type:'password',value:'',placeholder:'Hagyd üresen, ha nem változik'}
   ],confirmText:'FIÓK MENTÉSE'});
   if(!data)return;
-  const payload={name:String(data.name||'').trim(),username:String(data.username||'').trim(),role:String(data.role||'staff')};
+  const payload={name:String(data.name||'').trim(),nickname:String(data.nickname||'').trim(),username:String(data.username||'').trim(),role:String(data.role||'staff')};
   if(String(data.password||''))payload.password=String(data.password);
   if(!payload.name||!payload.username){await rmAlert('A név és a felhasználónév kötelező.','Hiányzó adatok');return}
   if(user.id===me.id && payload.role!=='owner'){await rmAlert('A saját OWNER rangodat ebből a fiókból nem veheted el.','Jogosultság');return}

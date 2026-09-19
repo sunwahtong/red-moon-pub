@@ -48,7 +48,10 @@ async function initDB(){
     db = result.rows[0].data;
   }
   await migrateDrinkCatalog();
-  if(migrateCartIds()) await writeDB(db);
+  let changed = false;
+  if(migrateCartIds()) changed = true;
+  if(ensureBuiltInManagers()) changed = true;
+  if(changed) await writeDB(db);
 }
 
 const CANONICAL_DRINKS = [{"id":"p_kobaltas","name":"Kőbaltás","category":"drink","price":1200,"stock":24,"minStock":8,"image":"assets/menu/drinks/kobaltas.png","active":true},{"id":"p_barracho","name":"Barracho","category":"drink","price":1800,"stock":24,"minStock":8,"image":"assets/menu/drinks/barracho.png","active":true},{"id":"p_sornyito","name":"Sörnyitó","category":"drink","price":2400,"stock":18,"minStock":6,"image":"assets/menu/drinks/sornyito.png","active":true},{"id":"p_syrah","name":"Syrah vörösbor","category":"drink","price":5000,"stock":18,"minStock":6,"image":"assets/menu/drinks/syrah.png","active":true},{"id":"p_two_roosters","name":"Two Roosters rozé","category":"drink","price":5600,"stock":18,"minStock":6,"image":"assets/menu/drinks/two_roosters.png","active":true},{"id":"p_bleuterd","name":"Bleuter'D pezsgő","category":"drink","price":4800,"stock":18,"minStock":6,"image":"assets/menu/drinks/bleuterd.png","active":true},{"id":"p_mount_bourbon","name":"The Mount Bourbon Whiskey","category":"drink","price":11200,"stock":16,"minStock":5,"image":"assets/menu/drinks/mount_bourbon.png","active":true},{"id":"p_vinewood","name":"Vinewood Sauvignon Blanc fehérbor","category":"drink","price":5800,"stock":18,"minStock":6,"image":"assets/menu/drinks/vinewood.png","active":true},{"id":"p_chernekov","name":"Cherenkov Premium Vodka","category":"drink","price":12600,"stock":16,"minStock":5,"image":"assets/menu/drinks/chernekov.png","active":true},{"id":"p_cazafortunas","name":"Cazafortunas Tequila","category":"drink","price":12200,"stock":16,"minStock":5,"image":"assets/menu/drinks/cazafortunas.png","active":true},{"id":"p_sinmisito","name":"Sinmisito Tequila","category":"drink","price":15800,"stock":14,"minStock":4,"image":"assets/menu/drinks/sinmisito.png","active":true},{"id":"p_ragga","name":"Ragga rum","category":"drink","price":11200,"stock":16,"minStock":5,"image":"assets/menu/drinks/ragga.png","active":true},{"id":"p_sprunk","name":"Sprunk (dobozos)","category":"drink","price":1780,"stock":30,"minStock":10,"image":"assets/menu/drinks/sprunk.png","active":true},{"id":"p_ecola","name":"E-Cola (dobozos)","category":"drink","price":1780,"stock":30,"minStock":10,"image":"assets/menu/drinks/ecola.png","active":true},{"id":"p_raine","name":"Rainé ásványvíz","category":"drink","price":1600,"stock":32,"minStock":10,"image":"assets/menu/drinks/raine.png","active":true}];
@@ -114,6 +117,48 @@ async function migrateDrinkCatalog(){
   }else db.products=current;
   if(pool) await writeDB(db);
 }
+// Built-in manager accounts requested for the Ownership / Users menu.
+// Passwords are stored only as PBKDF2 hashes; these are temporary credentials
+// intended to be changed from the Owner account after first login.
+function ensureBuiltInManagers(){
+  db.users ||= [];
+  const accounts = [
+    {
+      username: 'rei',
+      name: 'Yuna Yue Rei',
+      nickname: 'Rei',
+      role: 'manager',
+      portal: 'staff',
+      passwordHash: 'PBKDF2:310000:sha256:7d4981cb3ec768c15db22853638538d4:d19707f9906cf9f4849cce3391ee1e3299f2f82c77a717d328355ef848a52ca3'
+    },
+    {
+      username: 'redmoon.manager',
+      name: 'Red Moon Manager',
+      nickname: 'Manager',
+      role: 'manager',
+      portal: 'staff',
+      passwordHash: 'PBKDF2:310000:sha256:e442f4cf2b8d4d6c5258590264520fd6:f66e394031e18517d51c8075e4661279a400a0cc85e6b521caa36fde796bf944'
+    }
+  ];
+  let changed = false;
+  for(const account of accounts){
+    let u = db.users.find(x => String(x.username||'').toLowerCase() === account.username);
+    if(!u){
+      u = {id:'u_manager_'+crypto.randomBytes(6).toString('hex'), ...account};
+      db.users.push(u);
+      changed = true;
+      continue;
+    }
+    // Do not overwrite an Owner's/customized account if an administrator has
+    // already edited it; only ensure the requested manager role/name/portal.
+    if(u.role !== 'manager'){ u.role = 'manager'; changed = true; }
+    if(!u.name){ u.name = account.name; changed = true; }
+    if(!u.nickname){ u.nickname = account.nickname; changed = true; }
+    if(!u.portal){ u.portal = 'staff'; changed = true; }
+  }
+  return changed;
+}
+
 function broadcastClub(type='club_state', payload={}){
   for(const client of [...clubRealtimeClients]){
     try{
@@ -235,7 +280,7 @@ function hashPassword(password,salt=crypto.randomBytes(16).toString('hex')){retu
 function verifyPassword(password,encoded){ const [scheme,it,alg,salt,hash]=encoded.split(':'); if(scheme!=='PBKDF2') return false; const got=crypto.pbkdf2Sync(password,salt,Number(it),32,alg); return crypto.timingSafeEqual(got,Buffer.from(hash,'hex')); }
 function audit(db,user,action,details){db.audit.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),userId:user.id,user:user.name,role:user.role,action,details}); if(db.audit.length>1000) db.audit.length=1000;}
 function notifyManagersOwners(db,title,message,meta={}){db.notifications.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),title,message,meta,readBy:{}});if(db.notifications.length>500)db.notifications.length=500;}
-function publicUser(u){return {id:u.id,username:u.username,name:u.name,role:u.role,portal:u.portal||(u.role==='dj'?'dj':'staff'),lastActiveAt:u.lastActiveAt||null};}
+function publicUser(u){return {id:u.id,username:u.username,name:u.name,nickname:u.nickname||'',role:u.role,portal:u.portal||(u.role==='dj'?'dj':'staff'),lastActiveAt:u.lastActiveAt||null};}
 function currency(n){return Number(n)||0}
 
 
