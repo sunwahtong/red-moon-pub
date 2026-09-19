@@ -9,3 +9,16 @@
 .v56-reviews .v56-review-shell{max-width:1200px}
 .v56-reviews .v56-review-form,.v56-reviews .v56-review-list{box-shadow:0 14px 45px #0007}
 @media(max-width:800px){.v56-reviews{padding:44px 5vw}}
+/* V56.2 — reviews as compact guest cards + form at the very bottom */
+.v56-review-shell{display:flex!important;flex-direction:column!important;gap:28px!important}
+.v56-review-list{order:1!important;border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important}
+.v56-review-list-head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:16px}
+.v56-review-items{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px!important}
+.v56-review-item{display:flex!important;flex-direction:column!important;gap:12px!important;min-height:145px;padding:18px!important;border:1px solid #321923!important;border-radius:15px!important;background:linear-gradient(145deg,#13090e,#0a0708)!important;box-shadow:0 14px 45px #0007!important}
+.v56-review-item:last-child{border-bottom:1px solid #321923!important}
+.v56-review-text{font-size:12px!important;line-height:1.7!important;color:#bcaeb3!important}
+.v56-review-form{order:2!important;max-width:520px;width:100%;margin:0 auto!important}
+.vat-note{display:block!important;margin-top:5px!important;color:#75666b!important;font-size:9px!important;letter-spacing:.06em!important;font-weight:400!important}
+.drink-price{display:flex;flex-direction:column;align-items:flex-end}
+@media(max-width:1000px){.v56-review-items{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:650px){.v56-review-items{grid-template-columns:1fr!important}.v56-review-list-head{align-items:flex-start;flex-direction:column}}

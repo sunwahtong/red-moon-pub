@@ -233,11 +233,14 @@ async function load(){
 function renderProducts(){
   const active=products.filter(p=>p.active);
   $('#saleProduct').innerHTML=active.map(p=>`<option value="${p.id}">${esc(p.name)} · ${money(p.price)}</option>`).join('');
+  let catalog=document.querySelector('.staff-sale-catalog');
+  if(!catalog){catalog=document.createElement('div');catalog.className='staff-sale-catalog';$('#saleProduct').parentElement.insertBefore(catalog,$('#saleProduct'));}
+  catalog.innerHTML=active.map(p=>`<button type="button" class="staff-sale-product ${p.stock<1?'soldout':''}" data-product-id="${esc(p.id)}" ${p.stock<1?'disabled':''}><span class="staff-sale-art"><img src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"></span><span class="staff-sale-info"><b>${esc(p.name)}</b><small>${money(p.price)}</small><em>${p.stock>0?p.stock+' db készleten':'ELFOGYOTT'}</em></span></button>`).join('');
+  catalog.querySelectorAll('[data-product-id]').forEach(btn=>btn.addEventListener('click',()=>{const sel=$('#saleProduct');sel.value=btn.dataset.productId;sel.dispatchEvent(new Event('change',{bubbles:true}));catalog.querySelectorAll('.staff-sale-product').forEach(x=>x.classList.toggle('active',x===btn));}));
   updateSalePreview();
   $('#inventory').innerHTML=active.map(p=>`<article class="product-card ${p.stock<=p.minStock?'low':''}">
     <div class="product-card-art"><img src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><span class="product-stock">${p.stock} DB</span></div>
     <div class="product-card-body"><b>${esc(p.name)}</b><small>${money(p.price)} · minimum ${p.minStock} db</small></div>
-    <button type="button" class="product-add" onclick="quickAddToCart('${esc(p.id)}')" ${p.stock<1?'disabled':''}>${p.stock<1?'ELFOGYOTT':'＋ KOSÁRBA'}</button>
   </article>`).join('');
 }
 function quickAddToCart(id){
@@ -293,6 +296,7 @@ function updateSalePreview(){
   $('#saleStock').textContent=p.stock+' db';
   const q=Math.max(1,Number($('#saleQty').value)||1);
   $('#saleTotal').textContent=money(cartTotal() || p.price*q);
+  document.querySelectorAll('.staff-sale-product').forEach(x=>x.classList.toggle('active',x.dataset.productId===p.id));
 }
 function renderCart(){
   const items=$('#cartItems'), count=$('#cartCount'), total=$('#cartTotal'), checkout=$('#checkoutBtn');
