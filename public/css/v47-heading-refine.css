@@ -1,0 +1,18 @@
+/* V47 — restrained premium neon typography. Reactive, but no longer over-bright. */
+:root{--rm-v47-white:#f5f1f2;--rm-v47-soft:#e8dfe1;--rm-v47-red:#ff496c}
+.rm17-title,.rm17-section h2,.rm17-page-hero h1,.page-hero h1,.hero h1,.menu-premium-hero h1,.location-intro h1,.location-heading h1,.club-hero h1,.dj-top h1,.staff-head h1,.section h2,.menu-intro h2,.panel-head h2,.featured-bar h2,.event-banner h2,.event-card h2,.story-copy h2{
+  color:var(--rm-v47-white)!important;-webkit-text-fill-color:var(--rm-v47-white)!important;-webkit-text-stroke:0!important;
+  text-shadow:0 0 1px rgba(255,255,255,.65),0 0 6px rgba(255,255,255,.12),0 0 13px rgba(255,55,91,.20),0 0 25px rgba(255,35,78,.10)!important;
+  transition:text-shadow .3s ease,filter .3s ease,transform .3s ease;
+}
+.rm17-title em,.rm17-section h2 em,.rm17-page-hero h1 em,.page-hero h1 em,.menu-intro h2 em,.featured-bar h2 em,.club-hero h1 em,.dj-top h1 em,.staff-head h1 em{
+  color:#f7f2f3!important;-webkit-text-fill-color:#f7f2f3!important;-webkit-text-stroke:1px rgba(255,255,255,.34)!important;
+  text-shadow:0 0 1px rgba(255,255,255,.8),0 0 7px rgba(255,255,255,.14),0 0 14px rgba(255,60,94,.22)!important;
+}
+.rm-neon-reactive{background:radial-gradient(circle at var(--rm-local-x,50%) var(--rm-local-y,50%),#fff 0%,#f7f2f3 35%,#e8dfe1 100%)!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important}
+.rm-neon-reactive em,.rm-neon-reactive small{-webkit-text-fill-color:#f7f2f3!important}
+.rm17-title:hover,.rm17-page-hero h1:hover,.page-hero h1:hover,.hero h1:hover{filter:drop-shadow(0 0 8px rgba(255,55,90,.16))}
+.rm17-title::after,.rm17-section h2::after,.rm17-page-hero h1::after,.page-hero h1::after,.hero h1::after,.location-heading h1::after{content:"";position:absolute;inset:-5% -2%;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,rgba(255,38,76,.055),transparent 65%);filter:blur(14px);opacity:.7}
+@media(prefers-reduced-motion:no-preference){.rm17-title,.rm17-section h2,.rm17-page-hero h1,.page-hero h1,.hero h1,.location-heading h1{animation:rmV47NeonBreath 6s ease-in-out infinite}}
+@keyframes rmV47NeonBreath{0%,100%{filter:brightness(.98)}50%{filter:brightness(1.035)}}
+@media(max-width:600px){.rm17-title,.rm17-section h2,.rm17-page-hero h1,.page-hero h1,.hero h1,.location-heading h1{text-shadow:0 0 1px rgba(255,255,255,.7),0 0 6px rgba(255,255,255,.12),0 0 13px rgba(255,55,91,.18)!important}}

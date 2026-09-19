@@ -167,3 +167,29 @@ table{table-layout:fixed;min-width:920px}th,td{white-space:nowrap;vertical-align
 /* V40.2 — POS / Command Center mobile pass */
 @media(max-width:900px){.staff-page{overflow-x:hidden}.staff-shell{width:100%;box-sizing:border-box}.pos-grid,.sales-grid{grid-template-columns:1fr!important}.sale-preview,.cart-box{width:100%;box-sizing:border-box}.cart-items{max-height:34vh}.cart-item{align-items:flex-start;flex-wrap:wrap}.cart-item-main{flex:1 1 150px}.cart-item-controls{margin-left:auto}.cart-item-total{margin-left:auto}.sales-log-panel{overflow:hidden}.sales-log-panel .table-wrap{width:100%;box-sizing:border-box}.user-row,.manager-row{min-width:0}.user-actions{min-width:0}.user-actions .table-action,.manager-row .table-action{white-space:normal;min-height:40px}}
 @media(max-width:600px){.staff-shell{padding-left:10px!important;padding-right:10px!important}.stat-grid{gap:8px!important}.stat-grid article{min-width:0}.panel-head{gap:8px}.panel-head h2{line-height:1.15}.cart-head{padding:10px}.cart-items{padding:4px 10px}.cart-item{gap:8px}.cart-item-controls{width:100%;justify-content:flex-end}.cart-item-total{min-width:0}.sale-preview{overflow:hidden}.sale-preview div{min-width:0}.payment-methods{grid-template-columns:1fr!important}.sales-log-panel .sales-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:6px}.sales-log-panel .sales-actions .table-action{width:100%;box-sizing:border-box;text-align:center;white-space:normal;min-height:40px!important}.owner-panel .mini-form,.mini-form{grid-template-columns:1fr!important}.staff-page .btn{max-width:100%}}
+
+/* V47 — separate access gateway for Staff / DJ */
+.staff-access-chooser{min-height:72vh;display:grid;align-content:center;gap:34px;padding:80px 0 50px;max-width:1180px;margin:0 auto}
+.access-intro{max-width:720px}
+.access-intro .staff-kicker{margin-bottom:12px}
+.access-intro h1{font:800 clamp(40px,6vw,76px)/.95 Cinzel;margin:0 0 16px;letter-spacing:.02em;color:#f8f4f5}
+.access-intro h1 em{font-style:normal;color:#f3dfe3}
+.access-intro p{max-width:650px;color:#9f8d91;font-size:13px;line-height:1.8;margin:0}
+.access-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.access-card{position:relative;min-height:285px;padding:30px;text-align:left;text-decoration:none;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;cursor:pointer;color:#f6f1f2;border:1px solid rgba(255,255,255,.09);background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(10,5,7,.72));box-shadow:0 24px 70px rgba(0,0,0,.28);overflow:hidden;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
+.access-card:before{content:"";position:absolute;inset:auto -20% -55% 25%;height:180px;background:radial-gradient(circle,rgba(255,36,78,.13),transparent 68%);filter:blur(20px);pointer-events:none}
+.access-card:hover{transform:translateY(-4px);border-color:rgba(255,74,106,.38);box-shadow:0 30px 90px rgba(0,0,0,.42),0 0 28px rgba(255,35,75,.09)}
+.access-card:focus-visible{outline:1px solid rgba(255,93,122,.8);outline-offset:4px}
+.access-number{position:absolute;right:24px;top:20px;font:700 9px Noto Sans;letter-spacing:3px;color:#66565a}
+.access-icon{width:48px;height:48px;border:1px solid rgba(255,255,255,.16);border-radius:50%;display:grid;place-items:center;color:#fff;font-size:19px;box-shadow:0 0 18px rgba(255,255,255,.05);margin-bottom:28px}
+.access-kicker{font:700 8px Noto Sans;letter-spacing:3px;color:#b99fa4;margin-bottom:10px}
+.access-card strong{font:700 clamp(25px,3vw,38px)/1 Cinzel;letter-spacing:.03em;color:#f7f2f3;text-shadow:0 0 8px rgba(255,255,255,.12),0 0 18px rgba(255,45,84,.12)}
+.access-card small{max-width:430px;margin-top:12px;color:#8f7d81;font-size:11px;line-height:1.65}
+.access-action{margin-top:auto;padding-top:25px;font:700 8px Noto Sans;letter-spacing:2.5px;color:#e9dfe1}
+.access-dj .access-icon{color:#ff6c89;border-color:rgba(255,76,111,.3);box-shadow:0 0 20px rgba(255,48,88,.1)}
+.access-cash .access-icon{color:#e9f6f1;border-color:rgba(130,235,190,.18)}
+.access-back{text-align:left}
+.access-back a{font:700 8px Noto Sans;letter-spacing:2px;color:#746469;text-decoration:none}
+.access-back a:hover{color:#ddd1d4}
+@media(max-width:800px){.staff-access-chooser{padding:70px 0 35px}.access-grid{grid-template-columns:1fr}.access-card{min-height:245px}}
+@media(max-width:600px){.access-card{padding:24px;min-height:230px}.access-intro h1{font-size:clamp(36px,12vw,58px)}.access-intro p{font-size:12px}}

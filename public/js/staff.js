@@ -168,8 +168,23 @@ async function api(url,opt={}){
     throw err;
   }
 }
-async function boot(){const d=await api('/api/me');if(d.user){me=d.user;showApp()}else showLogin()}
-function showLogin(){$('#loginView').classList.remove('hidden');$('#appView').classList.add('hidden')}
+async function boot(){
+  const d=await api('/api/me');
+  if(d.user){me=d.user;showApp();return;}
+  showAccessChooser();
+}
+function showAccessChooser(){
+  $('#accessChooser')?.classList.remove('hidden');
+  $('#loginView')?.classList.add('hidden');
+  $('#appView')?.classList.add('hidden');
+}
+function showLogin(){
+  $('#accessChooser')?.classList.add('hidden');
+  $('#loginView')?.classList.remove('hidden');
+  $('#appView')?.classList.add('hidden');
+  setTimeout(()=>$('#username')?.focus(),60);
+}
+$('#openCashAccess')?.addEventListener('click',()=>{playSfx('click',.22);showLogin();});
 function showApp(){
   if(me?.role==='dj'){ location.href='dj.html'; return; }
   $('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');
