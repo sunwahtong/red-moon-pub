@@ -1,0 +1,49 @@
+/* V55 — Red Moon custom volume control */
+.sound-wrap{display:flex;align-items:center;gap:10px;position:relative}
+.volume-panel{
+  width:248px!important;min-width:248px!important;height:58px!important;
+  padding:10px 13px!important;display:grid!important;grid-template-columns:62px 1fr;grid-template-rows:18px 18px;column-gap:12px;row-gap:2px;
+  align-items:center;border:1px solid rgba(226,26,59,.25)!important;border-radius:3px!important;
+  background:linear-gradient(145deg,rgba(13,9,11,.96),rgba(8,7,8,.94))!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.025),0 12px 34px rgba(0,0,0,.38),0 0 22px rgba(183,14,36,.055)!important;
+  backdrop-filter:blur(14px)!important;transform:none!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;
+}
+.volume-head{display:contents!important}
+.volume-head span{
+  grid-column:1;grid-row:1 / 3;align-self:center;margin:0!important;
+  font:600 7px/1 "Noto Sans",sans-serif!important;letter-spacing:2.5px!important;color:#78676a!important;
+}
+.volume-head strong{
+  grid-column:2;grid-row:1;justify-self:start;align-self:end;margin:0!important;
+  font:600 14px/1 Cinzel,serif!important;letter-spacing:.5px!important;color:#f2dadd!important;
+  text-shadow:0 0 16px rgba(226,26,59,.16);
+}
+.volume-head strong::after{content:"%";font:500 7px/1 "Noto Sans",sans-serif;color:#b51c35;margin-left:3px;vertical-align:2px;letter-spacing:1px}
+#volumeSlider{
+  grid-column:2;grid-row:2;width:100%!important;height:14px!important;margin:0!important;padding:0!important;
+  appearance:none!important;-webkit-appearance:none!important;background:transparent!important;cursor:pointer;outline:none;
+  --vol:45%;
+}
+#volumeSlider::-webkit-slider-runnable-track{
+  height:4px;border-radius:999px;
+  background:linear-gradient(90deg,#d51b38 0 var(--vol),rgba(255,255,255,.16) var(--vol) 100%);
+  box-shadow:0 0 8px rgba(213,27,56,.16);
+}
+#volumeSlider::-moz-range-track{height:4px;border-radius:999px;background:rgba(255,255,255,.16)}
+#volumeSlider::-moz-range-progress{height:4px;border-radius:999px;background:#d51b38;box-shadow:0 0 8px rgba(213,27,56,.16)}
+#volumeSlider::-webkit-slider-thumb{
+  appearance:none;-webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;
+  border:2px solid #f2dadd;background:#d71937;box-shadow:0 0 0 3px rgba(215,25,55,.13),0 0 14px rgba(215,25,55,.48);
+  transition:box-shadow .18s ease,transform .12s ease!important;transform:none!important;
+}
+#volumeSlider:hover::-webkit-slider-thumb,#volumeSlider:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(215,25,55,.16),0 0 18px rgba(215,25,55,.58)}
+#volumeSlider::-moz-range-thumb{
+  width:10px;height:10px;border-radius:50%;border:2px solid #f2dadd;background:#d71937;
+  box-shadow:0 0 0 3px rgba(215,25,55,.13),0 0 14px rgba(215,25,55,.48);transition:none!important;
+}
+.volume-panel::before{content:"";position:absolute;left:9px;top:9px;bottom:9px;width:1px;background:linear-gradient(180deg,transparent,rgba(215,25,55,.5),transparent);pointer-events:none}
+@media(max-width:900px){
+  .volume-panel{position:absolute!important;right:-4px;top:54px;width:238px!important;min-width:238px!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;transform:translateY(-5px)!important}
+  .volume-panel.open,.sound-wrap:hover .volume-panel,.volume-panel:focus-within{opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:none!important}
+}
+@media(max-width:560px){.volume-panel{width:220px!important;min-width:220px!important}}

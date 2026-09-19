@@ -28,6 +28,7 @@ function readLocalDB(){ return JSON.parse(fs.readFileSync(DB_FILE,'utf8')); }
 async function initDB(){
   if(!pool){
     db = readLocalDB();
+    let changed=false; if(ensureBuiltInManagers()) changed=true; db.products ||= CANONICAL_DRINKS.map(x=>({...x})); if(changed) await writeDB(db);
     return;
   }
   await pool.query(`CREATE TABLE IF NOT EXISTS red_moon_state (id INTEGER PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
@@ -280,7 +281,7 @@ function hashPassword(password,salt=crypto.randomBytes(16).toString('hex')){retu
 function verifyPassword(password,encoded){ const [scheme,it,alg,salt,hash]=encoded.split(':'); if(scheme!=='PBKDF2') return false; const got=crypto.pbkdf2Sync(password,salt,Number(it),32,alg); return crypto.timingSafeEqual(got,Buffer.from(hash,'hex')); }
 function audit(db,user,action,details){db.audit.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),userId:user.id,user:user.name,role:user.role,action,details}); if(db.audit.length>1000) db.audit.length=1000;}
 function notifyManagersOwners(db,title,message,meta={}){db.notifications.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),title,message,meta,readBy:{}});if(db.notifications.length>500)db.notifications.length=500;}
-function publicUser(u){return {id:u.id,username:u.username,name:u.name,nickname:u.nickname||'',role:u.role,portal:u.portal||(u.role==='dj'?'dj':'staff'),lastActiveAt:u.lastActiveAt||null};}
+function publicUser(u){return {id:u.id,username:u.username,name:u.name,nickname:u.nickname||'',role:u.role,portal:u.portal||(u.role==='dj'?'dj':'staff'),avatar:u.avatar||'',lastActiveAt:u.lastActiveAt||null};}
 function currency(n){return Number(n)||0}
 
 
@@ -302,6 +303,12 @@ async function api(req,res,url){
   dbState.sales ||= [];
   dbState.audit ||= [];
   dbState.notifications ||= [];
+  dbState.reviews ||= [];
+  dbState.events ||= [];
+  dbState.restockLogs ||= [];
+  dbState.finance ||= {};
+  if(!Number.isFinite(Number(dbState.finance.overallRevenue))) dbState.finance.overallRevenue=dbState.sales.reduce((a,x)=>a+(Number(x.total)||0),0);
+  dbState.finance.overallRevenueOffset ||= 0;
   for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; if(s.paymentMethod==='card') s.paymentMethod='cash'; s.transactionId ??= s.id; }
   try{
     if(req.method==='GET' && url==='/api/health'){
@@ -531,6 +538,9 @@ async function api(req,res,url){
       const u=auth(req,res); if(!u)return;
       return json(res,200,{products:db.products});
     }
+    if(req.method==='GET' && url==='/api/public-products'){
+      return json(res,200,{products:(db.products||[]).filter(x=>x.active&&x.category==='drink').map(x=>({id:x.id,name:x.name,price:x.price,image:x.image||'',subtitle:x.subtitle||''}))});
+    }
 
     if(req.method==='GET' && url==='/api/dashboard'){
       const u=auth(req,res); if(!u)return;
@@ -542,7 +552,62 @@ async function api(req,res,url){
       const byProduct={}; todaySales.forEach(s=>byProduct[s.productId]=(byProduct[s.productId]||0)+s.qty);
       const top=Object.entries(byProduct).map(([id,qty])=>({product:db.products.find(p=>p.id===id)?.name||id,qty})).sort((a,b)=>b.qty-a.qty).slice(0,6);
       const openShift=db.shifts.find(s=>s.status==='open')||null;
-      return json(res,200,{today:{revenue,items,salesCount:todaySales.length},lowStock:low,topSales:top,recentSales:db.sales.slice(0,20),openShift});
+      const overall=Math.max(0,Number(db.finance?.overallRevenue||0)-Number(db.finance?.overallRevenueOffset||0)); return json(res,200,{today:{revenue,items,salesCount:todaySales.length},overallRevenue:overall,lowStock:low,topSales:top,recentSales:db.sales.slice(0,20),openShift});
+    }
+
+    // ---------- PUBLIC REVIEWS ----------
+    if(req.method==='GET' && url==='/api/reviews'){
+      const reviews=(db.reviews||[]).filter(x=>x.status!=='hidden').slice(0,100);
+      const total=reviews.reduce((a,x)=>a+Number(x.rating||0),0);
+      return json(res,200,{reviews,average:reviews.length?Math.round((total/reviews.length)*10)/10:0,count:reviews.length});
+    }
+    if(req.method==='POST' && url==='/api/reviews'){
+      const b=await readBody(req); const name=String(b.name||'').trim().slice(0,80); const rating=Math.round(Number(b.rating)); const text=String(b.text||'').trim().slice(0,600);
+      if(!name||!Number.isInteger(rating)||rating<1||rating>5||!text)return json(res,400,{error:'Név, 1–5 csillag és szöveges vélemény kötelező.'});
+      const review={id:crypto.randomUUID(),name,rating,text,at:new Date().toISOString(),status:'published'}; db.reviews.unshift(review); db.reviews=db.reviews.slice(0,300); await writeDB(db); return json(res,201,{review});
+    }
+
+    // ---------- PUBLIC EVENTS / OWNER EVENT CONTROL ----------
+    if(req.method==='GET' && url==='/api/public-events') return json(res,200,{events:(db.events||[]).filter(x=>x.active!==false).sort((a,b)=>new Date(a.startsAt)-new Date(b.startsAt)).slice(0,50)});
+    if(req.method==='POST' && url==='/api/events/create'){
+      const u=auth(req,res,'owner'); if(!u)return; const b=await readBody(req); const title=String(b.title||'').trim().slice(0,120); const description=String(b.description||'').trim().slice(0,800); const place=String(b.place||'Red Moon Pub').trim().slice(0,120); const startsAt=new Date(b.startsAt); const endsAt=b.endsAt?new Date(b.endsAt):null;
+      if(!title||Number.isNaN(startsAt.getTime()))return json(res,400,{error:'Cím és érvényes kezdési idő kötelező.'});
+      const ev={id:'evt_'+crypto.randomBytes(6).toString('hex'),title,description,place,startsAt:startsAt.toISOString(),endsAt:endsAt&&!Number.isNaN(endsAt.getTime())?endsAt.toISOString():null,createdById:u.id,createdByName:u.name,active:true}; db.events.unshift(ev); audit(db,u,'EVENT_CREATE',`${title} · ${place}`); await writeDB(db); return json(res,201,{event:ev});
+    }
+    if(req.method==='PATCH' && url.startsWith('/api/events/')){
+      const u=auth(req,res,'owner'); if(!u)return; const id=decodeURIComponent(url.split('/').pop()); const ev=(db.events||[]).find(x=>x.id===id); if(!ev)return json(res,404,{error:'Rendezvény nem található'}); const b=await readBody(req);
+      if(b.title!==undefined)ev.title=String(b.title).trim().slice(0,120); if(b.description!==undefined)ev.description=String(b.description).trim().slice(0,800); if(b.place!==undefined)ev.place=String(b.place).trim().slice(0,120); if(b.startsAt!==undefined){const d=new Date(b.startsAt);if(Number.isNaN(d.getTime()))return json(res,400,{error:'Érvénytelen kezdési idő'});ev.startsAt=d.toISOString()} if(b.endsAt!==undefined)ev.endsAt=b.endsAt?new Date(b.endsAt).toISOString():null; if(b.active!==undefined)ev.active=!!b.active;
+      audit(db,u,'EVENT_UPDATE',ev.title); await writeDB(db); return json(res,200,{event:ev});
+    }
+    if(req.method==='DELETE' && url.startsWith('/api/events/')){
+      const u=auth(req,res,'owner'); if(!u)return; const id=decodeURIComponent(url.split('/').pop()); const idx=(db.events||[]).findIndex(x=>x.id===id); if(idx<0)return json(res,404,{error:'Rendezvény nem található'}); const ev=db.events[idx]; db.events.splice(idx,1); audit(db,u,'EVENT_DELETE',ev.title); await writeDB(db); return json(res,200,{ok:true});
+    }
+
+    if(req.method==='GET' && url==='/api/finance/overall'){
+      const u=auth(req,res); if(!u)return; const raw=(db.finance?.overallRevenue ?? db.sales.reduce((a,x)=>a+(Number(x.total)||0),0)); const offset=Number(db.finance?.overallRevenueOffset)||0; return json(res,200,{overallRevenue:Math.max(0,raw-offset),rawRevenue:raw,offset});
+    }
+    if(req.method==='POST' && url==='/api/finance/reset'){
+      const u=auth(req,res,'owner'); if(!u)return; db.finance ||= {}; db.finance.overallRevenueOffset=Number(db.finance.overallRevenue)||0; audit(db,u,'OVERALL_REVENUE_RESET','Az overall bevétel számláló nullázva'); await writeDB(db); return json(res,200,{overallRevenue:0});
+    }
+
+    // ---------- PROFILE / EMPLOYEES ----------
+    if(req.method==='PATCH' && url==='/api/profile'){
+      const u=auth(req,res); if(!u)return; const b=await readBody(req); const target=db.users.find(x=>x.id===u.id); if(!target)return json(res,404,{error:'Fiók nem található'});
+      if(b.name!==undefined)target.name=String(b.name).trim().slice(0,100); if(b.nickname!==undefined)target.nickname=String(b.nickname).trim().slice(0,50); if(b.avatar!==undefined){const avatar=String(b.avatar); if(avatar.length>420000)return json(res,400,{error:'A profilkép túl nagy.'}); if(avatar && !/^data:image\/(png|jpe?g|webp);base64,/i.test(avatar))return json(res,400,{error:'A profilképnek PNG/JPG/WebP képnek kell lennie.'}); target.avatar=avatar;}
+      audit(db,target,'PROFILE_UPDATE','Saját profil frissítve'); await writeDB(db); const sid=parseCookies(req).rm_session; const session=sid&&sessions.get(sid); if(session){session.name=target.name;session.username=target.username} return json(res,200,{user:publicUser(target)});
+    }
+    if(req.method==='GET' && url==='/api/employees'){
+      const u=auth(req,res); if(!u)return; return json(res,200,{users:db.users.filter(x=>x.role!=='dj').map(publicUser)});
+    }
+
+    // ---------- RESTOCK / INVENTORY LOG ----------
+    if(req.method==='GET' && url==='/api/restock/logs'){
+      const u=auth(req,res,'manager'); if(!u)return; return json(res,200,{logs:(db.restockLogs||[]).slice(0,300)});
+    }
+    if(req.method==='POST' && url==='/api/restock'){
+      const u=auth(req,res,'manager'); if(!u)return; const b=await readBody(req); const p=db.products.find(x=>x.id===String(b.productId)); const qty=Math.floor(Number(b.qty)); const unitCost=Number(b.unitCost)||0;
+      if(!p||!Number.isInteger(qty)||qty<1||unitCost<0)return json(res,400,{error:'Termék, mennyiség és érvényes beszerzési ár szükséges.'});
+      p.stock=(Number(p.stock)||0)+qty; db.restockLogs ||= []; const log={id:crypto.randomUUID(),at:new Date().toISOString(),userId:u.id,user:u.name,productId:p.id,product:p.name,qty,unitCost,totalCost:qty*unitCost,source:String(b.source||'nagyker').slice(0,60),note:String(b.note||'').slice(0,300)}; db.restockLogs.unshift(log); notifyManagersOwners(db,'Készletfeltöltés',`${u.name}: ${p.name} +${qty} db · ${Number(log.totalCost).toLocaleString('hu-HU')} Ft`,{restockId:log.id}); audit(db,u,'RESTOCK',`${p.name}: +${qty} db · beszerzés ${log.totalCost} Ft`); await writeDB(db); return json(res,201,{product:p,log});
     }
 
     if(req.method==='GET' && url==='/api/sales'){
@@ -574,7 +639,7 @@ async function api(req,res,url){
 
     // ---------- SHIFTS / CASH REGISTER ----------
     if(req.method==='GET' && url==='/api/shifts'){
-      const u=auth(req,res,'owner'); if(!u)return;
+      const u=auth(req,res,'manager'); if(!u)return;
       return json(res,200,{shifts:db.shifts.slice(0,500)});
     }
 
@@ -713,6 +778,7 @@ async function api(req,res,url){
         if(product) product.stock += Number(sale.qty)||0;
       }
       db.documents=db.documents.filter(x=>!shiftDocs.includes(x));
+      db.finance ||= {}; db.finance.overallRevenue=Math.max(0,Number(db.finance.overallRevenue||0)-shiftSales.reduce((a,x)=>a+(Number(x.total)||0),0));
       db.sales=db.sales.filter(x=>x.shiftId!==id);
       db.shifts.splice(idx,1);
       audit(db,u,'SHIFT_DELETE',`Lezárt műszak törölve · ${id} · ${shiftSales.length} eladás · ${shiftDocs.length} számla · készlet visszaállítva`);
@@ -735,6 +801,7 @@ async function api(req,res,url){
       if(!u)return;
       const shift=db.shifts.find(s=>s.status==='open');
       if(!shift)return json(res,409,{error:'Eladás előtt nyisd meg a kasszát / műszakot.'});
+      if(!(shift.memberIds||[]).includes(u.id)) return json(res,403,{error:'Csak az aktuális műszak tagjai értékesíthetnek.'});
       const b=await readBody(req);
       const rawItems=Array.isArray(b.items)?b.items:[{productId:b.productId,qty:b.qty}];
       const items=rawItems.map(x=>({productId:String(x.productId||''),qty:Math.floor(Number(x.qty))})).filter(x=>x.productId);
@@ -769,6 +836,7 @@ async function api(req,res,url){
         };
       });
       db.sales.unshift(...sales);
+      db.finance ||= {}; db.finance.overallRevenue=Number(db.finance.overallRevenue||0)+sales.reduce((sum,s)=>sum+s.total,0);
       const total=sales.reduce((sum,s)=>sum+s.total,0);
       audit(db,u,'SALE',`${sales.map(s=>`${s.product} × ${s.qty}`).join(' + ')} · ${total} Ft · ${paymentMethod} · műszak ${shift.id}`);
       await writeDB(db);
@@ -790,6 +858,7 @@ async function api(req,res,url){
         audit(db,u,'SALE_DELETE_STOCK_RESTORE',`${product.name}: +${sale.qty} db visszahelyezve`);
       }
       db.sales.splice(idx,1);
+      db.finance ||= {}; db.finance.overallRevenue=Math.max(0,Number(db.finance.overallRevenue||0)-Number(sale.total||0));
       // A számla megmarad, mert azt csak OWNER törölheti a számlalistából.
       audit(db,u,'SALE_DELETE',`${sale.product} × ${sale.qty} · ${sale.total} Ft · ${sale.id}${doc?' · kapcsolt számla: '+doc.id:''}`);
       await writeDB(db);
@@ -862,7 +931,7 @@ async function api(req,res,url){
       const u=auth(req,res,'manager'); if(!u)return;
       const b=await readBody(req);
       if(!b.name||!b.category)return json(res,400,{error:'Név és kategória kötelező'});
-      const p={id:'p_'+crypto.randomBytes(6).toString('hex'),name:String(b.name),category:b.category==='food'?'food':'drink',price:currency(b.price),stock:Math.max(0,Math.floor(currency(b.stock))),minStock:Math.max(0,Math.floor(currency(b.minStock))),image:String(b.image||''),active:true};
+      const p={id:'p_'+crypto.randomBytes(6).toString('hex'),name:String(b.name),category:b.category==='food'?'food':'drink',price:currency(b.price),stock:Math.max(0,Math.floor(currency(b.stock))),minStock:Math.max(0,Math.floor(currency(b.minStock))),image:String(b.image||''),subtitle:String(b.subtitle||'').slice(0,180),active:true};
       db.products.push(p); audit(db,u,'PRODUCT_CREATE',p.name); await writeDB(db); return json(res,201,{product:p});
     }
 
@@ -872,9 +941,9 @@ async function api(req,res,url){
       if(!p)return json(res,404,{error:'Termék nem található'});
       const b=await readBody(req);
       if(b.name!==undefined)p.name=String(b.name);
-      if(b.price!==undefined)p.price=currency(b.price);
+      if(b.price!==undefined){ if(u.role!=='owner') return json(res,403,{error:'Az eladási árat csak OWNER módosíthatja.'}); p.price=currency(b.price); }
       if(b.minStock!==undefined)p.minStock=Math.max(0,Math.floor(currency(b.minStock)));
-      if(b.active!==undefined)p.active=!!b.active;
+      if(b.active!==undefined)p.active=!!b.active; if(b.image!==undefined)p.image=String(b.image||''); if(b.subtitle!==undefined)p.subtitle=String(b.subtitle||'').slice(0,180);
       audit(db,u,'PRODUCT_UPDATE',p.name); await writeDB(db); return json(res,200,{product:p});
     }
 

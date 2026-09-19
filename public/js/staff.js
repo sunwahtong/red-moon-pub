@@ -1,6 +1,6 @@
 if(location.protocol==='file:'){ location.replace('http://localhost:8787/staff'); }
 const $=s=>document.querySelector(s);
-let me=null,products=[],currentShift=null,latestSale=null, presenceTimer=null, heartbeatTimer=null, realtimeSource=null, realtimeRefreshTimer=null, realtimePollTimer=null;
+let me=null,products=[],currentShift=null,latestSale=null, presenceTimer=null, heartbeatTimer=null, realtimeSource=null, realtimeRefreshTimer=null, realtimePollTimer=null; window.me=null; window.products=[];
 const money=n=>new Intl.NumberFormat('hu-HU').format(Number(n)||0)+' Ft';
 const SOUND_BASE='/assets/sounds/';
 const soundCache={};
@@ -186,6 +186,7 @@ function showLogin(){
 }
 $('#openCashAccess')?.addEventListener('click',()=>{playSfx('click',.22);showLogin();});
 function showApp(){
+  window.me=me;
   if(me?.role==='dj'){ location.href='dj.html'; return; }
   $('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');
   $('#staffUser').textContent=`${me.name.toUpperCase()} · ${me.role.toUpperCase()}`;
@@ -224,7 +225,7 @@ async function loadPresence(){
 }
 async function load(){
   const [p,d,s,sh]=await Promise.all([api('/api/products'),api('/api/dashboard'),api('/api/sales'),api('/api/shifts/current')]);
-  products=p.products;currentShift=sh.shift||null;checkStockAlerts(products);
+  products=p.products;window.products=products;window.me=me;currentShift=sh.shift||null;checkStockAlerts(products);
   renderProducts();renderDashboard(d);renderSales(s.sales);renderShift();renderDocumentsHint();if(me.role==='manager'||me.role==='owner')loadNotifications();
   if(me.role==='manager'||me.role==='owner')renderManager();
   if(me.role==='owner'){loadUsers();loadPerformance()}
@@ -255,7 +256,7 @@ function quickAddToCart(id){
   updateSalePreview();
 }
 function renderDashboard(d){
-  $('#statRevenue').textContent=money(d.today.revenue);$('#statItems').textContent=d.today.items+' db';$('#statLow').textContent=d.lowStock.length;
+  $('#statRevenue').textContent=money(d.overallRevenue ?? d.today.revenue);const firstLabel=document.querySelector('.stat-grid article span');if(firstLabel)firstLabel.textContent='OVERALL BEVÉTEL';$('#statItems').textContent=d.today.items+' db';$('#statLow').textContent=d.lowStock.length;
   $('#alerts').innerHTML=d.lowStock.length?d.lowStock.map(p=>`<div class="alert"><b>${esc(p.name)} · ${p.stock} db</b><small>Minimum: ${p.minStock} db</small></div>`).join(''):'<div class="alert"><b>Minden rendben.</b><small>Nincs alacsony készlet.</small></div>';
 }
 function renderSales(sales){
@@ -460,8 +461,8 @@ async function loadDocumentById(id){
 function printCurrentDoc(){if(!window._printHtml)return;const w=window.open('','_blank','width=700,height=900');w.document.write('<html><head><title>Red Moon Document</title><style>body{font-family:Arial;padding:30px}.receipt-paper{max-width:560px;margin:auto;border:1px solid #ddd;padding:28px}.receipt-line{display:flex;justify-content:space-between;border-bottom:1px dashed #999;padding:9px 0}</style></head><body>'+window._printHtml+'</body></html>');w.document.close();w.focus();w.print()}
 
 function renderManager(){
-  $('#managerInventory').innerHTML=products.filter(p=>p.active).map(p=>`<div class="manager-row"><div class="manager-product"><img class="stock-thumb manager-thumb" src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><div><b>${esc(p.name)}</b><div class="role">ITAL · ${money(p.price)}</div></div></div><span>${p.stock} db</span><input data-stock="${p.id}" type="number" min="0" value="${p.stock}" style="width:80px;background:#090506;border:1px solid #3a171f;color:white;padding:7px"><button data-save="${p.id}">MENTÉS</button></div>`).join('');
-  document.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.save;const inp=document.querySelector(`[data-stock="${id}"]`);try{const newStock=Number(inp.value);const saved=await api('/api/inventory/adjust',{method:'POST',body:JSON.stringify({productId:id,stock:newStock})});if(newStock===0)playSfx('error',0.75);else if(newStock<=products.find(p=>p.id===id)?.minStock)playSfx('low_stock',0.7);else playSfx('success',0.5);showToast('Raktár frissítve',`${saved.product.name}: ${newStock} db sikeresen feltöltve.`,'success');await load()}catch(e){await rmAlert(e.message,'Művelet sikertelen')}})
+  $('#managerInventory').innerHTML=products.filter(p=>p.active).map(p=>`<div class="manager-row"><div class="manager-product"><img class="stock-thumb manager-thumb" src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><div><b>${esc(p.name)}</b><div class="role">ITAL · ${money(p.price)}</div></div></div><span>${p.stock} db</span><input data-stock="${p.id}" type="number" min="0" value="${p.stock}" style="width:80px;background:#090506;border:1px solid #3a171f;color:white;padding:7px">${me?.role==='owner'?`<input data-price="${p.id}" type="number" min="0" value="${p.price}" style="width:95px;background:#090506;border:1px solid #3a171f;color:white;padding:7px" title="Eladási ár">`:''}<button data-save="${p.id}">MENTÉS</button></div>`).join('');
+  document.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.save;const inp=document.querySelector(`[data-stock="${id}"]`);try{const newStock=Number(inp.value);const saved=await api('/api/inventory/adjust',{method:'POST',body:JSON.stringify({productId:id,stock:newStock})});if(me?.role==='owner'){const priceEl=document.querySelector(`[data-price="${id}"]`);if(priceEl)await api('/api/products/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({price:Number(priceEl.value)})});}if(newStock===0)playSfx('error',0.75);else if(newStock<=products.find(p=>p.id===id)?.minStock)playSfx('low_stock',0.7);else playSfx('success',0.5);showToast('Raktár frissítve',`${saved.product.name}: ${newStock} db sikeresen feltöltve.`,'success');await load()}catch(e){await rmAlert(e.message,'Művelet sikertelen')}})
 }
 function formatLastActive(at){
   if(!at)return 'Még nem lépett be';
@@ -564,7 +565,7 @@ $('#saleForm').addEventListener('submit',async e=>{
 });
 renderCart();
 
-$('#productForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/products',{method:'POST',body:JSON.stringify({name:$('#pName').value,category:$('#pCategory').value,price:Number($('#pPrice').value),stock:Number($('#pStock').value),minStock:Number($('#pMin').value)})});e.target.reset();await load();playSfx('success',0.5);showToast('Raktár frissítve','Az új termék sikeresen hozzáadva.','success')}catch(err){await rmAlert(err.message,'Termék létrehozása sikertelen')}});
+$('#productForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/products',{method:'POST',body:JSON.stringify({name:$('#pName').value,category:$('#pCategory').value,price:Number($('#pPrice').value),stock:Number($('#pStock').value),minStock:Number($('#pMin').value),subtitle:$('#pSubtitle').value,image:$('#pImage').value})});e.target.reset();await load();playSfx('success',0.5);showToast('Raktár frissítve','Az új termék sikeresen hozzáadva.','success')}catch(err){await rmAlert(err.message,'Termék létrehozása sikertelen')}});
 $('#userForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/users',{method:'POST',body:JSON.stringify({name:$('#uName').value,username:$('#uUsername').value,password:$('#uPassword').value,role:$('#uRole').value})});e.target.reset();await loadUsers();await rmAlert('A felhasználó létrehozva.','Fiók létrehozva')}catch(err){await rmAlert(err.message,'Fiók létrehozása sikertelen')}});
 boot().catch(e=>{console.error(e);showLogin();if($('#loginError'))$('#loginError').textContent=e.message});
 
@@ -582,3 +583,5 @@ async function markNotification(id){
   try{await api('/api/notifications/read',{method:'POST',body:JSON.stringify({id})});await loadNotifications()}catch{}
 }
 setInterval(()=>{if(me&&(me.role==='manager'||me.role==='owner'))loadNotifications()},15000);
+
+window.load=load;

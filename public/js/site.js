@@ -68,7 +68,7 @@
     const nav = $('.nav');
     const wrap = document.createElement('div');
     wrap.className = 'sound-wrap';
-    wrap.innerHTML = '<button class="sound" id="soundBtn" type="button" aria-label="Zene ki- és bekapcsolása" aria-expanded="false" aria-pressed="false"><span id="soundIcon">)))</span><span>AMBIENCE</span></button><div class="volume-panel" id="volumePanel" aria-label="Hangerő"><div class="volume-head"><span>VOLUME</span><strong id="volumeValue">45%</strong></div><input id="volumeSlider" type="range" min="0" max="100" value="45" aria-label="Zene hangereje"></div>';
+    wrap.innerHTML = '<button class="sound" id="soundBtn" type="button" aria-label="Zene ki- és bekapcsolása" aria-expanded="false" aria-pressed="false"><span id="soundIcon">)))</span><span>AMBIENCE</span></button><div class="volume-panel" id="volumePanel" aria-label="Hangerő"><div class="volume-head"><span>VOLUME</span><strong id="volumeValue">45</strong></div><input id="volumeSlider" type="range" min="0" max="100" value="45" aria-label="Zene hangereje"></div>';
     nav?.appendChild(wrap);
     soundWrap = wrap;
   }
@@ -79,8 +79,8 @@
     if (icon) icon.textContent = soundOn && !audio.paused ? ')))' : '—';
     // The slider is a user-controlled visual control. Do not rewrite its
     // value from audio/time/live events while the user is interacting with it.
-    if (syncSlider && slider) slider.value = String(volume);
-    if (value) value.textContent = `${volume}%`;
+    if (syncSlider && slider) { slider.value = String(volume); slider.style.setProperty('--vol', `${volume}%`); }
+    if (value) value.textContent = String(volume);
   }
   async function playAudio() {
     if (!soundOn || volume <= 0) return false;
@@ -134,7 +134,8 @@
     volume = Math.max(0, Math.min(100, Number(slider.value) || 0));
     localStorage.setItem(STORAGE.volume, String(volume));
     audio.volume = volume / 100;
-    if (value) value.textContent = `${volume}%`;
+    slider?.style.setProperty('--vol', `${volume}%`);
+    if (value) value.textContent = String(volume);
     if (volume === 0) {
       if (!audio.paused) stopAudio();
       return;

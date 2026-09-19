@@ -29,3 +29,17 @@ Without `DATABASE_URL`, the server uses `data/seed.json` as its local seed state
 - Added persistent Cinematic / Balanced / Lite Quality control on every page.
 - Quality is stored in localStorage under `redmoon-quality` and applies site-wide on that browser.
 - Preserved the V50 smoke/filter support in the unified controller.
+
+## V56 — Staff Command overhaul
+- Sidebaros, külön nézetekre bontott Staff Command Center.
+- Név + 1–5 csillagos publikus véleményrendszer.
+- Tulaj által létrehozható rendezvények automatikus publikus listával és visszaszámlálóval.
+- Manager/Owner műszakzárási előzmények külön nézetben.
+- Alkalmazotti címtár minden staff számára, szerkesztés Owner joggal.
+- Saját profil név/becenév + PNG/JPG/WebP profilkép.
+- Restock napló beszerzési egységárral, forrással, mennyiséggel és költséggel; +1/+5/+10 gyorsgombok.
+- Overall revenue folyamatos számláló, Owner nullázási lehetőséggel.
+- Eladás csak az aktuális nyitott műszak tagjainak engedélyezett.
+- Owner által módosítható eladási árak automatikusan megjelennek az itallapon és a Staff POS-ban.
+- Termékhez név, kép és rövid leírás adható.
+- A lokációs térkép meglévő zoom + pulzáló Red Moon blip rendszere megmaradt.
