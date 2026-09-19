@@ -1,0 +1,35 @@
+/* V53 — Performance + persistent Quality
+   One shared quality layer for the Red Moon cinematic effects.
+*/
+#rm-quality-control{position:fixed;left:18px;bottom:18px;z-index:9999;font:700 9px/1 Noto Sans,sans-serif;letter-spacing:.12em}
+#rm-quality-toggle{appearance:none;border:1px solid rgba(255,70,100,.28);background:rgba(7,4,5,.84);color:#e9dfe2;border-radius:999px;padding:10px 12px;cursor:pointer;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,.32);transition:.2s ease}
+#rm-quality-toggle:hover{border-color:rgba(255,70,100,.55);box-shadow:0 10px 34px rgba(0,0,0,.4),0 0 22px rgba(255,40,80,.08)}
+#rm-quality-toggle b{color:#ff5875}
+#rm-quality-panel{display:none;position:absolute;left:0;bottom:44px;min-width:190px;padding:10px;border:1px solid rgba(255,70,100,.22);border-radius:14px;background:rgba(8,5,7,.96);box-shadow:0 18px 55px rgba(0,0,0,.5);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+#rm-quality-control.open #rm-quality-panel{display:block}
+#rm-quality-panel strong{display:block;color:#a9959b;font-size:8px;margin:2px 3px 8px;letter-spacing:.16em}
+.rm-quality-option{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;background:transparent;color:#d9cdd0;padding:9px 8px;border-radius:9px;text-align:left;cursor:pointer;font:700 9px Noto Sans,sans-serif}
+.rm-quality-option:hover{background:rgba(255,255,255,.05)}
+.rm-quality-option.active{background:rgba(255,45,80,.10);color:#fff}
+.rm-quality-option i{width:6px;height:6px;border-radius:50%;background:#56474b}
+.rm-quality-option.active i{background:#ff496a;box-shadow:0 0 10px #ff496a}
+html.rm-quality-balanced .rm50-smoke-extra{opacity:.065!important}
+html.rm-quality-balanced .rm-smoke-layer{opacity:.16!important;filter:blur(18px)!important}
+html.rm-quality-balanced .rm17-fog{opacity:.62!important;filter:blur(13px)!important}
+html.rm-quality-balanced body:before,html.rm-quality-balanced body:after{animation-duration:42s!important;opacity:.62}
+html.rm-quality-balanced .rm52-heading.rm52-active{ text-shadow:0 0 1px #fff,0 0 5px rgba(255,255,255,.22),0 0 13px rgba(255,73,108,.28)!important}
+html.rm-quality-lite .rm50-smoke-extra{display:none!important}
+html.rm-quality-lite .rm-smoke-layer{opacity:.08!important;filter:blur(12px)!important;animation:none!important}
+html.rm-quality-lite .rm17-fog{opacity:.28!important;filter:blur(9px)!important;animation:none!important}
+html.rm-quality-lite body:before,html.rm-quality-lite body:after{animation:none!important;opacity:.34!important}
+html.rm-quality-lite .rm52-heading::before,html.rm-quality-lite .rm52-heading::after{opacity:.28!important}
+html.rm-quality-lite .rm52-heading.rm52-active{ text-shadow:0 0 1px #fff,0 0 7px rgba(255,73,108,.20)!important}
+html.rm-quality-lite .panel,.rm-quality-lite .panel{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+@media(max-width:600px){
+  #rm-quality-control{left:10px;bottom:10px}
+  #rm-quality-toggle{padding:9px 10px}
+}
+@media(prefers-reduced-motion:reduce){
+  #rm-quality-panel{display:none!important}
+  #rm-quality-control{display:none!important}
+}

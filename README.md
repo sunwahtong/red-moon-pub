@@ -22,3 +22,10 @@ Local development is intentionally not packaged with BAT/PowerShell launchers. R
 `npm start`
 
 Without `DATABASE_URL`, the server uses `data/seed.json` as its local seed state.
+
+
+## V53 — Quality / Performance
+- Unified the overlapping V46/V49/V50 pointer-reactive loops into one V53 controller.
+- Added persistent Cinematic / Balanced / Lite Quality control on every page.
+- Quality is stored in localStorage under `redmoon-quality` and applies site-wide on that browser.
+- Preserved the V50 smoke/filter support in the unified controller.
