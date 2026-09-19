@@ -1,0 +1,107 @@
+/* V46 — Red Moon reactive neon typography
+   White-first, never-black headlines with a refined red/pink energy glow. */
+:root{--rm-neon-white:#fffdfd;--rm-neon-soft:#ffeef2;--rm-neon-red:#ff315b;--rm-neon-hot:#ff6685}
+
+.rm17-title,
+.rm17-section h2,
+.rm17-page-hero h1,
+.page-hero h1,
+.hero h1,
+.menu-premium-hero h1,
+.location-intro h1,
+.location-heading h1,
+.club-hero h1,
+.dj-top h1,
+.staff-head h1,
+.section h2,
+.menu-intro h2,
+.panel-head h2,
+.featured-bar h2,
+.event-banner h2,
+.event-card h2,
+.story-copy h2{
+  color:var(--rm-neon-white)!important;
+  -webkit-text-fill-color:var(--rm-neon-white)!important;
+  -webkit-text-stroke:0!important;
+  text-shadow:
+    0 0 1px #fff,
+    0 0 5px rgba(255,255,255,.95),
+    0 0 12px rgba(255,76,112,.9),
+    0 0 28px rgba(255,35,82,.62),
+    0 0 60px rgba(255,20,68,.28)!important;
+  position:relative;
+  isolation:isolate;
+  transition:filter .25s ease,text-shadow .25s ease,transform .25s ease;
+}
+
+/* The outlined words become bright glass-neon rather than disappearing into black. */
+.rm17-title em,
+.rm17-section h2 em,
+.rm17-page-hero h1 em,
+.page-hero h1 em,
+.menu-intro h2 em,
+.featured-bar h2 em,
+.club-hero h1 em,
+.dj-top h1 em{
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  -webkit-text-stroke:1px rgba(255,255,255,.92)!important;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 7px rgba(255,255,255,.95),
+    0 0 16px rgba(255,64,105,.95),
+    0 0 34px rgba(255,22,70,.7),
+    0 0 72px rgba(255,10,58,.35)!important;
+}
+
+/* Main hero: make RED and MOON read immediately against the dark art. */
+.rm17-title{
+  filter:drop-shadow(0 0 10px rgba(255,35,83,.18));
+}
+.rm17-title:hover{
+  filter:drop-shadow(0 0 15px rgba(255,45,94,.55)) drop-shadow(0 0 42px rgba(255,20,65,.25));
+}
+
+/* Subtle moving neon sheen controlled by v46-neon-reactive.js. */
+.rm-neon-reactive{
+  --rm-local-x:50%;
+  --rm-local-y:50%;
+  background:radial-gradient(circle at var(--rm-local-x) var(--rm-local-y),#fff 0%,#fff 16%,#ffe9ef 42%,#fff 72%)!important;
+  -webkit-background-clip:text!important;
+  background-clip:text!important;
+  -webkit-text-fill-color:transparent!important;
+}
+.rm-neon-reactive em,
+.rm-neon-reactive small{
+  -webkit-text-fill-color:#fff!important;
+}
+
+/* A very thin luminous contour keeps giant type legible even over bright imagery. */
+.rm17-title::after,
+.rm17-section h2::after,
+.rm17-page-hero h1::after,
+.page-hero h1::after,
+.hero h1::after,
+.location-heading h1::after{
+  content:"";
+  position:absolute;
+  inset:-5% -2%;
+  z-index:-1;
+  pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,rgba(255,36,78,.10),transparent 62%);
+  filter:blur(12px);
+  opacity:.9;
+}
+
+@media (prefers-reduced-motion:no-preference){
+  .rm17-title,.rm17-section h2,.rm17-page-hero h1,.page-hero h1,.hero h1,.location-heading h1{
+    animation:rmV46NeonBreath 4.5s ease-in-out infinite;
+  }
+}
+@keyframes rmV46NeonBreath{
+  0%,100%{text-shadow:0 0 1px #fff,0 0 5px rgba(255,255,255,.92),0 0 12px rgba(255,76,112,.82),0 0 28px rgba(255,35,82,.55),0 0 60px rgba(255,20,68,.22)}
+  50%{text-shadow:0 0 2px #fff,0 0 7px rgba(255,255,255,1),0 0 16px rgba(255,76,112,.98),0 0 36px rgba(255,35,82,.7),0 0 78px rgba(255,20,68,.34)}
+}
+@media(max-width:600px){
+  .rm17-title,.rm17-section h2,.rm17-page-hero h1,.page-hero h1,.hero h1,.location-heading h1{ text-shadow:0 0 1px #fff,0 0 5px rgba(255,255,255,.95),0 0 11px rgba(255,76,112,.88),0 0 25px rgba(255,35,82,.5)!important }
+}
