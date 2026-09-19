@@ -170,7 +170,7 @@ async function api(url,opt={}){
 }
 async function boot(){
   const d=await api('/api/me');
-  if(d.user){me=d.user;showApp();return;}
+  if(d.user){if(d.user.portal==='dj' || d.user.role==='dj'){showAccessChooser();$('#loginError').textContent='Ez DJ fiók. A DJ konzolban lehet vele belépni.';return;}me=d.user;showApp();return;}
   showAccessChooser();
 }
 function showAccessChooser(){
@@ -524,7 +524,7 @@ async function loadPerformance(){
 $('#loginForm').addEventListener('submit',async e=>{
   e.preventDefault(); $('#loginError').textContent='';
   try{
-    const d=await api('/api/login',{method:'POST',body:JSON.stringify({username:$('#username').value,password:$('#password').value})});
+    const d=await api('/api/login',{method:'POST',body:JSON.stringify({username:$('#username').value,password:$('#password').value,portal:'staff'})});
     me=d.user; playSfx('success',0.58); showApp(); showToast('Sikeres bejelentkezés',`Üdv a Command Centerben, ${me.name}.`,'success');
   }catch(err){
     playSfx('error',0.82); $('#loginError').textContent=err.message; showToast('Sikertelen bejelentkezés','Hibás felhasználónév vagy jelszó.','error');

@@ -167,7 +167,7 @@ function clubState(req=null){
   return {serverNow:Date.now(),live:!!c.live,dj:c.dj||null,title:c.title||'',provider:c.provider||'gocast',providerUrl:c.providerUrl||'https://gocast.fm/station/red-moon-pub',current:null,queue:[],library:[],chat:(c.chat||[]).slice(0,8).map(publicChatMessage),requests:canModerate?(c.requests||[]).slice(0,100).map(r=>({...r,item:r.item?{id:r.item.id,name:r.item.name,url:''}:null})):[],nameRequests:canModerate?(c.nameRequests||[]).slice(0,80):[],listenerCount:active.length,startedAt:c.startedAt||null};
 }
 function broadcastClubState(){ broadcastClub('club_state',{state:clubState()}); }
-function authDJ(req,res){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if(!['dj','manager','owner'].includes(u.role)){json(res,403,{error:'Ehhez a DJ jogosultság szükséges'});return null;} return u; }
+function authDJ(req,res){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if((u.portal|| (u.role==='dj'?'dj':'staff'))!=='dj'){json(res,403,{error:'Ez a fiók a Kassza / Staff konzolhoz tartozik. DJ konzolhoz külön DJ fiók szükséges.'});return null;} if(!['dj','manager','owner'].includes(u.role)){json(res,403,{error:'Ehhez a DJ jogosultság szükséges'});return null;} return u; }
 function parseYoutubeLink(raw){
   const value=String(raw||'').trim(); if(!value)return null;
   let u; try{u=new URL(value)}catch{return null;}
@@ -213,7 +213,7 @@ function parseCookies(req){ const out={}; (req.headers.cookie||'').split(';').fo
 function sessionUser(req){
   const sid=parseCookies(req).rm_session;
   const s=sid&&sessions.get(sid);
-  if(s) s.lastSeen=Date.now();
+  if(s){ s.lastSeen=Date.now(); if(!s.portal) s.portal=s.role==='dj'?'dj':'staff'; }
   return s||null;
 }
 function onlineUsers(){
@@ -229,13 +229,13 @@ function onlineUsers(){
   return [...seen.values()].sort((a,b)=>a.name.localeCompare(b.name,'hu'));
 }
 function roleAtLeast(role,need){ const r={staff:1,manager:2,owner:3}; return (r[role]||0)>=(r[need]||99); }
-function auth(req,res,need='staff'){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if(!roleAtLeast(u.role,need)){json(res,403,{error:'Nincs jogosultságod ehhez a művelethez'});return null;} return u; }
+function auth(req,res,need='staff'){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if((u.portal|| (u.role==='dj'?'dj':'staff'))!=='staff'){json(res,403,{error:'Ez a fiók a DJ konzolhoz tartozik. Kasszához külön Staff / Kasszás fiók szükséges.'});return null;} if(!roleAtLeast(u.role,need)){json(res,403,{error:'Nincs jogosultságod ehhez a művelethez'});return null;} return u; }
 function readBody(req){return new Promise((resolve,reject)=>{let d='';req.on('data',c=>{d+=c;if(d.length>1e6) req.destroy();});req.on('end',()=>{try{resolve(d?JSON.parse(d):{})}catch(e){reject(e)}});req.on('error',reject)})}
 function hashPassword(password,salt=crypto.randomBytes(16).toString('hex')){return {salt,hash:crypto.pbkdf2Sync(password,salt,310000,32,'sha256').toString('hex')}}
 function verifyPassword(password,encoded){ const [scheme,it,alg,salt,hash]=encoded.split(':'); if(scheme!=='PBKDF2') return false; const got=crypto.pbkdf2Sync(password,salt,Number(it),32,alg); return crypto.timingSafeEqual(got,Buffer.from(hash,'hex')); }
 function audit(db,user,action,details){db.audit.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),userId:user.id,user:user.name,role:user.role,action,details}); if(db.audit.length>1000) db.audit.length=1000;}
 function notifyManagersOwners(db,title,message,meta={}){db.notifications.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),title,message,meta,readBy:{}});if(db.notifications.length>500)db.notifications.length=500;}
-function publicUser(u){return {id:u.id,username:u.username,name:u.name,role:u.role,lastActiveAt:u.lastActiveAt||null};}
+function publicUser(u){return {id:u.id,username:u.username,name:u.name,role:u.role,portal:u.portal||(u.role==='dj'?'dj':'staff'),lastActiveAt:u.lastActiveAt||null};}
 function currency(n){return Number(n)||0}
 
 
@@ -265,12 +265,17 @@ async function api(req,res,url){
 
     if(req.method==='POST' && url==='/api/login'){
       const b=await readBody(req);
+      const portal=String(b.portal||'staff').toLowerCase()==='dj'?'dj':'staff';
       const u=db.users.find(x=>x.username.toLowerCase()===String(b.username||'').trim().toLowerCase());
       if(!u || !verifyPassword(String(b.password||''),u.passwordHash)) return json(res,401,{error:'Hibás felhasználónév vagy jelszó'});
+      const allowedStaff=['staff','manager','owner'].includes(u.role);
+      const allowedDJ=['dj','manager','owner'].includes(u.role);
+      if(portal==='staff' && !allowedStaff) return json(res,403,{error:'Ez DJ fiók. Ezzel a fiókkal csak a DJ konzolba lehet belépni.'});
+      if(portal==='dj' && !allowedDJ) return json(res,403,{error:'Ez kasszás / Staff fiók. A DJ konzolhoz külön DJ fiók szükséges.'});
       const sid=crypto.randomBytes(32).toString('hex');
       const now=new Date().toISOString();
       u.lastActiveAt=now;
-      sessions.set(sid,{id:u.id,username:u.username,name:u.name,role:u.role,lastSeen:Date.now(),lastPersistedActive:Date.now(),ip:getClientIP(req)});
+      sessions.set(sid,{id:u.id,username:u.username,name:u.name,role:u.role,portal,lastSeen:Date.now(),lastPersistedActive:Date.now(),ip:getClientIP(req)});
       res.setHeader('Set-Cookie',`rm_session=${sid}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800${process.env.NODE_ENV==='production'?' ; Secure':''}`.replace(' ; Secure','; Secure'));
       audit(db,u,'LOGIN','Sikeres belépés'); await writeDB(db);
       return json(res,200,{user:publicUser(u)});
@@ -884,6 +889,7 @@ async function api(req,res,url){
             session.username=target.username;
             session.name=target.name;
             session.role=target.role;
+            session.portal=target.role==='dj'?'dj':'staff';
             session.lastSeen=Date.now();
           }
         }

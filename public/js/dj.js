@@ -95,7 +95,7 @@ $('#djLoginForm')?.addEventListener('submit',async e=>{
   e.preventDefault();setLoginError('');
   const btn=e.currentTarget.querySelector('button[type=submit]');if(btn)btn.disabled=true;
   try{
-    await api('/api/login',{method:'POST',body:JSON.stringify({username:$('#djLoginUsername').value.trim(),password:$('#djLoginPassword').value})});
+    await api('/api/login',{method:'POST',body:JSON.stringify({username:$('#djLoginUsername').value.trim(),password:$('#djLoginPassword').value,portal:'dj'})});
     await enterAfterLogin();
     playSfx('login',.42);
     showToast('DJ KONZOL',`Bejelentkezve: ${me?.name||'DJ'}.`);
