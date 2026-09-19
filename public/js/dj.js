@@ -57,7 +57,7 @@ function renderChat(){
   const count=$('#messageCount');if(count)count.textContent=arr.length;
   if(!list)return;
   if(!arr.length){list.innerHTML='<div class="empty-state">Még nincs üzenet.</div>';return}
-  list.innerHTML=arr.map(m=>{const k=m.kind||'chat';let badge='';if(k==='request')badge='<span class="chat-kind request-kind">🎵 ZENEKÉRÉS</span>';if(k==='request-accepted')badge='<span class="chat-kind accepted-kind">✓ KÉRÉS ELFOGADVA</span>';if(k==='request-declined')badge='<span class="chat-kind declined-kind">× KÉRÉS ELUTASÍTVA</span>';if(k==='dj')badge='<span class="chat-kind dj-kind">🎧 DJ ÜZENET</span>';const age=Date.now()-new Date(m.at).getTime();const opacity=age>=45000?Math.max(0,Math.min(1,(60000-age)/15000)):1;return `<article class="dj-chat-msg kind-${esc(k)}" style="--chat-opacity:${opacity}"><div class="msg-head"><b>${esc(m.name)}</b><small>${time(m.at)}</small></div><p>${esc(m.text)}</p>${badge}<button class="msg-delete" data-chat-delete="${esc(m.id)}">TÖRLÉS</button></article>`}).join('');
+  list.innerHTML=arr.map(m=>{const k=m.kind||'chat';let badge='';if(k==='request')badge='<span class="chat-kind request-kind">🎵 ZENEKÉRÉS</span>';if(k==='request-accepted')badge='<span class="chat-kind accepted-kind">✓ KÉRÉS ELFOGADVA</span>';if(k==='request-declined')badge='<span class="chat-kind declined-kind">× KÉRÉS ELUTASÍTVA</span>';if(k==='dj')badge='<span class="chat-kind dj-kind">🎧 DJ ÜZENET</span>';const age=Date.now()-new Date(m.at).getTime();const opacity=age>=45000?Math.max(0,Math.min(1,(60000-age)/15000)):1;return `<article class="dj-chat-msg kind-${esc(k)}" style="--chat-opacity:${opacity}"><div class="msg-head"><b>${esc(m.name)}</b><small>${time(m.at)}</small></div><p>${esc(m.text)}</p>${badge}<div class="msg-moderation">${m.ip&&m.ip!=='unknown'?`<span class="msg-ip">IP ${esc(m.ip)}</span><button class="msg-ban" data-chat-ban-ip="${esc(m.ip)}" data-chat-ban-name="${esc(m.name)}">TILTÁS</button>`:''}<button class="msg-delete" data-chat-delete="${esc(m.id)}">TÖRLÉS</button></div></article>`}).join('');
 }
 function render(){
   if(!state||!me)return;
@@ -123,6 +123,13 @@ $('#requestList')?.addEventListener('click',async e=>{
   }catch(err){playSfx('error',.72);showToast('ZENEKÉRÉS SIKERTELEN',err.message,'error')}
 });
 $('#djChat')?.addEventListener('click',async e=>{
+  const banBtn=e.target.closest('[data-chat-ban-ip]');
+  if(banBtn){
+    const ip=banBtn.dataset.chatBanIp, name=banBtn.dataset.chatBanName||'vendég';
+    if(!confirm(`Biztosan letiltod ${name} IP-címét a Chatről?\n\nIP: ${ip}\nIdőtartam: 60 perc`))return;
+    try{const d=await api('/api/club/ban',{method:'POST',body:JSON.stringify({ip,minutes:60,reason:`Chat tiltás · ${name}`})});playSfx('delete',.42);showToast('CHAT TILTÁS AKTÍV',`${name} IP-címe 60 percre letiltva.`);state=d.state||state;render()}catch(err){playSfx('error',.72);showToast('TILTÁS SIKERTELEN',err.message,'error')}
+    return;
+  }
   const b=e.target.closest('[data-chat-delete]');if(!b)return;
   try{const d=await api('/api/club/chat/'+encodeURIComponent(b.dataset.chatDelete),{method:'DELETE'});state=d.state;playSfx('delete',.42);render();showToast('ÜZENET TÖRÖLVE','A chatüzenet eltávolítva.')}catch(err){playSfx('error',.72);showToast('ÜZENET TÖRLÉSE SIKERTELEN',err.message,'error')}
 });
