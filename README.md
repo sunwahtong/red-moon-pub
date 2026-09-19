@@ -1,48 +1,22 @@
-# Red Moon Pub V17.2 — GitHub / Render Clean
+# Red Moon Pub V57 — Command Center Rebuild
 
-Online-ready build of the Red Moon Pub website + Node.js staff system.
+V57 is a full Staff Command Center rebuild based on V56.3.
 
-## Deploy
-1. Upload the contents of this folder to a GitHub repository (do not upload the ZIP itself).
-2. In Render choose **New → Blueprint** and select the repository.
-3. Set `OWNER_USERNAME` and `OWNER_PASSWORD` in Render when prompted.
-4. Deploy. Render provides `DATABASE_URL` to the web service automatically.
-5. Open `/` for the public site and `/staff.html` for Staff.
+## Included
+- Fixed left-side Command Center navigation.
+- Persistent top-right logout inside Command Center.
+- Working POS catalog with product images, cart, payment selection and shift-membership enforcement.
+- Drink and food product categories; backend sales now accepts both `drink` and `food`.
+- Stock/restock workflow with +1/+5/+10, supplier/source, unit cost and restock logs.
+- Manager sees restock notifications only; Owner has full audit log.
+- Shift opening/closing and closed-shift history.
+- Employee directory and Owner-only account editing.
+- Public review administration and Owner-only deletion.
+- Dedicated Owner price-control tab.
+- Product creation with name, category, price, stock, minimum stock, image path and subtitle.
+- Personal profile editing with nickname and profile image.
+- Owner finance / overall revenue reset and event creation.
+- Public menu polls `/api/public-products` so Owner price changes appear without a page refresh.
+- Existing authentication and backend audit system retained.
 
-## Security
-- No real/test passwords are stored in this repository.
-- The first OWNER is created from `OWNER_USERNAME` / `OWNER_PASSWORD` only when the PostgreSQL database is initialized for the first time.
-- Do not commit `.env`, credentials, API keys, or real customer data.
-
-## Local
-Local development is intentionally not packaged with BAT/PowerShell launchers. Run with:
-
-`npm install`
-
-`npm start`
-
-Without `DATABASE_URL`, the server uses `data/seed.json` as its local seed state.
-
-
-## V53 — Quality / Performance
-- Unified the overlapping V46/V49/V50 pointer-reactive loops into one V53 controller.
-- Added persistent Cinematic / Balanced / Lite Quality control on every page.
-- Quality is stored in localStorage under `redmoon-quality` and applies site-wide on that browser.
-- Preserved the V50 smoke/filter support in the unified controller.
-
-## V56 — Staff Command overhaul
-- Sidebaros, külön nézetekre bontott Staff Command Center.
-- Név + 1–5 csillagos publikus véleményrendszer.
-- Tulaj által létrehozható rendezvények automatikus publikus listával és visszaszámlálóval.
-- Manager/Owner műszakzárási előzmények külön nézetben.
-- Alkalmazotti címtár minden staff számára, szerkesztés Owner joggal.
-- Saját profil név/becenév + PNG/JPG/WebP profilkép.
-- Restock napló beszerzési egységárral, forrással, mennyiséggel és költséggel; +1/+5/+10 gyorsgombok.
-- Overall revenue folyamatos számláló, Owner nullázási lehetőséggel.
-- Eladás csak az aktuális nyitott műszak tagjainak engedélyezett.
-- Owner által módosítható eladási árak automatikusan megjelennek az itallapon és a Staff POS-ban.
-- Termékhez név, kép és rövid leírás adható.
-- A lokációs térkép meglévő zoom + pulzáló Red Moon blip rendszere megmaradt.
-
-
-V56.3 functional fix: image-based POS catalog, working manager/owner restock workflow with +1/+5/+10, owner-only full audit log, manager/owner restock notifications, owner-only review deletion, dedicated Reviews tab, and improved staff workspace layout.
+Deploy the whole package on Render, including `server.js`, `public/`, and `data/`.

@@ -644,6 +644,7 @@ async function api(req,res,url){
       if(!n)return json(res,404,{error:'Értesítés nem található'});
       n.readBy ||= {};
       n.readBy[u.id]=new Date().toISOString();
+      audit(db,u,'NOTIFICATION_READ',`Értesítés olvasva · ${n.title||n.id}`);
       await writeDB(db);
       return json(res,200,{ok:true});
     }
@@ -823,7 +824,7 @@ async function api(req,res,url){
         if(!Number.isInteger(item.qty)||item.qty<1)return json(res,400,{error:'Érvénytelen mennyiség a kosárban.'});
         const p=db.products.find(x=>x.id===item.productId && x.active);
         if(!p)return json(res,400,{error:'A kosár egyik terméke már nem elérhető.'});
-        if(p.category!=='drink')return json(res,400,{error:'Csak ital értékesíthető.'});
+        if(!['drink','food'].includes(p.category))return json(res,400,{error:'Ez a termék nem értékesíthető.'});
         const already=checked.find(x=>x.p.id===p.id);
         if(already)already.qty+=item.qty; else checked.push({p,qty:item.qty});
       }
