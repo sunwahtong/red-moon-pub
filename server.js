@@ -280,7 +280,9 @@ function readBody(req){return new Promise((resolve,reject)=>{let d='';req.on('da
 function hashPassword(password,salt=crypto.randomBytes(16).toString('hex')){return {salt,hash:crypto.pbkdf2Sync(password,salt,310000,32,'sha256').toString('hex')}}
 function verifyPassword(password,encoded){ const [scheme,it,alg,salt,hash]=encoded.split(':'); if(scheme!=='PBKDF2') return false; const got=crypto.pbkdf2Sync(password,salt,Number(it),32,alg); return crypto.timingSafeEqual(got,Buffer.from(hash,'hex')); }
 function audit(db,user,action,details){db.audit.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),userId:user.id,user:user.name,role:user.role,action,details}); if(db.audit.length>1000) db.audit.length=1000;}
-function notifyManagersOwners(db,title,message,meta={}){db.notifications.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),title,message,meta,readBy:{}});if(db.notifications.length>500)db.notifications.length=500;}
+function notifyAudience(db,audience,title,message,meta={}){db.notifications.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),audience:Array.isArray(audience)?audience:['owner'],title,message,meta,readBy:{}});if(db.notifications.length>500)db.notifications.length=500;}
+function notifyManagersOwners(db,title,message,meta={}){notifyAudience(db,['manager','owner'],title,message,meta);}
+function notifyOwners(db,title,message,meta={}){notifyAudience(db,['owner'],title,message,meta);}
 function publicUser(u){return {id:u.id,username:u.username,name:u.name,nickname:u.nickname||'',role:u.role,portal:u.portal||(u.role==='dj'?'dj':'staff'),avatar:u.avatar||'',lastActiveAt:u.lastActiveAt||null};}
 function currency(n){return Number(n)||0}
 
@@ -566,6 +568,15 @@ async function api(req,res,url){
       if(!name||!Number.isInteger(rating)||rating<1||rating>5||!text)return json(res,400,{error:'Név, 1–5 csillag és szöveges vélemény kötelező.'});
       const review={id:crypto.randomUUID(),name,rating,text,at:new Date().toISOString(),status:'published'}; db.reviews.unshift(review); db.reviews=db.reviews.slice(0,300); await writeDB(db); return json(res,201,{review});
     }
+    if(req.method==='DELETE' && url.startsWith('/api/reviews/')){
+      const u=auth(req,res,'owner'); if(!u)return;
+      const id=decodeURIComponent(url.split('/').pop());
+      const idx=(db.reviews||[]).findIndex(x=>x.id===id);
+      if(idx<0)return json(res,404,{error:'A vélemény nem található'});
+      const review=db.reviews[idx]; db.reviews.splice(idx,1);
+      audit(db,u,'REVIEW_DELETE',`${review.name} · ${review.rating}/5 · ${review.text}`);
+      await writeDB(db); return json(res,200,{ok:true,deletedReviewId:id});
+    }
 
     // ---------- PUBLIC EVENTS / OWNER EVENT CONTROL ----------
     if(req.method==='GET' && url==='/api/public-events') return json(res,200,{events:(db.events||[]).filter(x=>x.active!==false).sort((a,b)=>new Date(a.startsAt)-new Date(b.startsAt)).slice(0,50)});
@@ -616,13 +627,13 @@ async function api(req,res,url){
     }
 
     if(req.method==='GET' && url==='/api/audit'){
-      const u=auth(req,res,'manager'); if(!u)return;
+      const u=auth(req,res,'owner'); if(!u)return;
       return json(res,200,{audit:db.audit.slice(0,500)});
     }
 
     if(req.method==='GET' && url==='/api/notifications'){
       const u=auth(req,res,'manager'); if(!u)return;
-      const notifications=db.notifications.slice(0,100).map(n=>({...n,read:!!n.readBy?.[u.id]}));
+      const notifications=db.notifications.filter(n=>Array.isArray(n.audience)&&n.audience.includes(u.role)).slice(0,100).map(n=>({...n,read:!!n.readBy?.[u.id]}));
       return json(res,200,{notifications});
     }
 
@@ -893,7 +904,7 @@ async function api(req,res,url){
       db.documents.unshift(doc);
       transactionSales.forEach(s=>{s.documentId=doc.id});
       audit(db,u,'INVOICE_CREATE',`${doc.id} · ${transactionSales.map(s=>s.product).join(', ')} · ${doc.total} Ft`);
-      notifyManagersOwners(db,'Új számla készült',`${u.name} számlát készített: ${doc.id} · ${transactionSales.length} tétel · ${doc.total} Ft`,{documentId:doc.id,saleId:sale.id,createdBy:u.name});
+      notifyOwners(db,'Új számla készült',`${u.name} számlát készített: ${doc.id} · ${transactionSales.length} tétel · ${doc.total} Ft`,{documentId:doc.id,saleId:sale.id,createdBy:u.name});
       await writeDB(db);
       return json(res,201,{document:doc});
     }

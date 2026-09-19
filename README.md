@@ -43,3 +43,6 @@ Without `DATABASE_URL`, the server uses `data/seed.json` as its local seed state
 - Owner által módosítható eladási árak automatikusan megjelennek az itallapon és a Staff POS-ban.
 - Termékhez név, kép és rövid leírás adható.
 - A lokációs térkép meglévő zoom + pulzáló Red Moon blip rendszere megmaradt.
+
+
+V56.3 functional fix: image-based POS catalog, working manager/owner restock workflow with +1/+5/+10, owner-only full audit log, manager/owner restock notifications, owner-only review deletion, dedicated Reviews tab, and improved staff workspace layout.
