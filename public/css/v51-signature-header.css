@@ -1,0 +1,212 @@
+/* V51 — Red Moon Signature Mark
+   Rebuilds the hero identity as a bespoke luxury-neon sign rather than a normal headline.
+*/
+.rm-signature-title{
+  position:relative!important;
+  display:inline-flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:0!important;
+  width:min(92vw,980px)!important;
+  margin:25px 0 30px!important;
+  isolation:isolate;
+  overflow:visible!important;
+  letter-spacing:0!important;
+  filter:none!important;
+  transform:translateZ(0);
+}
+.rm-signature-title::before{
+  content:"";
+  position:absolute;
+  left:-2.5%;
+  top:17%;
+  width:58%;
+  height:62%;
+  border-radius:50%;
+  border:1px solid rgba(255,43,79,.10);
+  border-left-color:transparent;
+  border-bottom-color:rgba(255,43,79,.18);
+  transform:rotate(-11deg);
+  filter:drop-shadow(0 0 10px rgba(255,38,76,.08));
+  pointer-events:none;
+  z-index:-2;
+}
+.rm-signature-title::after{
+  content:"";
+  position:absolute;
+  left:5%;
+  bottom:12%;
+  width:84%;
+  height:1px;
+  background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.30),rgba(255,43,79,.22),transparent);
+  box-shadow:0 0 12px rgba(255,40,78,.10);
+  pointer-events:none;
+  z-index:-1;
+}
+.rm-signature-red{
+  position:relative;
+  display:block;
+  margin-left:clamp(6px,1vw,15px);
+  font-family:Cinzel,serif;
+  font-size:clamp(42px,7vw,92px);
+  line-height:.78;
+  font-weight:700;
+  letter-spacing:.16em;
+  color:#f8f5f6;
+  background:linear-gradient(180deg,#fff 0%,#f7f1f3 48%,#c9c0c4 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow:0 0 1px rgba(255,255,255,.55),0 8px 24px rgba(0,0,0,.35);
+  filter:drop-shadow(0 0 7px rgba(255,45,84,.08));
+  z-index:3;
+}
+.rm-signature-red::after{
+  content:"";
+  position:absolute;
+  left:-10%;
+  right:16%;
+  bottom:-12px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.32),rgba(255,42,79,.42),transparent);
+  opacity:.7;
+}
+.rm-signature-moon{
+  position:relative;
+  display:flex;
+  align-items:flex-end;
+  gap:clamp(1px,.3vw,7px);
+  margin-top:clamp(9px,1.4vw,20px);
+  margin-left:clamp(1px,.2vw,4px);
+  color:transparent;
+  z-index:4;
+  transform:skewX(-3deg);
+}
+.rm-signature-moon i{
+  position:relative;
+  display:inline-block;
+  font-family:Cinzel,serif;
+  font-style:normal;
+  font-size:clamp(68px,12vw,166px);
+  line-height:.70;
+  font-weight:600;
+  letter-spacing:-.075em;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+  -webkit-text-stroke:1px rgba(247,243,245,.72);
+  text-shadow:
+    0 0 1px rgba(255,255,255,.85),
+    0 0 5px rgba(255,255,255,.12),
+    0 0 13px rgba(255,40,78,.13);
+  transition:filter .2s ease,transform .45s cubic-bezier(.2,.8,.2,1),-webkit-text-stroke .2s ease;
+}
+.rm-signature-moon i::before{
+  content:attr(data-letter);
+  position:absolute;
+  inset:0;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+  -webkit-text-stroke:1px rgba(255,37,76,.18);
+  transform:translate(2px,2px);
+  filter:blur(.2px);
+  pointer-events:none;
+}
+.rm-signature-moon i:nth-child(1){transform:translateY(5px)}
+.rm-signature-moon i:nth-child(2){transform:translateY(-3px)}
+.rm-signature-moon i:nth-child(3){transform:translateY(3px)}
+.rm-signature-moon i:nth-child(4){transform:translateY(-7px)}
+.rm-signature-moon i:nth-child(1),.rm-signature-moon i:nth-child(4){-webkit-text-stroke-color:rgba(247,243,245,.82)}
+.rm-signature-moon i:nth-child(2){-webkit-text-stroke-color:rgba(247,243,245,.64)}
+.rm-signature-moon i:nth-child(3){-webkit-text-stroke-color:rgba(247,243,245,.70)}
+.rm-signature-moon i::after{
+  content:"";
+  position:absolute;
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:#ff3b61;
+  box-shadow:0 0 7px rgba(255,43,79,.7),0 0 16px rgba(255,43,79,.28);
+  opacity:.22;
+  right:10%;
+  top:18%;
+}
+.rm-signature-title:hover .rm-signature-moon i{
+  -webkit-text-stroke-color:rgba(255,255,255,.96);
+}
+.rm-signature-orbit{
+  position:absolute;
+  pointer-events:none;
+  border:1px solid rgba(255,42,79,.16);
+  border-radius:50%;
+  z-index:1;
+}
+.orbit-a{
+  width:76%;
+  height:48%;
+  left:8%;
+  top:31%;
+  transform:rotate(-7deg);
+  box-shadow:0 0 16px rgba(255,35,72,.05);
+}
+.orbit-b{
+  width:53%;
+  height:28%;
+  left:24%;
+  top:42%;
+  transform:rotate(10deg);
+  border-color:rgba(255,255,255,.07);
+}
+.rm-signature-spark{
+  position:absolute;
+  width:2px;
+  height:2px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 0 5px #fff,0 0 12px rgba(255,43,79,.45);
+  opacity:.35;
+  pointer-events:none;
+  z-index:5;
+  animation:rmSparkPulse 3.7s ease-in-out infinite;
+}
+.spark-a{left:76%;top:35%}
+.spark-b{left:89%;top:70%;animation-delay:-1.8s}
+@keyframes rmSparkPulse{0%,100%{transform:scale(.55);opacity:.15}45%{transform:scale(1.7);opacity:.72}65%{transform:scale(.9);opacity:.3}}
+.rm-signature-title small{
+  position:relative;
+  display:block!important;
+  margin:clamp(19px,2.2vw,28px) 0 0 clamp(7px,1vw,15px)!important;
+  padding-top:10px;
+  font-family:Inter,sans-serif!important;
+  font-size:clamp(11px,1.25vw,18px)!important;
+  line-height:1!important;
+  letter-spacing:.55em!important;
+  font-weight:700!important;
+  color:#f5eff1!important;
+  -webkit-text-fill-color:#f5eff1!important;
+  text-shadow:0 0 8px rgba(255,255,255,.08),0 0 18px rgba(255,42,79,.10)!important;
+}
+.rm-signature-title.rm-flash .rm-signature-red,
+.rm-signature-title.rm-flash .rm-signature-moon i{
+  animation:rmSignatureFlash .72s cubic-bezier(.18,.85,.25,1) both;
+}
+.rm-signature-title.rm-flash .rm-signature-orbit{
+  animation:rmOrbitFlash .72s ease-out both;
+}
+@keyframes rmSignatureFlash{
+  0%{filter:brightness(1);text-shadow:0 0 1px rgba(255,255,255,.85),0 0 8px rgba(255,255,255,.10),0 0 14px rgba(255,40,78,.14)}
+  18%{filter:brightness(1.55);text-shadow:0 0 2px #fff,0 0 9px rgba(255,255,255,.7),0 0 25px rgba(255,43,79,.72),0 0 46px rgba(255,30,68,.30)}
+  42%{filter:brightness(1.22);text-shadow:0 0 2px #fff,0 0 7px rgba(255,255,255,.35),0 0 20px rgba(255,43,79,.46)}
+  100%{filter:brightness(1);text-shadow:0 0 1px rgba(255,255,255,.72),0 0 5px rgba(255,255,255,.10),0 0 12px rgba(255,43,79,.12)}
+}
+@keyframes rmOrbitFlash{0%{opacity:.16;box-shadow:none}25%{opacity:.9;box-shadow:0 0 10px rgba(255,35,72,.24),0 0 25px rgba(255,35,72,.13)}100%{opacity:.16;box-shadow:none}}
+@media(max-width:700px){
+  .rm-signature-title{width:96vw!important;margin-top:22px!important}
+  .rm-signature-red{font-size:clamp(34px,13vw,66px)}
+  .rm-signature-moon{gap:0}
+  .rm-signature-moon i{font-size:clamp(58px,19vw,100px);-webkit-text-stroke:.9px rgba(247,243,245,.72)}
+  .rm-signature-title small{letter-spacing:.38em!important;font-size:9px!important}
+  .orbit-a{width:92%;left:2%;top:31%}.orbit-b{width:62%;left:18%;top:44%}
+}
+@media(prefers-reduced-motion:reduce){
+  .rm-signature-spark,.rm-signature-title.rm-flash .rm-signature-red,.rm-signature-title.rm-flash .rm-signature-moon i,.rm-signature-title.rm-flash .rm-signature-orbit{animation:none!important}
+}

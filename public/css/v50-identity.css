@@ -166,7 +166,7 @@
   will-change:transform,filter,opacity;
 }
 .rm-smoke-layer{
-  opacity:.26!important;
+  opacity:.31!important;
   filter:url(#rm49SmokeDistort) blur(24px)!important;
   background:
     radial-gradient(ellipse 28% 17% at 4% 78%,rgba(246,243,245,.12),transparent 72%),
@@ -177,7 +177,7 @@
   animation:rm50SmokeA 5.2s cubic-bezier(.28,.02,.72,.98) infinite alternate!important;
 }
 .rm-smoke-layer.two{
-  opacity:.19!important;
+  opacity:.235!important;
   filter:url(#rm49SmokeDistort2) blur(31px)!important;
   animation:rm50SmokeB 6.1s cubic-bezier(.18,.05,.82,.95) infinite alternate-reverse!important;
 }
@@ -186,7 +186,7 @@
   inset:auto -16% -10vh!important;
   width:132vw!important;
   height:64vh!important;
-  opacity:.12;
+  opacity:.145;
   filter:url(#rm49SmokeDistort2) blur(19px);
   background:
     radial-gradient(ellipse 14% 30% at 12% 72%,rgba(245,242,244,.16),transparent 72%),
@@ -196,8 +196,8 @@
     radial-gradient(ellipse 14% 30% at 91% 66%,rgba(245,242,244,.13),transparent 72%);
 }
 .rm50-smoke-extra.s1{animation:rm50Wisp1 4.4s ease-in-out infinite alternate}
-.rm50-smoke-extra.s2{animation:rm50Wisp2 5.1s ease-in-out infinite alternate-reverse;opacity:.09}
-.rm50-smoke-extra.s3{animation:rm50Wisp3 6.0s ease-in-out infinite alternate;opacity:.08}
+.rm50-smoke-extra.s2{animation:rm50Wisp2 5.1s ease-in-out infinite alternate-reverse;opacity:.11}
+.rm50-smoke-extra.s3{animation:rm50Wisp3 6.0s ease-in-out infinite alternate;opacity:.095}
 
 @keyframes rm50SmokeA{
   0%{transform:translate3d(-11vw,7vh,0) rotate(-6deg) scale(.93,.86)}
@@ -232,7 +232,7 @@
 }
 
 .rm17-fog{
-  opacity:.88!important;
+  opacity:.94!important;
   filter:url(#rm49SmokeDistort) blur(19px)!important;
   animation:rm50HeroFog 5.4s cubic-bezier(.24,.01,.76,.99) infinite alternate!important;
 }
@@ -246,7 +246,7 @@
 
 @media(max-width:600px){
   .rm17-title > em{-webkit-text-stroke:1px rgba(250,247,248,.74)!important}
-  .rm50-smoke-extra{opacity:.08}
+  .rm50-smoke-extra{opacity:.095}
 }
 @media(prefers-reduced-motion:reduce){
   .rm17-title > em::after,.rm17-title::after,.rm50-smoke-extra,.rm-smoke-layer,.rm17-fog{animation:none!important}
