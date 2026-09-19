@@ -5,14 +5,12 @@
   const letters=[...title.querySelectorAll('.rm-signature-moon i')];
   letters.forEach(l=>l.dataset.letter=l.textContent.trim());
 
-  const flash=()=>{
-    title.classList.remove('rm-flash');
-    void title.offsetWidth;
-    title.classList.add('rm-flash');
-    window.setTimeout(()=>title.classList.remove('rm-flash'),780);
-  };
-  title.addEventListener('pointerenter',flash,{passive:true});
-  title.addEventListener('focusin',flash,{passive:true});
+  const setFlash=()=>title.classList.add('rm-flash');
+  const clearFlash=()=>title.classList.remove('rm-flash');
+  title.addEventListener('pointerenter',setFlash,{passive:true});
+  title.addEventListener('pointerleave',clearFlash,{passive:true});
+  title.addEventListener('focusin',setFlash,{passive:true});
+  title.addEventListener('focusout',clearFlash,{passive:true});
 
   if(matchMedia('(pointer:fine)').matches){
     let raf=0,x=0,y=0;
