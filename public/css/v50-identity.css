@@ -1,0 +1,253 @@
+/* V50 — Red Moon Signature Identity
+   A bespoke, quieter neon treatment: RED is polished white, MOON is a living neon tube.
+*/
+:root{
+  --rm50-white:#fbfafb;
+  --rm50-silver:#d8d3d6;
+  --rm50-red:#ff345d;
+  --rm50-red-soft:rgba(255,52,93,.22);
+  --rm50-red-faint:rgba(255,52,93,.09);
+}
+
+/* All large headings: never black, never washed out. */
+.rm17-title,
+.rm17-section h2,
+.rm17-page-hero h1,
+.page-hero h1,
+.hero h1,
+.menu-premium-hero h1,
+.location-intro h1,
+.location-heading h1,
+.club-hero h1,
+.dj-top h1,
+.staff-head h1,
+.section h2,
+.menu-intro h2,
+.panel-head h2,
+.featured-bar h2,
+.event-banner h2,
+.event-card h2,
+.story-copy h2{
+  color:var(--rm50-white)!important;
+  -webkit-text-fill-color:var(--rm50-white)!important;
+  text-shadow:0 0 1px rgba(255,255,255,.7),0 0 9px rgba(255,255,255,.08),0 0 20px rgba(255,52,93,.13)!important;
+}
+
+/* HERO SIGNATURE — RED / MOON */
+.rm17-title{
+  position:relative!important;
+  isolation:isolate;
+  letter-spacing:-.072em!important;
+  font-weight:800!important;
+  text-rendering:geometricPrecision;
+  filter:drop-shadow(0 8px 28px rgba(0,0,0,.34));
+  transition:filter .45s ease,transform .45s ease;
+}
+
+/* RED becomes an elegant white-metal surface, not a flat white block. */
+.rm17-title::first-line{
+  color:var(--rm50-white);
+}
+
+/* MOON is a real outlined neon-tube treatment. */
+.rm17-title > em{
+  position:relative;
+  display:inline-block;
+  color:transparent!important;
+  -webkit-text-fill-color:transparent!important;
+  -webkit-text-stroke:1.15px rgba(250,247,248,.78)!important;
+  text-shadow:
+    0 0 1px rgba(255,255,255,.78),
+    0 0 4px rgba(255,255,255,.18),
+    0 0 9px rgba(255,70,103,.28),
+    0 0 20px rgba(255,45,84,.13)!important;
+  transition:-webkit-text-stroke .4s ease,text-shadow .4s ease,filter .4s ease;
+}
+
+/* A second, offset red tube creates the custom-signature look. */
+.rm17-title > em::before{
+  content:attr(data-neon-word);
+  position:absolute;
+  inset:0;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+  -webkit-text-stroke:1px rgba(255,48,87,.20);
+  transform:translate(2px,1px);
+  filter:blur(.15px);
+  pointer-events:none;
+  z-index:1;
+  opacity:.9;
+}
+
+/* Moving red reflection across the outlined letters. */
+.rm17-title > em::after{
+  content:"";
+  position:absolute;
+  left:-4%; right:-4%; top:42%; height:8%;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,48,87,0) 25%,rgba(255,91,120,.36) 50%,rgba(255,48,87,0) 75%,transparent 100%);
+  filter:blur(8px);
+  opacity:.48;
+  transform:translateX(-18%) skewX(-18deg);
+  animation:rm50NeonSweep 6.5s cubic-bezier(.45,0,.55,1) infinite;
+  pointer-events:none;
+  mix-blend-mode:screen;
+}
+@keyframes rm50NeonSweep{
+  0%,58%{transform:translateX(-55%) skewX(-18deg);opacity:0}
+  66%{opacity:.46}
+  82%,100%{transform:translateX(55%) skewX(-18deg);opacity:0}
+}
+
+/* Fine architectural linework around the title. */
+.rm17-title::before{
+  content:"";
+  position:absolute;
+  left:-2.5%; right:4%;
+  top:53%;
+  height:clamp(28px,3vw,52px);
+  border-top:1px solid rgba(255,48,87,.20);
+  border-radius:50%;
+  transform:rotate(-1.2deg);
+  opacity:.72;
+  pointer-events:none;
+  z-index:-1;
+  box-shadow:0 -7px 24px rgba(255,40,82,.06);
+}
+
+.rm17-title::after{
+  content:"";
+  position:absolute;
+  width:clamp(42px,5vw,82px);
+  height:clamp(42px,5vw,82px);
+  right:-2%;
+  top:12%;
+  border:1px solid rgba(255,55,91,.26);
+  border-radius:50%;
+  box-shadow:0 0 18px rgba(255,55,91,.10),inset 0 0 12px rgba(255,55,91,.04);
+  opacity:.65;
+  pointer-events:none;
+  z-index:-1;
+  animation:rm50Orbit 8s ease-in-out infinite;
+}
+@keyframes rm50Orbit{
+  0%,100%{transform:translate3d(0,0,0) rotate(0deg);opacity:.48}
+  50%{transform:translate3d(-8px,5px,0) rotate(18deg);opacity:.78}
+}
+
+/* Cursor response is elegant, not a floodlight. */
+.rm17-title.rm-neon-reactive > em{
+  filter:drop-shadow(0 0 calc(4px + var(--rm-react,0)*7px) rgba(255,55,91,.22));
+}
+.rm17-title.rm-neon-reactive > em::before{opacity:calc(.55 + var(--rm-react,0)*.4)}
+.rm17-title.rm-neon-reactive > em::after{opacity:calc(.30 + var(--rm-react,0)*.34)}
+
+/* Other headings get the same design language, but stay quieter than the hero. */
+.rm17-section h2 em,
+.rm17-page-hero h1 em,
+.page-hero h1 em,
+.menu-intro h2 em,
+.featured-bar h2 em,
+.club-hero h1 em,
+.dj-top h1 em,
+.staff-head h1 em{
+  color:transparent!important;
+  -webkit-text-fill-color:transparent!important;
+  -webkit-text-stroke:1px rgba(250,247,248,.70)!important;
+  text-shadow:0 0 1px rgba(255,255,255,.68),0 0 7px rgba(255,255,255,.10),0 0 16px rgba(255,55,91,.16)!important;
+}
+
+/* More lifelike smoke: many translucent, turbulent sheets instead of giant smooth blobs. */
+.rm-smoke-layer,
+.rm50-smoke-extra{
+  position:fixed!important;
+  pointer-events:none!important;
+  z-index:0!important;
+  mix-blend-mode:screen!important;
+  will-change:transform,filter,opacity;
+}
+.rm-smoke-layer{
+  opacity:.26!important;
+  filter:url(#rm49SmokeDistort) blur(24px)!important;
+  background:
+    radial-gradient(ellipse 28% 17% at 4% 78%,rgba(246,243,245,.12),transparent 72%),
+    radial-gradient(ellipse 22% 13% at 21% 45%,rgba(213,210,213,.10),transparent 70%),
+    radial-gradient(ellipse 31% 15% at 43% 74%,rgba(245,242,244,.10),transparent 72%),
+    radial-gradient(ellipse 20% 12% at 65% 34%,rgba(207,203,207,.095),transparent 70%),
+    radial-gradient(ellipse 27% 15% at 88% 68%,rgba(244,241,243,.095),transparent 72%);
+  animation:rm50SmokeA 5.2s cubic-bezier(.28,.02,.72,.98) infinite alternate!important;
+}
+.rm-smoke-layer.two{
+  opacity:.19!important;
+  filter:url(#rm49SmokeDistort2) blur(31px)!important;
+  animation:rm50SmokeB 6.1s cubic-bezier(.18,.05,.82,.95) infinite alternate-reverse!important;
+}
+
+.rm50-smoke-extra{
+  inset:auto -16% -10vh!important;
+  width:132vw!important;
+  height:64vh!important;
+  opacity:.12;
+  filter:url(#rm49SmokeDistort2) blur(19px);
+  background:
+    radial-gradient(ellipse 14% 30% at 12% 72%,rgba(245,242,244,.16),transparent 72%),
+    radial-gradient(ellipse 11% 25% at 29% 42%,rgba(205,201,205,.13),transparent 72%),
+    radial-gradient(ellipse 15% 34% at 49% 70%,rgba(245,242,244,.12),transparent 72%),
+    radial-gradient(ellipse 10% 28% at 70% 36%,rgba(212,208,211,.13),transparent 72%),
+    radial-gradient(ellipse 14% 30% at 91% 66%,rgba(245,242,244,.13),transparent 72%);
+}
+.rm50-smoke-extra.s1{animation:rm50Wisp1 4.4s ease-in-out infinite alternate}
+.rm50-smoke-extra.s2{animation:rm50Wisp2 5.1s ease-in-out infinite alternate-reverse;opacity:.09}
+.rm50-smoke-extra.s3{animation:rm50Wisp3 6.0s ease-in-out infinite alternate;opacity:.08}
+
+@keyframes rm50SmokeA{
+  0%{transform:translate3d(-11vw,7vh,0) rotate(-6deg) scale(.93,.86)}
+  23%{transform:translate3d(8vw,-5vh,0) rotate(4deg) scale(1.06,1.02)}
+  48%{transform:translate3d(-6vw,-15vh,0) rotate(-11deg) scale(1.13,.96)}
+  71%{transform:translate3d(13vw,3vh,0) rotate(8deg) scale(.95,1.10)}
+  100%{transform:translate3d(-5vw,-8vh,0) rotate(-4deg) scale(1.08,.92)}
+}
+@keyframes rm50SmokeB{
+  0%{transform:translate3d(13vw,-5vh,0) rotate(9deg) scale(1.04,.9)}
+  27%{transform:translate3d(-12vw,8vh,0) rotate(-10deg) scale(.91,1.08)}
+  52%{transform:translate3d(7vw,-14vh,0) rotate(13deg) scale(1.15,.94)}
+  76%{transform:translate3d(-14vw,1vh,0) rotate(-7deg) scale(.98,1.10)}
+  100%{transform:translate3d(6vw,10vh,0) rotate(7deg) scale(.93,.97)}
+}
+@keyframes rm50Wisp1{
+  0%{transform:translate3d(-15vw,8vh,0) rotate(-16deg) scale(.76,1.10)}
+  35%{transform:translate3d(8vw,-11vh,0) rotate(10deg) scale(1.14,.86)}
+  68%{transform:translate3d(-4vw,-3vh,0) rotate(-8deg) scale(.92,1.22)}
+  100%{transform:translate3d(17vw,-16vh,0) rotate(14deg) scale(1.18,.84)}
+}
+@keyframes rm50Wisp2{
+  0%{transform:translate3d(12vw,-12vh,0) rotate(18deg) scale(1.15,.78)}
+  40%{transform:translate3d(-16vw,4vh,0) rotate(-14deg) scale(.82,1.20)}
+  72%{transform:translate3d(4vw,10vh,0) rotate(9deg) scale(1.08,.88)}
+  100%{transform:translate3d(-7vw,-18vh,0) rotate(-12deg) scale(.90,1.18)}
+}
+@keyframes rm50Wisp3{
+  0%{transform:translate3d(-8vw,-7vh,0) rotate(-9deg) scale(1,.82)}
+  50%{transform:translate3d(15vw,11vh,0) rotate(12deg) scale(.82,1.22)}
+  100%{transform:translate3d(-13vw,-12vh,0) rotate(-16deg) scale(1.14,.88)}
+}
+
+.rm17-fog{
+  opacity:.88!important;
+  filter:url(#rm49SmokeDistort) blur(19px)!important;
+  animation:rm50HeroFog 5.4s cubic-bezier(.24,.01,.76,.99) infinite alternate!important;
+}
+@keyframes rm50HeroFog{
+  0%{transform:translate3d(-7%,4%,0) scale(1.02) rotate(-1deg)}
+  20%{transform:translate3d(9%,-6%,0) scale(1.10) rotate(2deg)}
+  43%{transform:translate3d(-4%,-12%,0) scale(1.16) rotate(-3deg)}
+  67%{transform:translate3d(12%,5%,0) scale(1.05) rotate(2deg)}
+  100%{transform:translate3d(-10%,-7%,0) scale(1.13) rotate(-2deg)}
+}
+
+@media(max-width:600px){
+  .rm17-title > em{-webkit-text-stroke:1px rgba(250,247,248,.74)!important}
+  .rm50-smoke-extra{opacity:.08}
+}
+@media(prefers-reduced-motion:reduce){
+  .rm17-title > em::after,.rm17-title::after,.rm50-smoke-extra,.rm-smoke-layer,.rm17-fog{animation:none!important}
+}
