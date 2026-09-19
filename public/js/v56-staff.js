@@ -12,7 +12,7 @@
   const views={}; const mk=(id,title,kicker)=>{const v=document.createElement('section');v.className='staff-v56-view';v.dataset.view=id;v.innerHTML=`<div class="staff-v56-card"><div class="staff-v56-head"><div><span>${kicker}</span><h2>${title}</h2></div></div><div class="staff-v56-slot"></div></div>`;content.appendChild(v);views[id]=v;return v};
   mk('overview','Command Center','RED MOON / 01');mk('pos','Kassza / Eladás','RED MOON / 02');mk('stock','Készlet','RED MOON / 03');mk('shifts','Műszakok','RED MOON / 04');mk('employees','Dolgozók','RED MOON / 05');mk('products','Itallap / Árak','RED MOON / 06');mk('restock','Készletfeltöltés','RED MOON / 07');mk('events','Rendezvények','RED MOON / 08');mk('reviews','Vélemények','RED MOON / 09');mk('profile','Saját profil','RED MOON / 10');mk('finance','Pénzügy','RED MOON / 11');mk('alerts','Értesítések','RED MOON / 12');mk('docs','Dokumentumok','RED MOON / 13');
   app.classList.add('v56-ready');
-  const oldHead=$('.staff-head'); app.insertBefore(sidebar,oldHead); app.appendChild(content);
+  const oldHead=$('.staff-head'); app.insertBefore(sidebar,oldHead); content.appendChild(oldHead); app.appendChild(content);
   const move=(sel,view,mode='block')=>{const el=$(sel);if(!el)return;el.classList.add('v56-hidden-original');views[view].querySelector('.staff-v56-slot').appendChild(el);el.classList.remove('v56-hidden-original');el.style.display=mode;};
   move('#shiftBar','overview'); move('#presencePanel','overview'); move('.stat-grid','overview');
   move('.sale-panel','pos'); move('.sales-log-panel','pos');

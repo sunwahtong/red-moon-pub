@@ -2,3 +2,10 @@
 @media(max-width:800px){.v56-review-shell{grid-template-columns:1fr}.v56-review-item{grid-template-columns:1fr}.v56-event-card-live{grid-template-columns:1fr}}
 
 .v56-hidden-static-event{display:none!important}
+
+/* V56.1 — homepage reviews */
+.v56-reviews{padding:56px 5vw;background:linear-gradient(180deg,#090506,#060405)}
+.v56-reviews .rm17-section-head{padding:0 0 8px}
+.v56-reviews .v56-review-shell{max-width:1200px}
+.v56-reviews .v56-review-form,.v56-reviews .v56-review-list{box-shadow:0 14px 45px #0007}
+@media(max-width:800px){.v56-reviews{padding:44px 5vw}}
