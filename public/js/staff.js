@@ -522,6 +522,8 @@ $('#qtyMinus').onclick=()=>{$('#saleQty').value=Math.max(1,Number($('#saleQty').
 $('#qtyPlus').onclick=()=>{$('#saleQty').value=Number($('#saleQty').value)+1;updateSalePreview()};
 $('#addToCartBtn').onclick=addToCart;
 $('#clearCartBtn').onclick=clearCart;
+document.querySelectorAll('.payment-choice').forEach(btn=>btn.addEventListener('click',()=>{setPaymentMethod(btn.dataset.payment);playSfx('click',0.42)}));
+setPaymentMethod(document.querySelector('#paymentMethod')?.value||'cash');
 $('#refreshBtn').onclick=load;
 $('#saleForm').addEventListener('submit',async e=>{
   e.preventDefault();const msg=$('#saleMsg');msg.textContent='';

@@ -78,3 +78,20 @@ body:after{z-index:-1;opacity:.42;background:radial-gradient(ellipse at 70% 75%,
   0%,100% { filter:brightness(1); }
   50% { filter:brightness(1.08); }
 }
+
+/* V45 — cash-register status + premium white neon typography */
+.rm-status-pill{display:flex!important;color:#fff!important;border-color:rgba(255,255,255,.16);box-shadow:0 0 0 1px rgba(255,255,255,.025),0 12px 40px rgba(0,0,0,.45),0 0 26px rgba(225,29,63,.12)}
+.rm-status-pill i{background:#ef3d55!important;box-shadow:0 0 14px #ef3d55,0 0 28px rgba(239,61,85,.35)!important;animation:none}
+.rm-status-pill.open i{background:#63e7a9!important;box-shadow:0 0 14px #63e7a9,0 0 28px rgba(99,231,169,.38)!important;animation:rmStatusPulse 1.8s ease-in-out infinite}
+.rm-status-pill.closed i{background:#ef3d55!important}
+.rm-status-pill span{color:#fff!important;text-shadow:0 0 8px rgba(255,255,255,.18),0 0 18px rgba(255,52,94,.18)}
+@keyframes rmStatusPulse{50%{transform:scale(1.3);opacity:.72}}
+/* Kill inherited transparent/black headline treatments and make the large type luminous. */
+.hero h1,.page-hero h1,.rm17-page-hero h1,.menu-premium-hero h1,.location-intro h1,.club-hero h1,.dj-top h1,.staff-head h1,
+.section h2,.rm17-section h2,.menu-intro h2,.panel-head h2,.dj-live-card h2,.rm17-journal-card h3,.rm17-vip-card h3,
+.featured-bar h2,.event-banner h2,.event-card h2,.story-copy h2,.rm17-story-copy h2,
+.hero h1 span,.hero h1 em,.page-hero h1 em,.rm17-page-hero h1 em,.menu-premium-hero h1 span,.menu-intro h2 em,
+.featured-bar h2 em,.club-hero h1 em,.dj-top h1 em{color:#fff!important;text-shadow:0 0 4px rgba(255,255,255,.95),0 0 10px rgba(255,72,111,.82),0 0 24px rgba(255,35,83,.52),0 0 46px rgba(255,25,70,.24)!important}
+.hero h1 em,.page-hero h1 em,.rm17-page-hero h1 em,.menu-premium-hero h1 span,.menu-intro h2 em,.featured-bar h2 em,.club-hero h1 em,.dj-top h1 em{color:#fff!important;-webkit-text-stroke:1px rgba(255,255,255,.82)!important}
+.hero h1,.page-hero h1,.rm17-page-hero h1,.menu-premium-hero h1,.club-hero h1,.dj-top h1,.staff-head h1{font-weight:700!important}
+@media(prefers-reduced-motion:reduce){.rm-status-pill.open i{animation:none}}

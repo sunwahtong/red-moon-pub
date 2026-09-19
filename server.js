@@ -290,6 +290,7 @@ async function api(req,res,url){
     // ---------- REALTIME STAFF CHANNEL ----------
     // ---------- RED MOON CLUB PUBLIC REALTIME ----------
     if(req.method==='GET' && url==='/api/club/state'){ return json(res,200,{state:clubState(req)}); }
+    if(req.method==='GET' && url==='/api/public/status'){ const open=db.shifts.some(s=>s.status==='open'); return json(res,200,{open}); }
     if(req.method==='GET' && url==='/api/club/events'){
       res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-store, must-revalidate','Connection':'keep-alive','X-Accel-Buffering':'no-store'});
       res.write(`data: ${JSON.stringify({type:'connected',state:clubState(req),at:new Date().toISOString()})}\n\n`);
