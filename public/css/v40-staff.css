@@ -1,0 +1,28 @@
+/* RED MOON V40 — Command Center redesign */
+.staff-page{background:radial-gradient(circle at 78% 5%,rgba(227,29,63,.12),transparent 25%),radial-gradient(circle at 8% 55%,rgba(188,160,110,.035),transparent 22%),#050506!important}
+.staff-shell{max-width:1500px!important;padding-top:125px!important}
+.staff-head{padding:8px 2px 25px;border-bottom:1px solid rgba(255,255,255,.07);position:relative}
+.staff-head:after{content:"";position:absolute;left:0;bottom:-1px;width:120px;height:1px;background:#e31d3f;box-shadow:0 0 16px rgba(227,29,63,.5)}
+.staff-head h1{font-size:clamp(42px,5.5vw,76px)!important;letter-spacing:.02em!important}
+.staff-head h1 em{color:#f04a65!important}
+.staff-user{padding:9px 12px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(255,255,255,.025)}
+.stat-grid{gap:14px!important}
+.stat-grid article{min-height:105px;padding:20px 22px!important;border:1px solid rgba(255,255,255,.07)!important;border-radius:16px!important;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.008))!important;transition:.3s}
+.stat-grid article:hover{transform:translateY(-3px);border-color:rgba(227,29,63,.32)!important;box-shadow:0 20px 55px rgba(0,0,0,.3)}
+.stat-grid strong{font-size:30px!important}
+.panel,.glass-form{border:1px solid rgba(255,255,255,.075)!important;border-radius:18px!important;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.01))!important;box-shadow:0 25px 80px rgba(0,0,0,.34)!important;backdrop-filter:blur(16px)}
+.panel:before{background:linear-gradient(120deg,rgba(255,255,255,.035),transparent 24%)!important}
+.panel-head{padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.055)}
+.panel-head h2{font-size:23px!important}
+.btn{border-radius:999px!important;min-height:40px;transition:transform .2s,box-shadow .2s,border-color .2s!important}
+.btn:hover{transform:translateY(-2px)!important;box-shadow:0 12px 35px rgba(227,29,63,.12)!important}
+.field input,.field select,.mini-form input,.mini-form select{border-radius:10px!important;border-color:rgba(255,255,255,.09)!important;background:#080709!important}
+.field input:focus,.field select:focus,.mini-form input:focus,.mini-form select:focus{border-color:rgba(227,29,63,.65)!important}
+.stock-row,.manager-row,.user-row,.notification,.doc-item{border-color:rgba(255,255,255,.065)!important;border-radius:11px!important;background:rgba(6,5,7,.62)!important}
+.stock-row:hover,.manager-row:hover,.user-row:hover,.notification:hover,.doc-item:hover{border-color:rgba(227,29,63,.28)!important}
+.cart-box{border-color:rgba(227,29,63,.24)!important;border-radius:16px!important;background:rgba(5,4,6,.68)!important}
+.cart-head{background:rgba(227,29,63,.045)}
+.cart-total{background:linear-gradient(90deg,rgba(227,29,63,.09),rgba(227,29,63,.025))!important}
+.action-modal .action-box,.toast-modal .toast-box,.doc-modal .doc-box{border-radius:18px!important;border:1px solid rgba(255,255,255,.09)!important;box-shadow:0 35px 110px rgba(0,0,0,.62)!important}
+.modal-fixed-text{border-radius:12px!important;background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.015))!important;border-color:rgba(255,255,255,.08)!important}
+@media(max-width:900px){.staff-shell{padding-top:105px!important}.staff-head{padding-bottom:20px}.stat-grid{gap:10px!important}}
