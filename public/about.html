@@ -1,11 +1,131 @@
-<!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rólunk — Red Moon Pub</title><link rel="stylesheet" href="css/main.css?v=13"><link rel="stylesheet" href="css/premium-v13.css?v=13"><link rel="stylesheet" href="css/v17-signature.css?v=17"><link rel="stylesheet" href="css/mobile-v34.css?v=34">
-<link rel="stylesheet" href="css/v40-premium.css?v=41"><link rel="stylesheet" href="css/v41-premium.css?v=41"><link rel="stylesheet" href="css/v42-experience.css?v=42"><link rel="stylesheet" href="css/v43-nightlife.css?v=43"><link rel="stylesheet" href="css/v46-neon-headings.css?v=46"><link rel="stylesheet" href="css/v47-heading-refine.css?v=47"><link rel="stylesheet" href="css/v49-neon-art.css?v=49"><link rel="stylesheet" href="css/v50-identity.css?v=50"><link rel="stylesheet" href="css/v51-signature-header.css?v=51"><link rel="stylesheet" href="css/v52-heading-system.css?v=52"><link rel="stylesheet" href="css/v53-performance.css?v=53"><link rel="stylesheet" href="css/v54-finish-polish.css?v=54.4"><link rel="stylesheet" href="css/v54-owners-polish.css?v=54.7"></head><body class="rm17-page"><header class="nav"><a class="brand" href="index.html"><span class="brand-mark">月</span><span>RED MOON <small>PUB</small></span></a><nav><a href="index.html">Főoldal</a><a href="menu.html">Itallap</a><a href="events.html">Rendezvények</a><a href="gallery.html">Galéria</a><a href="about.html">Rólunk</a><a href="location.html">Lokáció</a><a href="club.html">Red Moon Club</a><a class="staff-link" href="staff.html">STAFF</a></nav><div class="sound-wrap"><button class="sound" id="soundBtn"><span id="soundIcon">◖))</span><span>AMBIENCE</span></button><div class="volume-panel" id="volumePanel"><div class="volume-head"><span>VOLUME</span><strong id="volumeValue">45%</strong></div><input id="volumeSlider" type="range" min="0" max="100" value="45"></div></div><button class="hamb" id="hamb">☰</button></header><main><section class="rm17-page-hero"><div><div class="rm17-label">RED MOON / 05</div><h1>THE<br><em>PEOPLE</em></h1><p>A hely mögött álló emberek és a Red Moon története.</p></div></section><section class="rm17-section"><div class="rm17-story"><div class="rm17-story-art"></div><div class="rm17-story-copy"><div class="rm17-label">OUR STORY</div><h2>Egy vörös hold<br><em>alatt.</em></h2><p>A Red Moon Pub azért született, hogy SeeCity éjszakájának legyen egy helye, ahol nem kell sietni.</p><p>Az ázsiai inspiráció nem díszlet: a részletekben, az ízekben és az atmoszférában jelenik meg.</p></div></div></section><section class="rm17-section"><div class="rm17-ownership-tree" aria-label="Red Moon vezetőségi hierarchia">
-  <div class="rm17-tree-node rm17-tree-owner"><article class="rm17-owner"><div class="rm17-avatar">Xixo</div><span>OWNER / BOSS</span><h3>Zhen Yu Xiao</h3><p>Cégtulajdonos · Főnök</p></article></div>
-  <div class="rm17-tree-connector rm17-tree-connector-main" aria-hidden="true"><span class="rm17-tree-line"></span><span class="rm17-tree-arrow">↓</span></div>
-  <div class="rm17-tree-node rm17-tree-manager"><article class="rm17-owner"><div class="rm17-avatar">Celi</div><span>CO-OWNER / MANAGER</span><h3>Ruan Yu Celeste</h3><p>Társtulajdonos · Üzletvezető</p></article></div>
-  <div class="rm17-tree-branch" aria-hidden="true"><span class="rm17-tree-branch-line"></span><span class="rm17-tree-branch-arrow left">↙</span><span class="rm17-tree-branch-arrow right">↘</span></div>
-  <div class="rm17-tree-managers">
-    <article class="rm17-owner rm17-tree-card"><div class="rm17-avatar">Rei</div><span>RED MOON MANAGER</span><h3>Yuna Yue Rei</h3><p>Red Moon Manager · Rei</p></article>
-    <article class="rm17-owner rm17-tree-card"><div class="rm17-avatar">Manager</div><span>RED MOON MANAGER</span><h3>Red Moon Manager</h3><p>Red Moon Manager · Üzletvezetés</p></article>
-  </div>
-</div></section><section class="rm17-section"><div class="rm17-journal-card feature"><span class="rm17-label">THE HOUSE</span><h3>Every night has a story.</h3><p>A Red Moon nem csak helyszín — a SeeCity történeteinek egyik színpada.</p></div></section></main><footer class="rm17-footer"><div><div class="rm17-footer-brand">RED MOON <small>PUB</small></div><p>SEE CITY RP · THE NIGHT IS YOURS</p></div><div><a href="index.html">FŐOLDAL</a><a href="menu.html">ITALLAP</a><a href="events.html">RENDEZVÉNYEK</a><a href="gallery.html">GALÉRIA</a><a href="about.html">RÓLUNK</a><a href="location.html">LOKÁCIÓ</a><a href="staff.html">STAFF</a></div></footer><script src="js/site.js?v=20.0"></script><script src="js/v17-signature.js?v=19.0"></script><script src="js/v40-premium.js?v=41"></script><script src="js/v41-premium.js?v=41"></script><script src="js/v42-experience.js?v=42"></script><script src="js/v43-nightlife.js?v=43"></script><script src="js/v51-signature-header.js?v=51"></script><script src="js/v52-heading-system.js?v=52"></script><script src="js/v53-performance.js?v=53"></script></body></html>
+/* V54.8 — Red Moon ownership family-tree hierarchy */
+.rm17-ownership-tree{
+  position:relative;
+  width:min(1180px,100%);
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:10px 0 4px;
+}
+.rm17-tree-node{width:min(520px,100%)}
+.rm17-tree-node .rm17-owner,
+.rm17-tree-card{
+  width:100%;
+  box-sizing:border-box;
+}
+.rm17-tree-connector-main{
+  height:72px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+}
+.rm17-tree-connector-main .rm17-tree-line{
+  width:1px;
+  height:46px;
+  background:linear-gradient(to bottom,rgba(220,30,65,.15),rgba(220,30,65,.85));
+}
+.rm17-tree-arrow{
+  color:#e31845;
+  font-size:20px;
+  line-height:1;
+  text-shadow:0 0 12px rgba(227,24,69,.5);
+}
+/* V54.8 — clean, minimal two-arrow ownership branch */
+.rm17-tree-branch{
+  width:min(760px,100%);
+  height:78px;
+  position:relative;
+}
+.rm17-tree-branch-line{
+  position:absolute;
+  left:50%;
+  top:0;
+  width:100%;
+  height:62px;
+  transform:translateX(-50%);
+}
+.rm17-tree-branch-line::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:0;
+  width:1px;
+  height:18px;
+  background:rgba(227,24,69,.72);
+}
+.rm17-tree-branch-line::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:17px;
+  width:68%;
+  height:34px;
+  transform:translateX(-50%);
+  border-top:1px solid rgba(227,24,69,.72);
+  border-left:1px solid transparent;
+  border-right:1px solid transparent;
+  border-radius:50% 50% 0 0;
+  clip-path:polygon(0 0,100% 0,100% 3%,0 3%);
+}
+.rm17-tree-branch-arrow{
+  position:absolute;
+  top:48px;
+  width:50%;
+  height:22px;
+  font-size:0;
+}
+.rm17-tree-branch-arrow::before{
+  content:"";
+  position:absolute;
+  top:0;
+  width:1px;
+  height:20px;
+  background:rgba(227,24,69,.82);
+}
+.rm17-tree-branch-arrow::after{
+  content:"";
+  position:absolute;
+  top:14px;
+  width:7px;
+  height:7px;
+  border-right:1px solid #e31845;
+  border-bottom:1px solid #e31845;
+  filter:drop-shadow(0 0 4px rgba(227,24,69,.45));
+}
+.rm17-tree-branch-arrow.left{left:0}
+.rm17-tree-branch-arrow.left::before{right:1px}
+.rm17-tree-branch-arrow.left::after{right:-2px;transform:rotate(135deg)}
+.rm17-tree-branch-arrow.right{right:0}
+.rm17-tree-branch-arrow.right::before{left:1px}
+.rm17-tree-branch-arrow.right::after{left:-2px;transform:rotate(-45deg)}
+.rm17-tree-managers{
+  width:min(940px,100%);
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:28px;
+  position:relative;
+}
+.rm17-tree-card{min-width:0}
+.rm17-tree-card .rm17-avatar{font-size:clamp(22px,2vw,34px);white-space:nowrap}
+.rm17-tree-card h3{font-size:clamp(20px,1.8vw,29px);line-height:1.15}
+.rm17-tree-card p{font-size:10px}
+@media(max-width:700px){
+  .rm17-tree-node{width:100%}
+  .rm17-tree-branch{width:100%;height:62px}
+  .rm17-tree-branch-line{width:100%;height:48px}
+  .rm17-tree-branch-line::after{width:76%;}
+  .rm17-tree-branch-arrow{top:39px;height:20px}
+  .rm17-tree-branch-arrow::before{height:18px}
+  .rm17-tree-branch-arrow::after{top:12px}
+  .rm17-tree-managers{grid-template-columns:1fr;gap:16px}
+  .rm17-tree-branch-arrow.left{left:0}
+  .rm17-tree-branch-arrow.right{right:0}
+}
+@media(max-width:560px){
+  .rm17-tree-connector-main{height:60px}
+  .rm17-tree-connector-main .rm17-tree-line{height:36px}
+  .rm17-tree-card h3{font-size:23px}
+}

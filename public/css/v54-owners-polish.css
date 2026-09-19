@@ -34,7 +34,7 @@
   text-shadow:0 0 12px rgba(227,24,69,.5);
 }
 .rm17-tree-branch{
-  width:min(780px,78%);
+  width:min(940px,100%);
   height:82px;
   position:relative;
 }
@@ -42,24 +42,64 @@
   position:absolute;
   left:50%;
   top:0;
-  width:50%;
-  height:42px;
-  border-top:1px solid rgba(227,24,69,.65);
-  border-left:1px solid rgba(227,24,69,.65);
-  border-right:1px solid rgba(227,24,69,.65);
+  width:70%;
+  height:48px;
   transform:translateX(-50%);
-  border-radius:18px 18px 0 0;
+}
+/* Egy tiszta középső szár + vízszintes elágazás, két külön lefelé mutató nyíllal. */
+.rm17-tree-branch-line::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:0;
+  width:1px;
+  height:26px;
+  transform:translateX(-50%);
+  background:linear-gradient(to bottom,rgba(227,24,69,.18),rgba(227,24,69,.82));
+}
+.rm17-tree-branch-line::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:26px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(227,24,69,.7) 8%,rgba(227,24,69,.78) 50%,rgba(227,24,69,.7) 92%,transparent);
 }
 .rm17-tree-branch-arrow{
   position:absolute;
-  top:31px;
+  top:25px;
+  width:50%;
+  height:38px;
   color:#e31845;
-  font-size:23px;
-  line-height:1;
-  text-shadow:0 0 12px rgba(227,24,69,.55);
+  font-size:0;
+  text-shadow:0 0 12px rgba(227,24,69,.45);
 }
-.rm17-tree-branch-arrow.left{left:calc(25% - 10px)}
-.rm17-tree-branch-arrow.right{right:calc(25% - 10px)}
+.rm17-tree-branch-arrow::before{
+  content:"";
+  position:absolute;
+  top:0;
+  width:1px;
+  height:30px;
+  background:linear-gradient(to bottom,rgba(227,24,69,.78),rgba(227,24,69,.92));
+}
+.rm17-tree-branch-arrow::after{
+  content:"";
+  position:absolute;
+  top:24px;
+  width:7px;
+  height:7px;
+  border-right:1px solid #e31845;
+  border-bottom:1px solid #e31845;
+  transform:rotate(45deg);
+  filter:drop-shadow(0 0 5px rgba(227,24,69,.55));
+}
+.rm17-tree-branch-arrow.left{left:0}
+.rm17-tree-branch-arrow.left::before{right:0}
+.rm17-tree-branch-arrow.left::after{right:-3px}
+.rm17-tree-branch-arrow.right{right:0}
+.rm17-tree-branch-arrow.right::before{left:0}
+.rm17-tree-branch-arrow.right::after{left:-3px}
 .rm17-tree-managers{
   width:min(940px,100%);
   display:grid;
@@ -73,12 +113,16 @@
 .rm17-tree-card p{font-size:10px}
 @media(max-width:700px){
   .rm17-tree-node{width:100%}
-  .rm17-tree-branch{width:100%;height:58px}
-  .rm17-tree-branch-line{width:50%;height:28px}
-  .rm17-tree-branch-arrow{top:22px;font-size:20px}
+  .rm17-tree-branch{width:100%;height:64px}
+  .rm17-tree-branch-line{width:78%;height:40px}
+  .rm17-tree-branch-line::before{height:21px}
+  .rm17-tree-branch-line::after{top:21px}
+  .rm17-tree-branch-arrow{top:20px;height:34px}
+  .rm17-tree-branch-arrow::before{height:25px}
+  .rm17-tree-branch-arrow::after{top:19px}
   .rm17-tree-managers{grid-template-columns:1fr;gap:16px}
-  .rm17-tree-branch-arrow.left{left:calc(50% - 64px)}
-  .rm17-tree-branch-arrow.right{right:calc(50% - 64px)}
+  .rm17-tree-branch-arrow.left{left:0}
+  .rm17-tree-branch-arrow.right{right:0}
 }
 @media(max-width:560px){
   .rm17-tree-connector-main{height:60px}
