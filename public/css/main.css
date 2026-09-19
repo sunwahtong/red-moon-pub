@@ -148,7 +148,7 @@ html.rm-index-lock,html.rm-index-lock body{overflow:hidden}
 .volume-panel{z-index:80;display:block;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s,transform .2s,visibility .2s;right:0;top:54px;min-width:220px;border-radius:2px}
 .volume-panel.open,.sound-wrap:hover .volume-panel,.volume-panel:focus-within{opacity:1;visibility:visible;pointer-events:auto;transform:none}
 #volumeSlider{height:24px}
-#volumeSlider::-webkit-slider-thumb{cursor:pointer}
+#volumeSlider::-webkit-slider-thumb{cursor:pointer;transition:none!important;transform:none!important}#volumeSlider::-moz-range-thumb{transition:none!important;transform:none!important}
 .nav nav a{white-space:nowrap}
 @media(max-width:920px){.sound{min-width:48px}.sound span:last-child{display:none}.volume-panel{right:-4px}}
 @media(max-width:760px){.nav{height:74px}.nav .sound-wrap{margin-left:auto;margin-right:8px}.nav nav.open{z-index:95}.nav nav a{font-size:12px;padding:2px 0}}

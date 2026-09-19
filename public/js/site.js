@@ -111,7 +111,26 @@
     }
   }
   btn?.addEventListener('click', async () => { panel?.classList.toggle('open'); if (soundOn && !audio.paused) stopAudio(); else await startFromGesture(); paintSound(); });
+
+  // Volume slider is a strictly user-owned control. While dragging, no audio/live
+  // state update is allowed to close the panel or rewrite the native range value.
+  let volumeDragging = false;
+  const finishVolumeDrag = () => {
+    volumeDragging = false;
+    if (panel && !soundWrap?.matches(':hover') && document.activeElement !== slider) panel.classList.remove('open');
+  };
+  slider?.addEventListener('pointerdown', e => {
+    volumeDragging = true;
+    panel?.classList.add('open');
+    try { slider.setPointerCapture?.(e.pointerId); } catch {}
+    e.stopPropagation();
+  }, {passive:false});
+  slider?.addEventListener('pointerup', finishVolumeDrag, {passive:true});
+  slider?.addEventListener('pointercancel', finishVolumeDrag, {passive:true});
+  slider?.addEventListener('lostpointercapture', () => { volumeDragging = false; }, {passive:true});
   slider?.addEventListener('input', () => {
+    // Read only the value the user just dragged to. Never call paintSound(true),
+    // never recreate the input, and never derive the thumb position from audio.
     volume = Math.max(0, Math.min(100, Number(slider.value) || 0));
     localStorage.setItem(STORAGE.volume, String(volume));
     audio.volume = volume / 100;
@@ -120,12 +139,14 @@
       if (!audio.paused) stopAudio();
       return;
     }
-    // Starting playback is intentionally not awaited from the slider input.
-    // This prevents async play() completions from repainting/repositioning the thumb.
-    if (soundOn && audio.paused && !clubIsLive) playAudio();
+    // Do not start/resume audio from every drag event. If playback needs to start,
+    // it is handled by the normal sound button/gesture path, avoiding async UI churn.
   });
+  panel?.addEventListener('pointerdown', e => e.stopPropagation(), {passive:true});
   panel?.addEventListener('click', e => e.stopPropagation());
-  document.addEventListener('click', e => { if (!soundWrap?.contains(e.target)) panel?.classList.remove('open'); });
+  document.addEventListener('click', e => {
+    if (!volumeDragging && !soundWrap?.contains(e.target)) panel?.classList.remove('open');
+  });
 
   // If the visitor already started the music earlier, try to resume it automatically
   // on the next public page. Browsers may still block audible autoplay after a hard reload;
