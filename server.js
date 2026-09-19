@@ -224,7 +224,7 @@ function hashPassword(password,salt=crypto.randomBytes(16).toString('hex')){retu
 function verifyPassword(password,encoded){ const [scheme,it,alg,salt,hash]=encoded.split(':'); if(scheme!=='PBKDF2') return false; const got=crypto.pbkdf2Sync(password,salt,Number(it),32,alg); return crypto.timingSafeEqual(got,Buffer.from(hash,'hex')); }
 function audit(db,user,action,details){db.audit.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),userId:user.id,user:user.name,role:user.role,action,details}); if(db.audit.length>1000) db.audit.length=1000;}
 function notifyManagersOwners(db,title,message,meta={}){db.notifications.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),title,message,meta,readBy:{}});if(db.notifications.length>500)db.notifications.length=500;}
-function publicUser(u){return {id:u.id,username:u.username,name:u.name,role:u.role};}
+function publicUser(u){return {id:u.id,username:u.username,name:u.name,role:u.role,lastActiveAt:u.lastActiveAt||null};}
 function currency(n){return Number(n)||0}
 
 
@@ -257,7 +257,9 @@ async function api(req,res,url){
       const u=db.users.find(x=>x.username.toLowerCase()===String(b.username||'').trim().toLowerCase());
       if(!u || !verifyPassword(String(b.password||''),u.passwordHash)) return json(res,401,{error:'Hibás felhasználónév vagy jelszó'});
       const sid=crypto.randomBytes(32).toString('hex');
-      sessions.set(sid,{id:u.id,username:u.username,name:u.name,role:u.role,lastSeen:Date.now(),ip:getClientIP(req)});
+      const now=new Date().toISOString();
+      u.lastActiveAt=now;
+      sessions.set(sid,{id:u.id,username:u.username,name:u.name,role:u.role,lastSeen:Date.now(),lastPersistedActive:Date.now(),ip:getClientIP(req)});
       res.setHeader('Set-Cookie',`rm_session=${sid}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800${process.env.NODE_ENV==='production'?' ; Secure':''}`.replace(' ; Secure','; Secure'));
       audit(db,u,'LOGIN','Sikeres belépés'); await writeDB(db);
       return json(res,200,{user:publicUser(u)});
@@ -265,7 +267,7 @@ async function api(req,res,url){
 
     if(req.method==='POST' && url==='/api/logout'){
       const sid=parseCookies(req).rm_session; const u=sessionUser(req);
-      if(u){audit(db,u,'LOGOUT','Kijelentkezés');await writeDB(db)}
+      if(u){u.lastActiveAt=new Date().toISOString();audit(db,u,'LOGOUT','Kijelentkezés');await writeDB(db)}
       sessions.delete(sid); res.setHeader('Set-Cookie',`rm_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${process.env.NODE_ENV==='production'?'; Secure':''}`);
       return json(res,200,{ok:true});
     }
@@ -427,9 +429,20 @@ async function api(req,res,url){
       const u=auth(req,res); if(!u)return;
       const sid=parseCookies(req).rm_session;
       const session=sid&&sessions.get(sid);
-      if(session) session.lastSeen=Date.now();
+      const nowMs=Date.now();
+      const nowIso=new Date(nowMs).toISOString();
+      if(session){
+        session.lastSeen=nowMs;
+        const account=db.users.find(x=>x.id===session.id);
+        // Persist activity at most once per minute so presence stays cheap on PostgreSQL.
+        if(account && (!account.lastActiveAt || nowMs-Date.parse(account.lastActiveAt)>=60000)){
+          account.lastActiveAt=nowIso;
+          session.lastPersistedActive=nowMs;
+          await writeDB(db);
+        }
+      }
       broadcastRealtime('presence');
-      return json(res,200,{ok:true,at:new Date().toISOString()});
+      return json(res,200,{ok:true,at:nowIso});
     }
 
     if(req.method==='GET' && url==='/api/presence'){

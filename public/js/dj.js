@@ -2,6 +2,16 @@
 'use strict';
 const $=s=>document.querySelector(s);
 let state=null, me=null, es=null, poll=null;
+const SOUND_BASE='/assets/sounds/';
+const soundCache={};
+let audioUnlocked=false;
+function unlockAudio(){if(audioUnlocked)return;try{const C=window.AudioContext||window.webkitAudioContext;if(C){window._audioCtx ||= new C();if(window._audioCtx.state==='suspended')window._audioCtx.resume()}audioUnlocked=true}catch{}}
+document.addEventListener('pointerdown',unlockAudio,{once:true});
+document.addEventListener('keydown',unlockAudio,{once:true});
+function playSfx(name,volume=.55){unlockAudio();try{const a=soundCache[name]||new Audio(SOUND_BASE+name+'.wav');soundCache[name]=a;a.currentTime=0;a.volume=volume;const p=a.play();if(p&&p.catch)p.catch(()=>fallbackSfx(name,volume))}catch{fallbackSfx(name,volume)}}
+function fallbackSfx(name,volume){try{const ctx=window._audioCtx||(window._audioCtx=new (window.AudioContext||window.webkitAudioContext)());const patterns={live_start:[[523,0,.10],[659,.11,.21],[784,.22,.38]],live_stop:[[784,0,.10],[659,.11,.21],[523,.22,.38]],accept:[[660,0,.08],[880,.09,.20]],decline:[[330,0,.12],[247,.13,.28]],delete:[[440,0,.08],[330,.09,.18],[220,.19,.34]],login:[[523,0,.07],[659,.08,.15],[784,.16,.28]],logout:[[784,0,.07],[659,.08,.15],[523,.16,.28]],copy:[[660,0,.07],[990,.08,.16]],open:[[440,0,.08],[554,.09,.18]],click:[[720,0,.05]]};const now=ctx.currentTime;(patterns[name]||patterns.click).forEach(([f,a,b])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=f;o.type='sine';g.gain.setValueAtTime(.0001,now+a);g.gain.exponentialRampToValueAtTime(Math.max(.012,volume*.14),now+a+.008);g.gain.exponentialRampToValueAtTime(.0001,now+b);o.connect(g);g.connect(ctx.destination);o.start(now+a);o.stop(now+b+.02)})}catch{}}
+function showToast(title,message,kind='success'){const m=$('#toastModal');if(!m)return;$('#toastTitle').textContent=title;$('#toastText').textContent=message;const i=m.querySelector('.toast-icon');if(i){i.textContent=kind==='error'?'!':'✓';i.classList.toggle('toast-error',kind==='error')}m.classList.add('show');m.setAttribute('aria-hidden','false');clearTimeout(window._djToastTimer);window._djToastTimer=setTimeout(()=>{m.classList.remove('show');m.setAttribute('aria-hidden','true')},3200)}
+
 const GOCAST='https://gocast.fm/station/red-moon-pub';
 const DJ_ROLES=new Set(['dj','manager','owner']);
 const STAFF_ROLES=new Set(['staff','manager','owner']);
@@ -87,43 +97,48 @@ $('#djLoginForm')?.addEventListener('submit',async e=>{
   try{
     await api('/api/login',{method:'POST',body:JSON.stringify({username:$('#djLoginUsername').value.trim(),password:$('#djLoginPassword').value})});
     await enterAfterLogin();
+    playSfx('login',.42);
+    showToast('DJ KONZOL',`Bejelentkezve: ${me?.name||'DJ'}.`);
     if(!me) throw Error('DJ jogosultság szükséges.');
   }catch(err){
+    playSfx('error',.72);
     setLoginError(err.message||'Sikertelen bejelentkezés.');
     $('#djLoginPassword').value='';
   }finally{if(btn)btn.disabled=false}
 });
-$('#openGoCast')?.addEventListener('click',()=>window.open(GOCAST,'_blank','noopener'));
-$('#copyGoCast')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(GOCAST);const e=$('#gocastMsg');if(e)e.textContent='GoCast link kimásolva.'}catch{const e=$('#gocastMsg');if(e)e.textContent=GOCAST}});
-$('#goLive')?.addEventListener('click',async()=>{try{const d=await api('/api/dj/live',{method:'POST',body:JSON.stringify({live:true,title:$('#showTitle').value})});state=d.state;render()}catch(e){const x=$('#gocastMsg');if(x)x.textContent=e.message}});
-$('#stopLive')?.addEventListener('click',async()=>{try{const d=await api('/api/dj/live',{method:'POST',body:JSON.stringify({live:false})});state=d.state;render()}catch(e){const x=$('#gocastMsg');if(x)x.textContent=e.message}});
-$('#nameRequestList')?.addEventListener('click',async e=>{const b=e.target.closest('[data-name-action]');if(!b)return;try{const d=await api('/api/club/name-decision',{method:'POST',body:JSON.stringify({id:b.dataset.id,action:b.dataset.nameAction})});state=d.state;render()}catch(err){const x=$('#gocastMsg');if(x)x.textContent=err.message}});
+$('#openGoCast')?.addEventListener('click',()=>{playSfx('open',.34);showToast('GoCast stúdió','A GoCast stúdió új lapon megnyílik.');window.open(GOCAST,'_blank','noopener')});
+$('#copyGoCast')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(GOCAST);playSfx('copy',.32);showToast('GoCast link','A stúdió linkje a vágólapra került.')}catch{showToast('GoCast link','A link nem másolható automatikusan.','error')}});
+$('#goLive')?.addEventListener('click',async()=>{try{const d=await api('/api/dj/live',{method:'POST',body:JSON.stringify({live:true,title:$('#showTitle').value})});state=d.state;playSfx('live_start',.62);render();showToast('LIVE ELINDULT',`${state.title||'Red Moon Live'} — az adás most élő a GoCaston.`)}catch(e){playSfx('error',.72);showToast('LIVE INDÍTÁSA SIKERTELEN',e.message,'error')}});
+$('#stopLive')?.addEventListener('click',async()=>{try{const d=await api('/api/dj/live',{method:'POST',body:JSON.stringify({live:false})});state=d.state;playSfx('live_stop',.58);render();showToast('LIVE LEÁLLÍTVA','A Red Moon GoCast adása most offline.')}catch(e){playSfx('error',.72);showToast('LIVE LEÁLLÍTÁSA SIKERTELEN',e.message,'error')}});
+$('#nameRequestList')?.addEventListener('click',async e=>{const b=e.target.closest('[data-name-action]');if(!b)return;try{const d=await api('/api/club/name-decision',{method:'POST',body:JSON.stringify({id:b.dataset.id,action:b.dataset.nameAction})});state=d.state;playSfx(b.dataset.nameAction==='accept'?'accept':'decline',.48);render();showToast(b.dataset.nameAction==='accept'?'NÉVKÉRELEM ELFOGADVA':'NÉVKÉRELEM ELUTASÍTVA',b.dataset.nameAction==='accept'?'A vendég mostantól használhatja a Clubot.':'A névkérés el lett utasítva.')}catch(err){playSfx('error',.72);showToast('NÉVKÉRELEM SIKERTELEN',err.message,'error')}});
 $('#requestList')?.addEventListener('click',async e=>{
   const b=e.target.closest('button[data-id]');if(!b)return;
   try{
     if(b.dataset.action==='delete'){
-      const d=await api('/api/dj/request/'+encodeURIComponent(b.dataset.id),{method:'DELETE'});state=d.state;
+      const d=await api('/api/dj/request/'+encodeURIComponent(b.dataset.id),{method:'DELETE'});state=d.state;playSfx('delete',.42);showToast('KÉRÉS TÖRÖLVE','A zenei kérés eltávolítva.');
     }else{
-      const d=await api('/api/dj/request',{method:'POST',body:JSON.stringify({id:b.dataset.id,action:b.dataset.action})});state=d.state;
+      const d=await api('/api/dj/request',{method:'POST',body:JSON.stringify({id:b.dataset.id,action:b.dataset.action})});state=d.state;playSfx(b.dataset.action==='accept'?'accept':'decline',.46);showToast(b.dataset.action==='accept'?'ZENEKÉRÉS ELFOGADVA':'ZENEKÉRÉS ELUTASÍTVA',b.dataset.action==='accept'?'A kérés elfogadva.':'A kérés elutasítva.');
     }
     render();
-  }catch(err){const x=$('#gocastMsg');if(x)x.textContent=err.message}
+  }catch(err){playSfx('error',.72);showToast('ZENEKÉRÉS SIKERTELEN',err.message,'error')}
 });
 $('#djChat')?.addEventListener('click',async e=>{
   const b=e.target.closest('[data-chat-delete]');if(!b)return;
-  try{const d=await api('/api/club/chat/'+encodeURIComponent(b.dataset.chatDelete),{method:'DELETE'});state=d.state;render()}catch(err){const x=$('#gocastMsg');if(x)x.textContent=err.message}
+  try{const d=await api('/api/club/chat/'+encodeURIComponent(b.dataset.chatDelete),{method:'DELETE'});state=d.state;playSfx('delete',.42);render();showToast('ÜZENET TÖRÖLVE','A chatüzenet eltávolítva.')}catch(err){playSfx('error',.72);showToast('ÜZENET TÖRLÉSE SIKERTELEN',err.message,'error')}
 });
 $('#djChatSend')?.addEventListener('click',async()=>{
   const input=$('#djChatInput');if(!input)return;const text=input.value.trim();if(!text)return;
   const btn=$('#djChatSend');if(btn)btn.disabled=true;
-  try{const d=await api('/api/dj/chat',{method:'POST',body:JSON.stringify({text})});state=d.state;input.value='';render()}catch(err){const x=$('#gocastMsg');if(x)x.textContent=err.message}finally{if(btn)btn.disabled=false}
+  try{const d=await api('/api/dj/chat',{method:'POST',body:JSON.stringify({text})});state=d.state;input.value='';playSfx('success',.34);render();showToast('DJ ÜZENET ELKÜLDVE','Az üzenet megjelent a Red Moon Club chatjében.')}catch(err){playSfx('error',.72);showToast('ÜZENET KÜLDÉSE SIKERTELEN',err.message,'error')}finally{if(btn)btn.disabled=false}
 });
 $('#djChatInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#djChatSend')?.click()}});
 $('#djLogout')?.addEventListener('click',async()=>{
   cleanupRealtime();
   try{await api('/api/logout',{method:'POST'})}catch{}
-  me=null;state=null;$('#djLoginPassword').value='';showLogin('');
+  playSfx('logout',.38);showToast('KIJELENTKEZÉS','Sikeresen kijelentkeztél a DJ konzolból.');me=null;state=null;$('#djLoginPassword').value='';setTimeout(()=>showLogin(''),250);
 });
+document.querySelectorAll('[data-toast-close]').forEach(el=>el.addEventListener('click',()=>{playSfx('click',.18);$('#toastModal')?.classList.remove('show');$('#toastModal')?.setAttribute('aria-hidden','true')}));
+document.addEventListener('click',e=>{const el=e.target.closest('button,a,input[type=button],input[type=submit]');if(!el)return;if(el.dataset.noClickSound==='1')return;if(['goLive','stopLive','openGoCast','copyGoCast','djChatSend','djLogout'].includes(el.id))return;if(el.closest('#nameRequestList,#requestList,#djChat'))return;playSfx('click',.20)},{passive:true});
 (async()=>{
   try{await loadState();connectRealtime()}
   catch(e){showLogin(e.message.includes('jogosultság')?e.message:'Jelentkezz be a DJ konzol használatához.')}

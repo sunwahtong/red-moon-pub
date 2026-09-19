@@ -116,6 +116,8 @@ $('#actionCancel').addEventListener('click',()=>closeActionModal(null));
 $('#actionConfirm').addEventListener('click',submitActionModal);
 document.querySelectorAll('[data-modal-close]').forEach(el=>el.addEventListener('click',()=>closeActionModal(null)));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#actionModal')?.classList.contains('show'))closeActionModal(null)});
+// V40.2 — consistent click feedback across Command Center
+document.addEventListener('click',e=>{const el=e.target.closest('button,a,input[type=button],input[type=submit],select');if(!el)return;if(el.dataset.noClickSound==='1')return;if(el.closest('#actionModal,.sales-actions,.doc-actions,.cart-box,.inventory'))return;if(['actionCancel','actionConfirm'].includes(el.id))return;playSfx('click',.18)},{passive:true});
 
 
 function showToast(title,message,kind='success'){
@@ -126,7 +128,7 @@ function showToast(title,message,kind='success'){
   modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
   clearTimeout(window._toastTimer); window._toastTimer=setTimeout(()=>{modal.classList.remove('show');modal.setAttribute('aria-hidden','true')},3200);
 }
-document.querySelectorAll('[data-toast-close]').forEach(el=>el.addEventListener('click',()=>$('#toastModal')?.classList.remove('show')));
+document.querySelectorAll('[data-toast-close]').forEach(el=>el.addEventListener('click',()=>{playSfx('click',.18);$('#toastModal')?.classList.remove('show')}));
 
 function connectRealtime(){
   if(!me)return;
@@ -437,10 +439,16 @@ function renderManager(){
   $('#managerInventory').innerHTML=products.filter(p=>p.active).map(p=>`<div class="manager-row"><div class="manager-product"><img class="stock-thumb manager-thumb" src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><div><b>${esc(p.name)}</b><div class="role">ITAL · ${money(p.price)}</div></div></div><span>${p.stock} db</span><input data-stock="${p.id}" type="number" min="0" value="${p.stock}" style="width:80px;background:#090506;border:1px solid #3a171f;color:white;padding:7px"><button data-save="${p.id}">MENTÉS</button></div>`).join('');
   document.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.save;const inp=document.querySelector(`[data-stock="${id}"]`);try{const newStock=Number(inp.value);const saved=await api('/api/inventory/adjust',{method:'POST',body:JSON.stringify({productId:id,stock:newStock})});if(newStock===0)playSfx('error',0.75);else if(newStock<=products.find(p=>p.id===id)?.minStock)playSfx('low_stock',0.7);else playSfx('success',0.5);showToast('Raktár frissítve',`${saved.product.name}: ${newStock} db sikeresen feltöltve.`,'success');await load()}catch(e){await rmAlert(e.message,'Művelet sikertelen')}})
 }
+function formatLastActive(at){
+  if(!at)return 'Még nem lépett be';
+  const d=new Date(at);
+  if(Number.isNaN(d.getTime()))return 'Ismeretlen';
+  return d.toLocaleString('hu-HU',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
 async function loadUsers(){
   const d=await api('/api/users');
   $('#usersList').innerHTML='<div class="mini-note" style="margin:12px 0">OWNER jogosultsággal meglévő fiókok is szerkeszthetők. Saját fiók nem törölhető; az utolsó OWNER rang nem vehető el.</div>'+d.users.map(u=>`<div class="user-row">
-    <div><b>${esc(u.name)}</b><small class="user-meta">${esc(u.username)}</small></div>
+    <div class="user-main"><b>${esc(u.name)}</b><small class="user-meta">${esc(u.username)}</small><small class="user-last-active">UTOLSÓ AKTIVITÁS · ${esc(formatLastActive(u.lastActiveAt))}</small></div>
     <span class="role">${u.role.toUpperCase()}</span>
     <div class="user-actions"><button class="table-action" onclick='editUser(${JSON.stringify(u).replace(/</g,'\\u003c')})'>SZERKESZTÉS</button><button class="danger-btn" onclick="deleteUser('${esc(u.id)}','${esc(u.name)}')">Törlés</button></div>
   </div>`).join('')
