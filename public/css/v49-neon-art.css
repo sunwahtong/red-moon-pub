@@ -1,0 +1,217 @@
+/* V49 — bespoke Red Moon neon typography + cinematic smoke */
+:root{
+  --rm49-white:#fbf8f9;
+  --rm49-ice:#e9e2e4;
+  --rm49-red:#ff365f;
+  --rm49-red-soft:rgba(255,54,95,.34);
+}
+
+/* Premium headline treatment: white core + restrained luminous contour. */
+.rm17-title,
+.rm17-section h2,
+.rm17-page-hero h1,
+.page-hero h1,
+.hero h1,
+.menu-premium-hero h1,
+.location-intro h1,
+.location-heading h1,
+.club-hero h1,
+.dj-top h1,
+.staff-head h1,
+.section h2,
+.menu-intro h2,
+.panel-head h2,
+.featured-bar h2,
+.event-banner h2,
+.event-card h2,
+.story-copy h2{
+  color:var(--rm49-white)!important;
+  -webkit-text-fill-color:var(--rm49-white)!important;
+  -webkit-text-stroke:0!important;
+  text-shadow:
+    0 0 1px rgba(255,255,255,.78),
+    0 0 7px rgba(255,255,255,.12),
+    0 0 15px rgba(255,48,91,.22),
+    0 0 31px rgba(255,34,79,.10)!important;
+  transition:text-shadow .25s ease, filter .25s ease, transform .25s ease;
+}
+
+/* The signature RED MOON treatment: RED is filled, MOON is only a luminous outline. */
+.rm17-title{
+  letter-spacing:-.065em;
+  filter:drop-shadow(0 0 5px rgba(255,34,78,.08));
+}
+.rm17-title > em{
+  color:transparent!important;
+  -webkit-text-fill-color:transparent!important;
+  -webkit-text-stroke:1.15px rgba(255,245,247,.82)!important;
+  text-shadow:
+    0 0 1px rgba(255,255,255,.72),
+    0 0 5px rgba(255,255,255,.22),
+    0 0 11px rgba(255,65,99,.34),
+    0 0 25px rgba(255,35,78,.16)!important;
+  background:none!important;
+  position:relative;
+  transition:-webkit-text-stroke .25s ease,text-shadow .25s ease,filter .25s ease;
+}
+.rm17-title > em::after{
+  content:"";
+  position:absolute;
+  inset:8% -2% 0;
+  pointer-events:none;
+  border-radius:40%;
+  box-shadow:0 0 20px rgba(255,44,87,.10),0 0 42px rgba(255,26,68,.06);
+  opacity:.9;
+}
+
+/* Other outlined emphasis words stay elegant rather than filled. */
+.rm17-section h2 em,
+.rm17-page-hero h1 em,
+.page-hero h1 em,
+.menu-intro h2 em,
+.featured-bar h2 em,
+.club-hero h1 em,
+.dj-top h1 em,
+.staff-head h1 em{
+  color:transparent!important;
+  -webkit-text-fill-color:transparent!important;
+  -webkit-text-stroke:1px rgba(255,244,246,.68)!important;
+  text-shadow:
+    0 0 1px rgba(255,255,255,.65),
+    0 0 6px rgba(255,255,255,.12),
+    0 0 13px rgba(255,54,95,.22)!important;
+  background:none!important;
+}
+
+.rm-neon-reactive{
+  background:none!important;
+  -webkit-background-clip:initial!important;
+  background-clip:initial!important;
+  -webkit-text-fill-color:var(--rm49-white)!important;
+}
+.rm-neon-reactive em{-webkit-text-fill-color:transparent!important}
+
+/* Cursor-reactive signature glow: the JS supplies --rm-react. */
+.rm17-title,.rm17-section h2,.rm17-page-hero h1,.page-hero h1,.hero h1,
+.menu-premium-hero h1,.location-intro h1,.location-heading h1,.club-hero h1,
+.dj-top h1,.staff-head h1,.section h2,.menu-intro h2,.panel-head h2,
+.featured-bar h2,.event-banner h2,.event-card h2,.story-copy h2{
+  --rm-react:0;
+}
+.rm-neon-reactive:hover{
+  text-shadow:
+    0 0 1px rgba(255,255,255,.82),
+    0 0 8px rgba(255,255,255,.14),
+    0 0 calc(14px + var(--rm-react)*8px) rgba(255,56,95,.25),
+    0 0 calc(28px + var(--rm-react)*18px) rgba(255,30,75,.12)!important;
+}
+.rm17-title:hover > em{
+  -webkit-text-stroke:1.25px rgba(255,249,250,.92)!important;
+  text-shadow:
+    0 0 1px #fff,
+    0 0 6px rgba(255,255,255,.28),
+    0 0 13px rgba(255,62,99,.44),
+    0 0 29px rgba(255,35,78,.20)!important;
+}
+
+/* More organic atmospheric smoke. Multiple layers, different speeds and irregular paths. */
+.rm-smoke-layer{
+  position:fixed!important;
+  inset:auto -20% -18vh!important;
+  width:140vw!important;
+  height:78vh!important;
+  pointer-events:none!important;
+  z-index:0!important;
+  opacity:.22!important;
+  mix-blend-mode:screen!important;
+  filter:url(#rm49SmokeDistort) blur(26px)!important;
+  background:
+    radial-gradient(ellipse at 7% 72%,rgba(245,242,243,.16) 0%,rgba(245,242,243,.05) 18%,transparent 34%),
+    radial-gradient(ellipse at 26% 34%,rgba(210,207,210,.14) 0%,rgba(190,186,190,.045) 20%,transparent 37%),
+    radial-gradient(ellipse at 47% 74%,rgba(244,241,242,.13) 0%,rgba(210,206,210,.04) 19%,transparent 35%),
+    radial-gradient(ellipse at 68% 28%,rgba(190,187,190,.13) 0%,rgba(170,165,170,.035) 20%,transparent 37%),
+    radial-gradient(ellipse at 91% 70%,rgba(245,242,243,.12) 0%,rgba(215,210,214,.03) 20%,transparent 35%);
+  will-change:transform,filter;
+  animation:rm49SmokeA 7.2s cubic-bezier(.42,0,.58,1) infinite alternate!important;
+}
+.rm-smoke-layer.two{
+  inset:auto -24% -8vh!important;
+  width:148vw!important;
+  height:66vh!important;
+  opacity:.15!important;
+  filter:url(#rm49SmokeDistort2) blur(34px)!important;
+  background:
+    radial-gradient(ellipse at 13% 54%,rgba(235,231,233,.14),transparent 30%),
+    radial-gradient(ellipse at 38% 80%,rgba(175,171,175,.12),transparent 29%),
+    radial-gradient(ellipse at 61% 43%,rgba(240,236,238,.13),transparent 31%),
+    radial-gradient(ellipse at 82% 72%,rgba(190,185,190,.10),transparent 28%);
+  animation:rm49SmokeB 8.4s cubic-bezier(.34,.02,.66,.98) infinite alternate-reverse!important;
+}
+.rm-smoke-layer::before,
+.rm-smoke-layer::after{
+  content:"";
+  position:absolute;
+  inset:-12% -8%;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 18% 58%,rgba(255,250,251,.13),transparent 20%),
+    radial-gradient(ellipse at 55% 32%,rgba(235,231,234,.10),transparent 23%),
+    radial-gradient(ellipse at 84% 62%,rgba(255,248,250,.09),transparent 21%);
+  filter:blur(32px);
+  opacity:.8;
+  transform-origin:center;
+  animation:rm49WispA 5.6s ease-in-out infinite alternate;
+}
+.rm-smoke-layer::after{
+  background:
+    radial-gradient(ellipse at 30% 75%,rgba(170,166,171,.10),transparent 22%),
+    radial-gradient(ellipse at 72% 25%,rgba(245,240,243,.10),transparent 20%);
+  animation:rm49WispB 6.8s ease-in-out infinite alternate-reverse;
+}
+@keyframes rm49SmokeA{
+  0%{transform:translate3d(-13vw,7vh,0) rotate(-7deg) scale(.88) skewX(-5deg)}
+  22%{transform:translate3d(8vw,-5vh,0) rotate(4deg) scale(1.06) skewX(3deg)}
+  47%{transform:translate3d(-4vw,-13vh,0) rotate(-9deg) scale(1.13) skewX(-4deg)}
+  69%{transform:translate3d(14vw,4vh,0) rotate(7deg) scale(.96) skewX(5deg)}
+  100%{transform:translate3d(-7vw,-8vh,0) rotate(-5deg) scale(1.10) skewX(-6deg)}
+}
+@keyframes rm49SmokeB{
+  0%{transform:translate3d(12vw,-4vh,0) rotate(9deg) scale(1.08) skewX(4deg)}
+  25%{transform:translate3d(-11vw,9vh,0) rotate(-8deg) scale(.92) skewX(-3deg)}
+  51%{transform:translate3d(7vw,-12vh,0) rotate(12deg) scale(1.14) skewX(6deg)}
+  77%{transform:translate3d(-15vw,2vh,0) rotate(-5deg) scale(1.00) skewX(-5deg)}
+  100%{transform:translate3d(5vw,10vh,0) rotate(8deg) scale(.94) skewX(4deg)}
+}
+@keyframes rm49WispA{
+  0%{transform:translate3d(-6vw,5vh,0) rotate(-12deg) scale(.86,.72)}
+  50%{transform:translate3d(10vw,-7vh,0) rotate(9deg) scale(1.18,1.08)}
+  100%{transform:translate3d(-3vw,-12vh,0) rotate(-5deg) scale(.96,1.20)}
+}
+@keyframes rm49WispB{
+  0%{transform:translate3d(9vw,-4vh,0) rotate(10deg) scale(1.15,.78)}
+  50%{transform:translate3d(-8vw,7vh,0) rotate(-11deg) scale(.84,1.16)}
+  100%{transform:translate3d(4vw,-9vh,0) rotate(6deg) scale(1.08,.94)}
+}
+
+/* Homepage hero fog follows the same faster, less-linear motion. */
+.rm17-fog{
+  animation:rm49HeroFog 7.5s cubic-bezier(.38,0,.62,1) infinite alternate!important;
+  opacity:.74!important;
+  filter:blur(22px)!important;
+}
+@keyframes rm49HeroFog{
+  0%{transform:translate3d(-5%,3%,0) scale(1.00) rotate(-1deg)}
+  24%{transform:translate3d(7%,-4%,0) scale(1.08) rotate(2deg)}
+  49%{transform:translate3d(-3%,-8%,0) scale(1.13) rotate(-3deg)}
+  72%{transform:translate3d(10%,4%,0) scale(1.04) rotate(2deg)}
+  100%{transform:translate3d(-8%,-5%,0) scale(1.11) rotate(-2deg)}
+}
+
+@media(max-width:600px){
+  .rm17-title > em{-webkit-text-stroke:1px rgba(255,245,247,.80)!important}
+  .rm-smoke-layer{filter:url(#rm49SmokeDistort) blur(19px)!important;opacity:.17!important}
+  .rm-smoke-layer.two{filter:url(#rm49SmokeDistort2) blur(25px)!important;opacity:.12!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .rm-smoke-layer,.rm-smoke-layer::before,.rm-smoke-layer::after,.rm17-fog{animation:none!important}
+}
