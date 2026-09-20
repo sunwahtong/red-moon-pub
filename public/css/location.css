@@ -154,3 +154,27 @@
   }
   .map-zoom-slider{height:110px}
 }
+
+/* V61.4 — reliable map stage zoom/pan */
+.map-viewport .map-stage{
+  position:absolute;
+  left:50%; top:50%;
+  width:max-content; height:max-content;
+  transform-origin:center center;
+  will-change:transform;
+  z-index:1;
+  user-select:none;
+  pointer-events:none;
+}
+.map-viewport .map-stage .map-image{
+  position:relative;
+  inset:auto;
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:none;
+  max-height:none;
+  object-fit:initial;
+  transform:none !important;
+  filter:contrast(1.04) brightness(.92);
+}
