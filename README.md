@@ -14,6 +14,11 @@ A Command Center → Eladás részben a részlegek fix, kért sorrendben jelenne
 
 A régi adatbázisokban is explicit ID- és név-alapú besorolás történik, ezért a termékek nem esnek véletlenül az Egyéb kategóriába.
 
+## V59.10 — DJ Access account selector fix
+- Added DJ Access to the active Command Center Owner account create/edit dialogs.
+- The existing server API already accepts the `dj` role; the UI now exposes it consistently as `DJ Access`.
+- Added an Owner-facing hint in the legacy account panel as well.
+
 ## V59.9 — DJ Access / Console polish
 - Fixed DJ toast notifications being visually hidden under the fixed navigation/header.
 - Refined DJ console panels, controls, logout button and login screen to match the Red Moon neon design.
