@@ -16,7 +16,6 @@
     const markerCard = document.querySelector('[data-map-marker-card]');
     const result = document.querySelector('[data-map-result]');
 
-    const MAP_SRC = 'assets/gtav-map-hires.png';
     const MIN = 0;
     const MAX = 4;
     const STEP = 0.5;
@@ -29,33 +28,15 @@
     let pinchDistance = 0, pinchZoom = 0, pinchCenter = null;
     const pointers = new Map();
 
-    // Keep the source image in the DOM as a reliable preload, but render the map
-    // as a CSS background on the stage. This avoids the percentage-sized image
-    // sizing conflicts from the previous versions of the page.
-    image.src = MAP_SRC;
+    image.src = 'assets/gtav-map-hires.png';
     image.draggable = false;
-    image.style.position = 'absolute';
-    image.style.width = '1px';
-    image.style.height = '1px';
-    image.style.opacity = '0';
-    image.style.pointerEvents = 'none';
-    image.setAttribute('aria-hidden', 'true');
-
+    image.decoding = 'async';
+    image.classList.add('v64-map-image');
     stage.classList.add('v64-map-stage');
     stage.innerHTML = '';
     stage.appendChild(image);
-    stage.style.width = `${mapW}px`;
-    stage.style.height = `${mapH}px`;
-    stage.style.backgroundImage = `url("${MAP_SRC}")`;
-    stage.style.backgroundRepeat = 'no-repeat';
-    stage.style.backgroundPosition = 'center center';
-    stage.style.backgroundSize = '100% 100%';
-    stage.style.backgroundColor = '#111';
-
     const layer = document.createElement('div');
     layer.className = 'v64-marker-layer';
-    layer.style.width = `${mapW}px`;
-    layer.style.height = `${mapH}px`;
     stage.appendChild(layer);
     if (marker) {
       marker.style.left = `${MARKER_X * 100}%`;
@@ -81,6 +62,8 @@
     function render(){
       clampPan();
       const s=scale();
+      stage.style.width=`${mapW}px`;
+      stage.style.height=`${mapH}px`;
       stage.style.transform=`translate3d(calc(-50% + ${panX}px),calc(-50% + ${panY}px),0) scale(${s})`;
       ui();
     }
@@ -183,20 +166,7 @@
       else if(e.key==='ArrowDown'){e.preventDefault();panY-=70;render()}
     });
 
-    const init=()=>{
-      // Use the actual source dimensions when available. The CSS background
-      // itself does not depend on the image element's layout size.
-      mapW=image.naturalWidth||5880;
-      mapH=image.naturalHeight||6016;
-      stage.style.width=`${mapW}px`;
-      stage.style.height=`${mapH}px`;
-      layer.style.width=`${mapW}px`;
-      layer.style.height=`${mapH}px`;
-      stage.style.backgroundSize='100% 100%';
-      fit();
-      reset();
-      viewport.classList.remove('map-load-error');
-    };
+    const init=()=>{mapW=image.naturalWidth||5880;mapH=image.naturalHeight||6016;fit();reset()};
     image.addEventListener('load',init,{once:true});
     image.addEventListener('error',()=>viewport.classList.add('map-load-error'),{once:true});
     if(image.complete&&image.naturalWidth)init();
