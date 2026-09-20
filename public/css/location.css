@@ -219,3 +219,43 @@
   .map-marker{left:59%;top:73%;}
   .map-marker b{font-size:6px}
 }
+
+/* V61.6 — clean Google Maps-style viewport */
+.location-card.map-interactive{overflow:hidden}
+.map-toolbar{position:relative;z-index:20}
+.map-wrap.map-viewport{
+  height:min(78vh,820px);
+  min-height:520px;
+  display:block;
+  position:relative;
+  overflow:hidden;
+  cursor:grab;
+  touch-action:none;
+  background:#0a0a0b;
+  isolation:isolate;
+}
+.map-wrap.map-viewport.is-dragging{cursor:grabbing}
+.map-viewport .map-stage{
+  pointer-events:none;
+  transform-origin:center center;
+}
+.map-viewport .map-stage .map-image{
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:none;
+  max-height:none;
+  object-fit:initial;
+  transform:none!important;
+  filter:none!important;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+.map-viewport .map-marker{
+  pointer-events:none;
+}
+.map-zoom-rail{z-index:30}
+@media(max-width:800px){
+  .map-wrap.map-viewport{height:70vh;min-height:430px}
+  .map-toolbar{padding:10px 12px}
+}
