@@ -1,4 +1,5 @@
-V63 map viewer
-- The interactive viewer uses one high-resolution WEBP derived from the supplied GTA V base map.
-- Navigation: pointer/touch drag, wheel zoom, double click, pinch zoom, +/−, reset, keyboard arrows.
-- This removes the previous tile-pyramid seams and broken/empty tile issue.
+V63.2 map viewer
+- Uses an opaque PNG map source for reliable browser rendering.
+- Interactive pan, wheel zoom, double-click zoom, pinch zoom, +/−, reset, slider and keyboard controls.
+- Map dimensions are read from the loaded image, so the viewer is not dependent on hard-coded source dimensions.
+- Includes an explicit load-error state instead of silently showing an empty map.

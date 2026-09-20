@@ -483,3 +483,28 @@
   .map-wrap.map-viewport::after{left:12px;bottom:12px;font-size:6px;letter-spacing:1.25px}
   .map-zoom-rail{right:10px!important;top:10px!important;bottom:10px!important}
 }
+
+/* V63.2 — harden the map layer and provide a visible load fallback */
+.map-wrap.map-viewport { isolation:isolate; }
+.map-viewport .map-stage { z-index:5 !important; pointer-events:none !important; }
+.map-viewport .map-stage .map-image {
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  max-width:none !important;
+  max-height:none !important;
+  object-fit:fill !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  filter:none !important;
+}
+.map-viewport .map-marker-layer { z-index:6 !important; }
+.map-viewport::before { z-index:10 !important; }
+.map-zoom-rail { z-index:30 !important; }
+.map-load-message {
+  position:absolute; inset:0; z-index:50; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:8px; text-align:center;
+  color:#fff; background:#08090a; font-family:'Noto Sans',sans-serif;
+}
+.map-load-message strong { font:700 14px Cinzel; letter-spacing:1px; }
+.map-load-message span { color:#a89298; font-size:10px; letter-spacing:.8px; }
