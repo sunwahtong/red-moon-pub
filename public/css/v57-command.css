@@ -253,3 +253,7 @@
 .v57-team-member>div:nth-child(2) b{display:block;color:#fff;font:600 12px Cinzel}.v57-team-member>div:nth-child(2) small{display:block;margin-top:3px;color:#9c8991;font-size:8px;letter-spacing:.12em}
 .v57-team-status{color:#68e0ad;font:700 7px Noto Sans;letter-spacing:.13em;white-space:nowrap}
 @media(max-width:800px){.staff-page.staff-unauth .access-grid{grid-template-columns:1fr}.staff-page.staff-unauth #loginView{grid-template-columns:1fr;gap:25px;padding-top:50px}.v57-team-member{grid-template-columns:34px minmax(0,1fr)}.v57-team-status{grid-column:2}.v57-scroll-area{max-height:460px}}
+/* V59.5 POS category refinement */
+.v57-category-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 20px}
+.v57-cat{white-space:nowrap}
+.v57-cat[data-cat="all"]{border-color:#7f2740;box-shadow:0 0 16px rgba(224,31,70,.08)}

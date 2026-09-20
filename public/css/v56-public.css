@@ -88,3 +88,115 @@
 .v56-reviews .v56-review-form .rm17-btn.red{color:#fff!important;text-shadow:0 0 10px rgba(255,255,255,.12)}
 .v56-reviews .v56-review-meta{color:#79dfb1!important}
 @media(max-width:800px){.v56-reviews .v56-review-items{max-height:none;overflow:visible}}
+
+/* V59.5 — floating public review entries: no boxes, refined separators */
+.v56-reviews .v56-review-list{
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  padding:0!important;
+  border-radius:0!important;
+}
+.v56-reviews .v56-review-items{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:28px 44px!important;
+  max-height:680px;
+  overflow-y:auto;
+  padding:10px 12px 14px 2px!important;
+}
+.v56-reviews .v56-review-items .v57-review{
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  padding:8px 4px 22px!important;
+  min-height:0!important;
+  overflow:visible!important;
+  position:relative;
+}
+.v56-reviews .v56-review-items .v57-review::before{
+  display:none!important;
+}
+.v56-reviews .v56-review-items .v57-review::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:18%;
+  bottom:0;
+  height:1px;
+  background:linear-gradient(90deg,rgba(238,35,78,.72),rgba(238,35,78,.18),transparent);
+  box-shadow:0 0 10px rgba(238,35,78,.18);
+}
+.v56-reviews .v56-review-items .v57-review-top{
+  display:block!important;
+  margin:0!important;
+  padding:0!important;
+}
+.v56-reviews .v56-review-items .v57-review-top b{
+  display:block!important;
+  width:max-content;
+  max-width:80%;
+  color:#fff!important;
+  font:600 15px Cinzel!important;
+  letter-spacing:.03em;
+  text-shadow:0 0 14px rgba(239,35,77,.24)!important;
+  position:relative;
+  padding-bottom:9px;
+}
+.v56-reviews .v56-review-items .v57-review-top b::after{
+  content:"";
+  position:absolute;
+  left:0;
+  bottom:0;
+  width:46px;
+  height:2px;
+  border-radius:999px;
+  background:linear-gradient(90deg,#ff2856,#a5183a);
+  box-shadow:0 0 10px rgba(255,40,86,.45);
+}
+.v56-reviews .v56-review-items .v57-review-top span{
+  display:block!important;
+  margin-top:7px;
+  color:#88757c!important;
+  font-size:9px!important;
+  letter-spacing:.08em;
+}
+.v56-reviews .v56-review-items .gold-stars{
+  margin-top:10px!important;
+  color:#ffd15a!important;
+  font-size:15px!important;
+  letter-spacing:3px!important;
+  text-shadow:0 0 12px rgba(255,203,79,.34)!important;
+}
+.v56-reviews .v56-review-items .gold-stars i{color:#4d3b1d!important}
+.v56-reviews .v56-review-items .v57-review blockquote{
+  margin:12px 0 0!important;
+  padding:0!important;
+  color:#f2eaed!important;
+  font:400 13px/1.8 Noto Sans!important;
+  text-shadow:0 0 9px rgba(255,255,255,.025);
+  max-width:95%;
+}
+.v56-reviews .v56-review-items .v57-review blockquote::before,
+.v56-reviews .v56-review-items .v57-review blockquote::after{
+  color:#f02b57!important;
+  font:700 28px Georgia!important;
+  text-shadow:0 0 13px rgba(240,43,87,.32)!important;
+}
+.v56-reviews .v56-review-items .v57-review-bottom{display:none!important}
+.v56-reviews .v56-review-items::-webkit-scrollbar{width:8px}
+.v56-reviews .v56-review-items::-webkit-scrollbar-track{background:rgba(30,8,14,.35);border-radius:999px}
+.v56-reviews .v56-review-items::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#c92d56,#55182d);border:2px solid #0d0609;border-radius:999px}
+.v56-reviews .v56-review-items{scrollbar-color:#a9284c rgba(30,8,14,.35);scrollbar-width:thin}
+@media(max-width:1000px){.v56-reviews .v56-review-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.v56-reviews .v56-review-items{grid-template-columns:1fr;gap:22px}.v56-reviews .v56-review-items .v57-review-top b{max-width:100%}}
+
+/* Long Command Center lists use one consistent Red Moon scroll treatment. */
+.v57-list,.v57-price-list,.v57-online-list,.v57-sales-list,.v57-logs-list,.v57-shift-list,.v57-employees-list{
+  scrollbar-width:thin;
+  scrollbar-color:#a9284c rgba(20,6,10,.55);
+}
+.v57-list::-webkit-scrollbar,.v57-price-list::-webkit-scrollbar,.v57-online-list::-webkit-scrollbar,.v57-sales-list::-webkit-scrollbar,.v57-logs-list::-webkit-scrollbar,.v57-shift-list::-webkit-scrollbar,.v57-employees-list::-webkit-scrollbar{width:8px}
+.v57-list::-webkit-scrollbar-track,.v57-price-list::-webkit-scrollbar-track,.v57-online-list::-webkit-scrollbar-track,.v57-sales-list::-webkit-scrollbar-track,.v57-logs-list::-webkit-scrollbar-track,.v57-shift-list::-webkit-scrollbar-track,.v57-employees-list::-webkit-scrollbar-track{background:rgba(20,6,10,.55);border-radius:999px}
+.v57-list::-webkit-scrollbar-thumb,.v57-price-list::-webkit-scrollbar-thumb,.v57-online-list::-webkit-scrollbar-thumb,.v57-sales-list::-webkit-scrollbar-thumb,.v57-logs-list::-webkit-scrollbar-thumb,.v57-shift-list::-webkit-scrollbar-thumb,.v57-employees-list::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#d02c57,#5a1930);border:2px solid rgba(20,6,10,.8);border-radius:999px}

@@ -1,10 +1,9 @@
-# Red Moon Pub V59.4
+# Red Moon Pub — V59.5
 
-V59.4 polish pass:
-- Staff entry screen restored with DJ Login + Staff Login.
-- Pre-login state shows only the access chooser/login, without the Command Center sidebar/header.
-- DJ Login routes to the existing DJ console; Staff Login opens the Staff Command Center login.
-- Shift member list redesigned into individual profile/status cards with scroll support.
-- Dense lists and long histories use custom Red Moon scrollbars.
-- Public review section received a readable white/red neon treatment; names, text and stars no longer disappear into the background.
-- Review list is scrollable when it grows large.
+V59.5 refinements:
+- Public reviews redesigned as borderless floating entries with name separators, gold stars and neon quotation marks.
+- POS now has an Összes tab plus explicit sections: Sörök, Borok / Pezsgők, Tömény Italok, Alkoholmentes Italok, Kellékek, Ételek and EGYÉB.
+- Canonical products are explicitly assigned to their requested sections.
+- Non-alcoholic products: E-Cola, Sprunk, Rainé.
+- Accessories: Sörnyitó.
+- Long command-center lists retain consistent custom Red Moon scrollbars.

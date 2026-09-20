@@ -107,9 +107,12 @@
   function roleAllowed(role){return ['manager','owner'].includes(role)}
   function isOwner(){return me?.role==='owner'}
   function productSection(p){
-    const raw=String(p?.section||'').trim().toLowerCase(); if(raw)return raw;
+    const raw=String(p?.section||'').trim().toLowerCase();
+    if(raw==='nonalcoholic' || raw==='alcoholfree' || raw==='alcohol-free')return 'nonalcoholic';
+    if(raw)return raw;
     const n=String(p?.name||'').toLowerCase();
     if(n.includes('sörnyitó')||n.includes('sornyito'))return 'accessories';
+    if(/\b(e-cola|e cola|sprunk|raine|ásványvíz|mineral water|alkoholmentes)\b/.test(n))return 'nonalcoholic';
     if(/\b(sör|beer|lager|ale|ipa|pils)\b/.test(n))return 'beer';
     if(/\b(bor|wine|rozé|rose|pezsgő|prosecco|champagne)\b/.test(n))return 'wine';
     if(/whiskey|whisky|vodka|tequila|rum|gin|brandy|cognac|pálink|bourbon/.test(n))return 'spirits';
@@ -117,7 +120,7 @@
     return 'other';
   }
   const POS_SECTIONS=[
-    ['beer','Sörök'],['wine','Borok'],['spirits','Tömény italok'],['other','Egyéb italok'],['accessories','Kellékek a sörnyitónak'],['food','Ételek']
+    ['all','Összes'],['beer','Sörök'],['wine','Borok / Pezsgők'],['spirits','Tömény Italok'],['nonalcoholic','Alkoholmentes Italok'],['accessories','Kellékek'],['food','Ételek'],['other','Egyéb']
   ];
   function sectionLabel(id){return POS_SECTIONS.find(x=>x[0]===id)?.[1]||'Egyéb';}
   function currentShiftMember(){return !!(shift && Array.isArray(shift.memberIds) && me && shift.memberIds.includes(me.id))}
@@ -188,7 +191,7 @@
 
   function renderPOS(){
     const host=$('#v57-pos');
-    const cats=POS_SECTIONS.map(x=>x[0]).filter(section=>products.some(p=>p.active&&productSection(p)===section));
+    const cats=POS_SECTIONS.filter(x=>x[0]==='all' ? products.some(p=>p.active&&['drink','food'].includes(String(p.category||''))) : products.some(p=>p.active&&productSection(p)===x[0])).map(x=>x[0]);
     host.innerHTML=`<div class="v57-pos-layout">
       <div class="v57-card"><div class="v57-card-head"><div><span>POS / CATALOG</span><h3>Eladható termékek</h3><small>${currentShiftMember()?'Aktív műszaktagként értékesíthetsz.':'Csak az aktuális műszak tagjai értékesíthetnek.'}</small></div><span class="v57-badge">${currentShiftMember()?'ELADHATÓ':'MŰSZAKON KÍVÜL'}</span></div>
       <div class="v57-category-tabs">${cats.map((c,i)=>`<button class="v57-cat ${i===0?'active':''}" data-cat="${esc(c)}">${esc(sectionLabel(c))}</button>`).join('')}</div>
@@ -200,7 +203,7 @@
     $('#v57ClearCart').onclick=()=>{cart.clear();renderCart()};
     $$('.v57-pay button').forEach(b=>b.onclick=()=>{$$('.v57-pay button').forEach(x=>x.classList.remove('active'));b.classList.add('active')});
     $('#v57Checkout').onclick=checkout;
-    renderProductGrid(cats[0]||'other');
+    renderProductGrid(cats[0]||'all');
     renderCart();
     renderSalesHistory();
   }
@@ -219,7 +222,7 @@
   }
   function renderProductGrid(cat){
     const grid=$('#v57ProductsGrid'); if(!grid)return;
-    const list=products.filter(p=>p.active&&productSection(p)===cat);
+    const list=products.filter(p=>p.active&&(cat==='all' ? ['drink','food'].includes(String(p.category||'')) : productSection(p)===cat));
     grid.innerHTML=list.length?list.map(p=>`<button class="v57-product ${p.stock<1?'sold':''}" data-p="${esc(p.id)}" ${(!currentShiftMember()||p.stock<1)?'disabled':''}>
       <span class="v57-product-img">${p.image?`<img src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">`:'<span class="no-img">RM</span>'}</span>
       <span class="v57-product-info"><b>${esc(p.name)}</b><small>${esc(p.subtitle||'Red Moon Pub')}</small><strong>${money(p.price)}</strong><em>${p.stock>0?p.stock+' db':'ELFOGYOTT'}</em></span>
@@ -329,7 +332,7 @@
 
   async function renderPrices(){
     const host=$('#v57-prices');const editable=isOwner();
-    host.innerHTML=`<div class="v57-card"><div class="v57-card-head"><div><span>PRICE CONTROL / OWNER</span><h3>Árvezérlés</h3><small>Az eladási ár módosítása azonnal megjelenik a publikus itallapon. Az árak az ÁFÁ-t tartalmazzák.</small></div><span class="v57-badge">${editable?'OWNER':'CSAK MEGTEKINTÉS'}</span></div><div class="v57-price-list">${products.filter(p=>p.active).map(p=>`<article class="v57-price-row"><div class="v57-price-img">${p.image?`<img src="/${esc(p.image)}">`:'RM'}</div><div class="v57-price-main"><b>${esc(p.name)}</b><small>${esc(p.subtitle||'Red Moon Pub')} · ${p.category==='drink'?'Ital':'Étel'}</small></div><div class="v57-price-edit"><strong>${money(p.price)}</strong>${editable?`<button class="v57-mini" data-price="${esc(p.id)}">ÁR MÓDOSÍTÁSA</button><button class="v57-mini danger" data-delete-product="${esc(p.id)}">TÖRLÉS</button>`:''}</div></article>`).join('')}</div></div>${roleAllowed(me.role)?`<div class="v57-card" style="margin-top:16px"><div class="v57-card-head"><div><span>CATALOG / PRODUCT CONTROL</span><h3>Új termék</h3><small>Név, kategória, kép, rövid aláírás, ár és kezdő készlet.</small></div></div><div class="v57-form-grid"><label class="v57-field"><span>NÉV</span><input id="v57NewProductName" placeholder="Termék neve"></label><label class="v57-field"><span>KATEGÓRIA</span><select id="v57NewProductCategory"><option value="drink">Ital</option><option value="food">Étel</option></select></label><label class="v57-field"><span>RÉSZLEG</span><select id="v57NewProductSection">${POS_SECTIONS.map(x=>`<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</select></label><label class="v57-field"><span>ELADÁSI ÁR</span><input id="v57NewProductPrice" type="number" min="0" value="0"></label><label class="v57-field"><span>KEZDŐ KÉSZLET</span><input id="v57NewProductStock" type="number" min="0" value="0"></label><label class="v57-field"><span>MINIMUM KÉSZLET</span><input id="v57NewProductMin" type="number" min="0" value="0"></label><label class="v57-field"><span>KÉP ÚTVONAL / URL</span><input id="v57NewProductImage" placeholder="assets/menu/...png"></label><label class="v57-field wide"><span>RÖVID ALÁÍRÁS</span><input id="v57NewProductSubtitle" placeholder="Red Moon Pub · ..."></label></div><button id="v57CreateProduct" class="v57-btn red">TERMÉK HOZZÁADÁSA ↗</button></div>`:''}`;
+    host.innerHTML=`<div class="v57-card"><div class="v57-card-head"><div><span>PRICE CONTROL / OWNER</span><h3>Árvezérlés</h3><small>Az eladási ár módosítása azonnal megjelenik a publikus itallapon. Az árak az ÁFÁ-t tartalmazzák.</small></div><span class="v57-badge">${editable?'OWNER':'CSAK MEGTEKINTÉS'}</span></div><div class="v57-price-list">${products.filter(p=>p.active).map(p=>`<article class="v57-price-row"><div class="v57-price-img">${p.image?`<img src="/${esc(p.image)}">`:'RM'}</div><div class="v57-price-main"><b>${esc(p.name)}</b><small>${esc(p.subtitle||'Red Moon Pub')} · ${p.category==='drink'?'Ital':'Étel'}</small></div><div class="v57-price-edit"><strong>${money(p.price)}</strong>${editable?`<button class="v57-mini" data-price="${esc(p.id)}">ÁR MÓDOSÍTÁSA</button><button class="v57-mini danger" data-delete-product="${esc(p.id)}">TÖRLÉS</button>`:''}</div></article>`).join('')}</div></div>${roleAllowed(me.role)?`<div class="v57-card" style="margin-top:16px"><div class="v57-card-head"><div><span>CATALOG / PRODUCT CONTROL</span><h3>Új termék</h3><small>Név, kategória, kép, rövid aláírás, ár és kezdő készlet.</small></div></div><div class="v57-form-grid"><label class="v57-field"><span>NÉV</span><input id="v57NewProductName" placeholder="Termék neve"></label><label class="v57-field"><span>KATEGÓRIA</span><select id="v57NewProductCategory"><option value="drink">Ital</option><option value="food">Étel</option></select></label><label class="v57-field"><span>RÉSZLEG</span><select id="v57NewProductSection">${POS_SECTIONS.filter(x=>x[0]!=='all').map(x=>`<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</select></label><label class="v57-field"><span>ELADÁSI ÁR</span><input id="v57NewProductPrice" type="number" min="0" value="0"></label><label class="v57-field"><span>KEZDŐ KÉSZLET</span><input id="v57NewProductStock" type="number" min="0" value="0"></label><label class="v57-field"><span>MINIMUM KÉSZLET</span><input id="v57NewProductMin" type="number" min="0" value="0"></label><label class="v57-field"><span>KÉP ÚTVONAL / URL</span><input id="v57NewProductImage" placeholder="assets/menu/...png"></label><label class="v57-field wide"><span>RÖVID ALÁÍRÁS</span><input id="v57NewProductSubtitle" placeholder="Red Moon Pub · ..."></label></div><button id="v57CreateProduct" class="v57-btn red">TERMÉK HOZZÁADÁSA ↗</button></div>`:''}`;
     $$('#v57-prices [data-price]').forEach(b=>b.onclick=async()=>{
       const p=products.find(x=>x.id===b.dataset.price); if(!p)return;
       const d=await formModal('Ár & termék-aláírás',[
