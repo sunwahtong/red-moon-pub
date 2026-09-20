@@ -108,19 +108,30 @@
   function isOwner(){return me?.role==='owner'}
   function productSection(p){
     const raw=String(p?.section||'').trim().toLowerCase();
+    const id=String(p?.id||'').trim().toLowerCase();
+    const n=String(p?.name||'').toLowerCase().trim();
+    // A Red Moon alap ital-katalógusának fix részlegei. Ez név/ID alapján is
+    // működik, így egy régi adatbázisban sem kerül Barracho/Kőbaltás az Egyéb alá.
+    const explicit={
+      'p_barracho':'beer','p_kobaltas':'beer','p_sornyito':'accessories',
+      'p_syrah':'wine','p_two_roosters':'wine','p_vinewood':'wine','p_bleuterd':'wine',
+      'p_ragga':'spirits','p_mount_bourbon':'spirits','p_chernekov':'spirits','p_cazafortunas':'spirits','p_sinmisito':'spirits',
+      'p_ecola':'nonalcoholic','p_sprunk':'nonalcoholic','p_raine':'nonalcoholic'
+    };
+    if(explicit[id])return explicit[id];
     if(raw==='nonalcoholic' || raw==='alcoholfree' || raw==='alcohol-free')return 'nonalcoholic';
-    if(raw)return raw;
-    const n=String(p?.name||'').toLowerCase();
+    if(raw && ['beer','wine','spirits','nonalcoholic','accessories'].includes(raw))return raw;
+    if(n==='barracho'||n==='kőbaltás'||n==='kobaltas')return 'beer';
     if(n.includes('sörnyitó')||n.includes('sornyito'))return 'accessories';
     if(/\b(e-cola|e cola|sprunk|raine|ásványvíz|mineral water|alkoholmentes)\b/.test(n))return 'nonalcoholic';
     if(/\b(sör|beer|lager|ale|ipa|pils)\b/.test(n))return 'beer';
     if(/\b(bor|wine|rozé|rose|pezsgő|prosecco|champagne)\b/.test(n))return 'wine';
     if(/whiskey|whisky|vodka|tequila|rum|gin|brandy|cognac|pálink|bourbon/.test(n))return 'spirits';
-    if(String(p?.category||'')==='food')return 'food';
+    if(String(p?.category||'')==='food')return 'other';
     return 'other';
   }
   const POS_SECTIONS=[
-    ['all','Összes'],['beer','Sörök'],['wine','Borok / Pezsgők'],['spirits','Tömény Italok'],['nonalcoholic','Alkoholmentes Italok'],['accessories','Kellékek'],['food','Ételek'],['other','Egyéb']
+    ['all','Összes'],['beer','Sörök'],['wine','Borok / Pezsgők'],['spirits','Tömény Italok'],['nonalcoholic','Alkoholmentes Italok'],['accessories','Kellékek']
   ];
   function sectionLabel(id){return POS_SECTIONS.find(x=>x[0]===id)?.[1]||'Egyéb';}
   function currentShiftMember(){return !!(shift && Array.isArray(shift.memberIds) && me && shift.memberIds.includes(me.id))}
@@ -191,7 +202,8 @@
 
   function renderPOS(){
     const host=$('#v57-pos');
-    const cats=POS_SECTIONS.filter(x=>x[0]==='all' ? products.some(p=>p.active&&['drink','food'].includes(String(p.category||''))) : products.some(p=>p.active&&productSection(p)===x[0])).map(x=>x[0]);
+    // A hat kért részleg mindig látszik; az Összes az összes aktív ital/kellék nézete.
+    const cats=POS_SECTIONS.map(x=>x[0]);
     host.innerHTML=`<div class="v57-pos-layout">
       <div class="v57-card"><div class="v57-card-head"><div><span>POS / CATALOG</span><h3>Eladható termékek</h3><small>${currentShiftMember()?'Aktív műszaktagként értékesíthetsz.':'Csak az aktuális műszak tagjai értékesíthetnek.'}</small></div><span class="v57-badge">${currentShiftMember()?'ELADHATÓ':'MŰSZAKON KÍVÜL'}</span></div>
       <div class="v57-category-tabs">${cats.map((c,i)=>`<button class="v57-cat ${i===0?'active':''}" data-cat="${esc(c)}">${esc(sectionLabel(c))}</button>`).join('')}</div>

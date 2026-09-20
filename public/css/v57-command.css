@@ -257,3 +257,9 @@
 .v57-category-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 20px}
 .v57-cat{white-space:nowrap}
 .v57-cat[data-cat="all"]{border-color:#7f2740;box-shadow:0 0 16px rgba(224,31,70,.08)}
+
+/* V59.6 — POS section navigation: exact Red Moon category order */
+.v57-category-tabs{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px;padding:2px 0 4px}
+.v57-cat{white-space:nowrap;min-height:40px;padding:10px 17px;border-radius:999px;letter-spacing:.12em}
+.v57-cat.active{box-shadow:0 0 18px rgba(214,29,65,.14), inset 0 0 14px rgba(214,29,65,.08)}
+@media(max-width:800px){.v57-category-tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin;padding-bottom:8px}.v57-cat{flex:0 0 auto}}

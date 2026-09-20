@@ -1,9 +1,15 @@
-# Red Moon Pub — V59.5
+# Red Moon Pub V59.6
 
-V59.5 refinements:
-- Public reviews redesigned as borderless floating entries with name separators, gold stars and neon quotation marks.
-- POS now has an Összes tab plus explicit sections: Sörök, Borok / Pezsgők, Tömény Italok, Alkoholmentes Italok, Kellékek, Ételek and EGYÉB.
-- Canonical products are explicitly assigned to their requested sections.
-- Non-alcoholic products: E-Cola, Sprunk, Rainé.
-- Accessories: Sörnyitó.
-- Long command-center lists retain consistent custom Red Moon scrollbars.
+POS részlegek javítása a V59.5 alapján.
+
+## POS részlegek
+A Command Center → Eladás részben a részlegek fix, kért sorrendben jelennek meg:
+
+1. Összes
+2. Sörök — Barracho, Kőbaltás
+3. Borok / Pezsgők — Syrah, Two Roosters, Vinewood, Bleuter'D
+4. Tömény Italok — Ragga, The Mount, Chernekov, Cazafortunas, Sinmisito
+5. Alkoholmentes Italok — E-Cola, Sprunk, Rainé
+6. Kellékek — Sörnyitó
+
+A régi adatbázisokban is explicit ID- és név-alapú besorolás történik, ezért a termékek nem esnek véletlenül az Egyéb kategóriába.

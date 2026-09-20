@@ -28,7 +28,11 @@ function readLocalDB(){ return JSON.parse(fs.readFileSync(DB_FILE,'utf8')); }
 async function initDB(){
   if(!pool){
     db = readLocalDB();
-    let changed=false; if(ensureBuiltInManagers()) changed=true; db.products ||= CANONICAL_DRINKS.map(x=>({...x})); if(changed) await writeDB(db);
+    let changed=false; if(ensureBuiltInManagers()) changed=true; db.products ||= CANONICAL_DRINKS.map(x=>({...x}));
+    const beforeSections=JSON.stringify((db.products||[]).map(p=>[p.id,p.section]));
+    db.products=(db.products||[]).map(p=>({...p,section:inferProductSection(p)}));
+    if(beforeSections!==JSON.stringify(db.products.map(p=>[p.id,p.section]))) changed=true;
+    if(changed) await writeDB(db);
     return;
   }
   await pool.query(`CREATE TABLE IF NOT EXISTS red_moon_state (id INTEGER PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
@@ -105,15 +109,24 @@ function migrateCartIds(){
 
 function inferProductSection(p){
   const raw=String(p?.section||'').trim().toLowerCase();
+  const id=String(p?.id||'').trim().toLowerCase();
+  const name=String(p?.name||'').toLowerCase().trim();
+  const explicit={
+    p_barracho:'beer', p_kobaltas:'beer', p_sornyito:'accessories',
+    p_syrah:'wine', p_two_roosters:'wine', p_vinewood:'wine', p_bleuterd:'wine',
+    p_ragga:'spirits', p_mount_bourbon:'spirits', p_chernekov:'spirits', p_cazafortunas:'spirits', p_sinmisito:'spirits',
+    p_ecola:'nonalcoholic', p_sprunk:'nonalcoholic', p_raine:'nonalcoholic'
+  };
+  if(explicit[id]) return explicit[id];
   if(raw==='nonalcoholic' || raw==='alcoholfree' || raw==='alcohol-free') return 'nonalcoholic';
-  if(raw) return raw;
-  const name=String(p?.name||'').toLowerCase();
+  if(['beer','wine','spirits','nonalcoholic','accessories'].includes(raw)) return raw;
+  if(name==='barracho' || name==='kőbaltás' || name==='kobaltas') return 'beer';
   if(name.includes('sörnyitó') || name.includes('sornyito')) return 'accessories';
   if(/\b(e-cola|e cola|sprunk|raine|ásványvíz|mineral water|alkoholmentes)\b/.test(name)) return 'nonalcoholic';
   if(/\b(sör|beer|lager|ale|ipa|pils)\b/.test(name)) return 'beer';
   if(/\b(bor|wine|rozé|rose|pezsgő|prosecco|champagne)\b/.test(name)) return 'wine';
   if(/whiskey|whisky|vodka|tequila|rum|gin|brandy|cognac|pálink|bourbon/.test(name)) return 'spirits';
-  if(String(p?.category||'')==='food') return 'food';
+  if(String(p?.category||'')==='food') return 'other';
   return 'other';
 }
 
@@ -567,6 +580,7 @@ async function api(req,res,url){
 
     if(req.method==='GET' && url==='/api/products'){
       const u=auth(req,res); if(!u)return;
+      db.products=(db.products||[]).map(p=>({...p,section:inferProductSection(p)}));
       return json(res,200,{products:db.products});
     }
     if(req.method==='GET' && url==='/api/public-products'){
