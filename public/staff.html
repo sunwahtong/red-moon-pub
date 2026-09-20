@@ -5,7 +5,7 @@
 <title>Red Moon — Staff Command V18.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/main.css?v=15.2"><link rel="stylesheet" href="css/premium-v13.css?v=15.2"><link rel="stylesheet" href="css/staff.css?v=18.2">
+<link rel="stylesheet" href="css/main.css?v=15.2"><link rel="stylesheet" href="css/premium-v13.css?v=15.2"><link rel="stylesheet" href="css/staff.css?v=64.4">
 <style>
 .modal-check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.modal-check{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid #3b222b;border-radius:10px;background:#0e090c;cursor:pointer}.modal-check:hover{border-color:#743347}.modal-check input{width:17px;height:17px;accent-color:#d7193f;flex:0 0 auto}.modal-check span{min-width:0}.modal-check b{display:block;color:#f2e9ec;font-size:13px}.modal-check small{display:block;margin-top:3px;color:#a997a0;font-size:10px;letter-spacing:.08em}@media(max-width:760px){.modal-check-grid{grid-template-columns:1fr}}
 .staff-extra{margin-top:22px}.shift-status{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 18px;border:1px solid #4b2735;border-radius:14px;background:linear-gradient(120deg,#160b11,#0d090c)}.shift-dot{width:10px;height:10px;border-radius:50%;display:inline-block;background:#777;margin-right:8px}.shift-dot.open{background:#68e0ad;box-shadow:0 0 15px #68e0ad}.shift-meta{display:flex;gap:16px;flex-wrap:wrap;color:#c9b8bf;font-size:13px}.action-row{display:flex;gap:9px;flex-wrap:wrap}.mini-note{font-size:12px;color:#a997a0;margin-top:7px}.doc-modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}.doc-modal.show{display:flex}.doc-box{width:min(560px,96vw);max-height:90vh;overflow:auto;background:#120c10;border:1px solid #512b3b;border-radius:18px;padding:22px}.doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.owner-only{border-color:#704055}.danger-btn{border:1px solid #743347;background:#2a0d18;color:#ff9bb0;border-radius:9px;padding:7px 10px;cursor:pointer}.success{color:#70e2ae}.warning{color:#ffcc75}.receipt-paper{background:#f5eff1;color:#151013;padding:26px;border-radius:10px;font-family:Arial,sans-serif}.receipt-paper h2{margin-top:0}.receipt-line{display:flex;justify-content:space-between;border-bottom:1px dashed #8e7f86;padding:7px 0}.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.kpi{padding:14px;border:1px solid #38252d;border-radius:12px}.kpi strong{display:block;font-size:22px;margin-top:5px}@media(max-width:760px){.doc-grid,.kpi-grid{grid-template-columns:1fr}}
@@ -100,7 +100,7 @@
 </div>
 
 <div class="staff-grid lower">
-<section class="panel sales-log-panel"><div class="panel-head"><div><span>03 / SALES LOG</span><h2>Legutóbbi eladások</h2></div></div><div class="table-wrap"><table><thead><tr><th>Idő</th><th>Dolgozó</th><th>Kosár ID</th><th>Termék</th><th>Db</th><th>Összeg</th><th>Fizetés</th><th>Számlázás / kezelés</th></tr></thead><tbody id="salesTable"></tbody></table></div></section>
+<section class="panel sales-log-panel"><div class="panel-head"><div><span>03 / SALES LOG</span><h2>Legutóbbi eladások</h2></div></div><div class="table-wrap"><table><thead><tr><th>Idő</th><th>Dolgozó</th><th>Kosár ID</th><th>Tartalom</th><th>Db</th><th>Összeg</th><th>Fizetés</th><th>Számlázás / kezelés</th></tr></thead><tbody id="salesTable"></tbody></table></div></section>
 <section class="panel"><div class="panel-head"><div><span>04 / ALERTS</span><h2>Alacsony készlet</h2></div></div><div id="alerts" class="alerts"></div></section>
 </div>
 
@@ -114,7 +114,7 @@
 
 <section id="shiftPanel" class="panel staff-extra"><div class="panel-head"><div><span>06 / CASH REGISTER</span><h2>Műszak &amp; kassza</h2></div></div><div id="shiftPanelBody"></div></section>
 
-<section id="documentsPanel" class="panel staff-extra"><div class="panel-head"><div><span>07 / DOCUMENTS</span><h2>Számla</h2></div></div><div id="documentsBody"><div class="doc-note">A számlázás <b>nem kötelező</b>. Eladáskor vagy később is elkészíthető.</div></div></section>
+<section id="documentsPanel" class="panel staff-extra"><div class="panel-head"><div><span>07 / DOCUMENTS</span><h2>Számlák / Nyugták</h2></div></div><div id="documentsBody"><div class="doc-note">A számlázás <b>nem kötelező</b>. Eladáskor vagy később is elkészíthető.</div></div></section>
 
 <section id="ownerPanel" class="panel owner-panel hidden owner-only staff-extra"><div class="panel-head"><div><span>08 / OWNER</span><h2>Fiókok &amp; műszak statisztika</h2><small>OWNER: Staff / Manager / Owner / DJ Access fiókok létrehozása és kezelése.</small></div></div>
 <div class="owner-create-tabs"><button type="button" class="owner-create-tab active" data-create-role="staff">STAFF FIÓK</button><button type="button" class="owner-create-tab" data-create-role="dj">DJ ACCESS</button></div>
@@ -140,5 +140,5 @@
 const tabs=document.querySelectorAll('[data-create-role]'),role=document.getElementById('uRole'),hint=document.getElementById('djAccessHint');
 function syncCreateRole(v){if(role)role.value=v==='dj'?'dj':'staff';tabs.forEach(t=>t.classList.toggle('active',t.dataset.createRole===v));if(hint)hint.classList.toggle('hidden',v!=='dj');}
 tabs.forEach(t=>t.addEventListener('click',()=>syncCreateRole(t.dataset.createRole)));syncCreateRole('staff');
-})();</script><script src="js/staff.js?v=21.0"></script><script src="js/v57-command.js?v=59.3"></script>
+})();</script><script src="js/staff.js?v=64.4"></script><script src="js/v57-command.js?v=59.3"></script>
 <script>(function(){const b=document.getElementById('hamb'),n=document.querySelector('header.nav nav');if(b&&n)b.addEventListener('click',()=>n.classList.toggle('open'));})();</script><script src="js/v40-premium.js?v=41"></script><script src="js/v41-premium.js?v=41"></script><script src="js/v42-experience.js?v=42"></script><script src="js/v43-nightlife.js?v=43"></script><script src="js/v51-signature-header.js?v=51"></script><script src="js/v52-heading-system.js?v=52"></script><script src="js/v53-performance.js?v=53"></script></body></html>

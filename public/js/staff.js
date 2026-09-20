@@ -271,16 +271,29 @@ function renderDashboard(d){
 function renderSales(sales){
   window._lastSales=sales;
   const canDelete=me && (me.role==='manager'||me.role==='owner');
-  $('#salesTable').innerHTML=sales.length?sales.slice(0,20).map(s=>`<tr>
-    <td data-label="Idő">${new Date(s.at).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</td>
-    <td data-label="Dolgozó">${esc(s.user)}</td><td data-label="Kosár ID"><span class="cart-id">${esc(s.cartId||s.transactionId||'—')}</span></td><td data-label="Termék" class="sale-product-cell">${esc(s.product)}</td><td data-label="Db">${s.qty}</td><td data-label="Összeg">${money(s.total)}</td><td data-label="Fizetés">${paymentBadge(s.paymentMethod)}</td>
-    <td data-label="Kezelés" class="sales-actions">
-      ${s.documentId
-        ? `<button class="table-action" onclick="loadDocumentById('${esc(s.documentId)}')">Megnyitás</button>`
-        : `<button class="table-action" onclick="createDocument('${esc(s.id)}','invoice')">Számlázás</button>`}
-      ${canDelete?`<button class="table-action danger" onclick="deleteSale('${esc(s.id)}')">Törlés</button>`:''}
-    </td>
-  </tr>`).join(''):'<tr><td colspan="8">Még nincs eladás.</td></tr>';
+  const groups=new Map();
+  (sales||[]).forEach(s=>{
+    const key=String(s.cartId||s.transactionId||s.id);
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(s);
+  });
+  const carts=[...groups.entries()].slice(0,30).map(([cartId,items])=>({cartId,items,total:items.reduce((a,x)=>a+Number(x.total||0),0),qty:items.reduce((a,x)=>a+Number(x.qty||0),0),at:items[0]?.at,user:items[0]?.user,paymentMethod:items[0]?.paymentMethod,documentId:items.find(x=>x.documentId)?.documentId||null,receiptId:items.find(x=>x.receiptId)?.receiptId||null}));
+  window._saleCarts=carts;
+  $('#salesTable').innerHTML=carts.length?carts.map(c=>{
+    const lines=c.items.map(x=>`${esc(x.product)} × ${x.qty}`).join('<br>');
+    const doc=c.documentId?`<button class="table-action" onclick="loadDocumentById('${esc(c.documentId)}')">SZÁMLA</button>`:`<button class="table-action" onclick="createDocument('${esc(c.items[0].id)}','invoice')">SZÁMLÁZÁS</button>`;
+    const receipt=c.receiptId?`<button class="table-action" onclick="loadDocumentById('${esc(c.receiptId)}')">NYUGTA</button>`:`<button class="table-action" onclick="createReceipt('${esc(c.items[0].id)}')">NYUGTA</button>`;
+    return `<tr>
+      <td data-label="Idő">${new Date(c.at).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</td>
+      <td data-label="Dolgozó">${esc(c.user)}</td>
+      <td data-label="Kosár ID"><span class="cart-id">${esc(c.cartId)}</span></td>
+      <td data-label="Tartalom" class="sale-product-cell">${lines}</td>
+      <td data-label="Db">${c.qty}</td>
+      <td data-label="Összeg">${money(c.total)}</td>
+      <td data-label="Fizetés">${paymentBadge(c.paymentMethod)}</td>
+      <td data-label="Kezelés" class="sales-actions">${doc}${receipt}${canDelete?`<button class="table-action danger" onclick="deleteSaleCart('${esc(c.cartId)}')">KOSÁR TÖRLÉSE</button>`:''}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="8">Még nincs eladás.</td></tr>';
 }
 
 window.saleCart=window.saleCart||[];
@@ -354,9 +367,9 @@ function renderShift(){
     $('#shiftPanelBody').innerHTML=`<div class="mini-note">A kassza jelenleg zárva van.</div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="openShift()">KASSZA NYITÁSA</button></div>`;
   }else{
     const rev=currentShift.id?0:0;
-    $('#shiftBar').innerHTML=`<div><span class="shift-dot open"></span><b>KASSZA NYITVA</b><div class="shift-meta"><span>Indította: ${esc(currentShift.startedByName)}</span><span>Nyitás: ${new Date(currentShift.startedAt).toLocaleString('hu-HU')}</span><span>Műszakban: ${esc((currentShift.members||[]).join(', '))}</span></div></div><button class="btn btn-red" onclick="closeShift()">MŰSZAK / KASSZA ZÁRÁSA</button>`;
+    $('#shiftBar').innerHTML=`<div><span class="shift-dot open"></span><b>KASSZA NYITVA</b><div class="shift-meta"><span>Műszak ID: ${esc(currentShift.id)}</span><span>Indította: ${esc(currentShift.startedByName)}</span><span>Nyitás: ${new Date(currentShift.startedAt).toLocaleString('hu-HU')}</span><span>Műszakban: ${esc((currentShift.members||[]).join(', '))}</span></div></div><button class="btn btn-red" onclick="closeShift()">MŰSZAK / KASSZA ZÁRÁSA</button>`;
     const canAddMember=me && (me.id===currentShift.startedById || me.role==='manager' || me.role==='owner');
-    $('#shiftPanelBody').innerHTML=`<div class="kpi-grid"><div class="kpi"><span class="muted">Indító</span><strong>${esc(currentShift.startedByName)}</strong></div><div class="kpi"><span class="muted">Nyitás</span><strong>${new Date(currentShift.startedAt).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</strong></div><div class="kpi"><span class="muted">Műszak tagjai</span><strong>${esc((currentShift.members||[]).join(', '))}</strong></div></div><div class="shift-member-actions" style="margin-top:15px">${canAddMember?'<button class="btn btn-ghost" type="button" onclick="addShiftMember()">＋ MŰSZAKTAG HOZZÁADÁSA</button>':''}<button class="btn btn-red" onclick="closeShift()">KASSZA ZÁRÁSA</button></div>`;
+    $('#shiftPanelBody').innerHTML=`<div class="kpi-grid"><div class="kpi"><span class="muted">Műszak ID</span><strong>${esc(currentShift.id)}</strong></div><div class="kpi"><span class="muted">Indító</span><strong>${esc(currentShift.startedByName)}</strong></div><div class="kpi"><span class="muted">Nyitás</span><strong>${new Date(currentShift.startedAt).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</strong></div><div class="kpi"><span class="muted">Műszak tagjai</span><strong>${esc((currentShift.members||[]).join(', '))}</strong></div></div><div class="shift-member-actions" style="margin-top:15px">${canAddMember?'<button class="btn btn-ghost" type="button" onclick="addShiftMember()">＋ MŰSZAKTAG HOZZÁADÁSA</button>':''}<button class="btn btn-red" onclick="closeShift()">KASSZA ZÁRÁSA</button></div>`;
   }
 }
 async function openShift(){
@@ -404,37 +417,56 @@ async function closeShift(){
   try{const d=await api('/api/shifts/close',{method:'POST',body:JSON.stringify({closingCash:closing,notes:String(data.notes||'')})});playSfx('cash_close',0.65);showShiftCloseDocument(d.shift,d.transfer);currentShift=null;await load()}catch(e){await rmAlert(e.message,'Kasszazárás sikertelen')}
 }
 function showShiftCloseDocument(s,t){
-  $('#docTitle').textContent='Műszakzárási dokumentáció';
-  $('#docContent').innerHTML=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>Műszakazonosító:</b> ${esc(s.id)}</p><div class="receipt-line"><span>Nyitás</span><b>${new Date(s.startedAt).toLocaleString('hu-HU')}</b></div><div class="receipt-line"><span>Zárás</span><b>${new Date(s.endedAt).toLocaleString('hu-HU')}</b></div><div class="receipt-line"><span>Indította</span><b>${esc(s.startedByName)}</b></div><div class="receipt-line"><span>Zárta</span><b>${esc(s.closedByName)}</b></div><div class="receipt-line"><span>Műszakban</span><b>${esc((s.members||[]).join(', '))}</b></div><div class="receipt-line"><span>Eladások</span><b>${s.salesCount} db</b></div><div class="receipt-line"><span>Eladott tételek</span><b>${s.items} db</b></div><div class="receipt-line"><span>Bevétel</span><b>${money(s.revenue)}</b></div><div class="receipt-line"><span>Záró kassza</span><b>${money(s.closingCash)}</b></div><hr><p><b>Az elszámolandó összeg átutalása:</b></p><p>Számlaszám: <b>${t.account}</b><br>Név: <b>${t.name}</b><br><b>Közlemény: Zárási idő: ${new Date(s.endedAt).toLocaleString('hu-HU')}</b><br>Összeg: <b>${money(t.amount)}</b></p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
+  $('#docTitle').textContent=`Műszakzárás · ${s.id}`;
+  const members=(s.memberHistory||[]).map(m=>`<div class="shift-history-row"><span>${esc(m.name)}</span><small>${new Date(m.joinedAt).toLocaleString('hu-HU')} · ${esc(m.reason||'csatlakozott')}</small></div>`).join('');
+  const cash=Number(s.cashRevenue||0), transfer=Number(s.transferRevenue||0), overall=Number(s.overallRevenue??s.revenue??0);
+  $('#docContent').innerHTML=`<div class="receipt-paper premium-document shift-document">
+    <div class="document-brand"><span class="document-orb"></span><div><strong>RED MOON PUB</strong><small>SEE CITY · SHIFT CLOSING REPORT</small></div></div>
+    <div class="document-title-block"><span>MŰSZAKZÁRÁSI JELENTÉS</span><h2>${esc(s.id)}</h2></div>
+    <div class="document-grid">
+      <div><small>NYITÁS</small><b>${new Date(s.startedAt).toLocaleString('hu-HU')}</b></div>
+      <div><small>ZÁRÁS</small><b>${new Date(s.endedAt).toLocaleString('hu-HU')}</b></div>
+      <div><small>INDÍTOTTA</small><b>${esc(s.startedByName)}</b></div>
+      <div><small>ZÁRTA</small><b>${esc(s.closedByName)}</b></div>
+    </div>
+    <div class="document-section"><label>MŰSZAK TAGJAI</label>${members||'<div class="mini-note">Nincs rögzített tagelőzmény.</div>'}</div>
+    <div class="document-totals">
+      <div><span>KP ÖSSZESEN</span><strong>${money(cash)}</strong></div>
+      <div><span>ÁTUTALÁS ÖSSZESEN</span><strong>${money(transfer)}</strong></div>
+      <div class="overall"><span>OVERALL</span><strong>${money(overall)}</strong></div>
+    </div>
+    <div class="document-section compact"><div class="receipt-line"><span>Eladások</span><b>${s.salesCount} kosár</b></div><div class="receipt-line"><span>Eladott tételek</span><b>${s.items} db</b></div><div class="receipt-line"><span>Záró kassza</span><b>${money(s.closingCash)}</b></div></div>
+    <div class="transfer-card"><small>ELUTALANDÓ TELJES VÉGÖSSZEG</small><strong>${money(overall)}</strong><div class="bank-line"><span>Számlaszám</span><b>${esc(t.account)}</b></div><div class="bank-line"><span>Név</span><b>${esc(t.name)}</b></div><div class="bank-line"><span>Közlemény</span><b>${esc(s.id)}</b></div></div>
+    ${s.notes?`<div class="document-note"><small>MEGJEGYZÉS</small>${esc(s.notes)}</div>`:''}
+  </div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
   $('#docModal').classList.add('show');
   window._printHtml=$('#docContent').innerHTML;
 }
 async function renderDocumentsHint(){
-  const box=$('#documentsBody');
-  if(!box)return;
+  const box=$('#documentsBody'); if(!box)return;
   try{
     const d=await api('/api/documents');
-    box.innerHTML=`<div class="doc-note">A számlázás <b>nem kötelező</b>. Eladáskor vagy később is elkészíthető.</div>`+
-      (d.documents.length?`<div class="doc-list">${d.documents.slice(0,100).map(x=>`<div class="doc-item">
-        <span><b>${esc(x.id)}</b><small>${new Date(x.createdAt).toLocaleString('hu-HU')} · ${esc(x.createdByName)}</small></span>
-        <span class="doc-actions"><strong>${money(x.total)}</strong>
-          <button class="table-action" onclick='showDocument(${JSON.stringify(x).replace(/</g,'\\u003c')})'>Megnyitás</button>
-          ${me.role==='owner'?`<button class="table-action danger" onclick="deleteInvoice('${esc(x.id)}')">Törlés</button>`:''}
-        </span>
-      </div>`).join('')}</div>`:'<div class="mini-note">Még nincs kiállított számla.</div>');
-  }catch(e){box.innerHTML='<div class="mini-note">A számlák megnyitásához MANAGER vagy OWNER jogosultság szükséges.</div>'}
+    const docs=d.documents||[];
+    box.innerHTML=`<div class="doc-note"><b>SZÁMLÁK / NYUGTÁK</b><br>Manager és Owner megtekintheti az elkészült dokumentumokat. Számlát kizárólag OWNER törölhet.</div>`+
+      (docs.length?`<div class="doc-list">${docs.slice(0,120).map(x=>`<div class="doc-item">
+        <span><b>${x.type==='receipt'?'NYUGTA':'SZÁMLA'} · ${esc(x.id)}</b><small>${new Date(x.createdAt).toLocaleString('hu-HU')} · ${esc(x.createdByName||'Red Moon')}</small></span>
+        <span class="doc-actions"><strong>${money(x.total)}</strong><button class="table-action" onclick='showDocument(${JSON.stringify(x).replace(/</g,'\\u003c')})'>MEGNYITÁS</button>${x.type==='invoice'&&me.role==='owner'?`<button class="table-action danger" onclick="deleteInvoice('${esc(x.id)}')">TÖRLÉS</button>`:''}</span>
+      </div>`).join('')}</div>`:'<div class="mini-note">Még nincs kiállított számla vagy nyugta.</div>');
+  }catch(e){box.innerHTML='<div class="mini-note">A dokumentumok megnyitásához MANAGER vagy OWNER jogosultság szükséges.</div>'}
 }
-
 function updateLatestDocButtons(){}
 
-async function deleteSale(id){
+async function deleteSaleCart(cartId){
   if(!(me && (me.role==='manager'||me.role==='owner')))return;
-  const sale=(window._lastSales||[]).find(x=>x.id===id);
-  const label=sale?`${sale.product} · ${money(sale.total)}`:'ezt az eladást';
-  const extra=sale?.documentId?`\n\nAz eladáshoz tartozó számla megmarad. Számlát csak OWNER tud törölni a Számla fülön.`:'';
-  if(!await rmConfirm(`Biztosan törlöd: ${label}\n\nA készlet az eladott mennyiséggel vissza lesz állítva.${extra}`,'Eladás törlése'))return;
-  try{await api('/api/sales/'+encodeURIComponent(id),{method:'DELETE'});playSfx('success',0.45);await load()}
-  catch(e){playSfx('error',0.8);await rmAlert(e.message,'Művelet sikertelen')}
+  const cart=(window._saleCarts||[]).find(x=>x.cartId===cartId);
+  if(!cart)return;
+  const detail=cart.items.map(x=>`${x.product} × ${x.qty}`).join('\n');
+  if(!await rmConfirm(`Biztosan törlöd a teljes kosarat: ${cartId}?\n\n${detail}\n\nA teljes kosár minden tétele egyszerre törlődik, és az összes mennyiség azonnal visszakerül a készletbe. A kapcsolódó számla megmarad.`,'TELJES KOSÁR TÖRLÉSE'))return;
+  try{const d=await api('/api/sales/cart/'+encodeURIComponent(cartId),{method:'DELETE'});playSfx('success',0.5);await rmAlert(`A teljes kosár törölve.\n\nTételek: ${d.deletedSales}\nVisszaadott érték: ${money(d.deletedTotal)}\nA készlet minden érintett termékkel visszaállt.`,'Kosár törölve');await load()}
+  catch(e){playSfx('error',0.8);await rmAlert(e.message,'Kosár törlése sikertelen')}
+}
+async function deleteSale(id){
+  const sale=(window._lastSales||[]).find(x=>x.id===id); if(sale?.cartId)return deleteSaleCart(sale.cartId);
 }
 async function deleteInvoice(id){
   if(me?.role!=='owner'){playSfx('error',0.6);await rmAlert('Számlát csak OWNER jogosultsággal lehet törölni.','Nincs jogosultság');return}
@@ -442,6 +474,11 @@ async function deleteInvoice(id){
   try{await api('/api/documents/'+encodeURIComponent(id),{method:'DELETE'});playSfx('success',0.45);await load()}
   catch(e){playSfx('error',0.8);await rmAlert(e.message,'Művelet sikertelen')}
 }
+async function createReceipt(saleId){
+  try{const d=await api('/api/receipts',{method:'POST',body:JSON.stringify({saleId})});showDocument(d.document);await load()}
+  catch(e){await rmAlert(e.message,'Nyugta készítése sikertelen')}
+}
+
 async function createDocument(saleId,type){
   const data=await rmForm({title:'Számla létrehozása',kicker:'RED MOON / DOCUMENTS · INVOICE',fields:[
     {id:'name',label:'SZÁMLÁZÁSI NÉV',value:'',placeholder:'Név / cégnév',required:true},
@@ -454,10 +491,20 @@ async function createDocument(saleId,type){
   try{const d=await api('/api/documents',{method:'POST',body:JSON.stringify({saleId,type:'invoice',customer:{name,address,taxNumber:tax}})});showDocument(d.document);await load()}catch(e){await rmAlert(e.message,'Számlázás sikertelen')}
 }
 function showDocument(doc){
-  const label='SZÁMLA';
+  const isReceipt=doc.type==='receipt';
+  const label=isReceipt?'NYUGTA':'SZÁMLA';
   $('#docTitle').textContent=`${label} · ${doc.id}`;
   const items=Array.isArray(doc.items)?doc.items:[];
-  $('#docContent').innerHTML=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>${label}</b><br>Dokumentum: ${esc(doc.id)}<br>Dátum: ${new Date(doc.createdAt).toLocaleString('hu-HU')}</p><p><b>Vásárló:</b> ${esc(doc.customer.name)}${doc.customer.address?'<br>'+esc(doc.customer.address):''}${doc.customer.taxNumber?'<br>Adószám: '+esc(doc.customer.taxNumber):''}</p>${items.map(item=>`<div class="receipt-line"><span>${esc(item.product)} × ${item.qty}</span><b>${money(item.total)}</b></div>`).join('')}<div class="receipt-line"><span>Fizetés</span><b>${doc.paymentMethod==='transfer'?'📱 Átutalás':'💵 Készpénz'}</b></div><div class="receipt-line"><span>ÖSSZESEN</span><b>${money(doc.total)}</b></div><p style="margin-top:18px">Red Moon Pub · Zhen Yu Xiao</p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
+  const customer=doc.customer||{};
+  $('#docContent').innerHTML=`<div class="receipt-paper premium-document ${isReceipt?'receipt-document':'invoice-document'}">
+    <div class="document-brand"><span class="document-orb"></span><div><strong>RED MOON PUB</strong><small>SEE CITY · ${isReceipt?'OFFICIAL RECEIPT':'INVOICE DOCUMENT'}</small></div></div>
+    <div class="document-title-block"><span>${label}</span><h2>${esc(doc.id)}</h2><small>${new Date(doc.createdAt).toLocaleString('hu-HU')}</small></div>
+    <div class="document-customer"><div><small>${isReceipt?'TRANZAKCIÓ':'VÁSÁRLÓ'}</small><b>${isReceipt?esc(doc.transactionId||'—'):esc(customer.name||'—')}</b></div>${!isReceipt&&customer.address?`<div><small>SZÁMLÁZÁSI CÍM</small><b>${esc(customer.address)}</b></div>`:''}${!isReceipt&&customer.taxNumber?`<div><small>ADÓSZÁM</small><b>${esc(customer.taxNumber)}</b></div>`:''}</div>
+    <div class="document-items">${items.map(item=>`<div class="receipt-line"><span>${esc(item.product)} <small>× ${item.qty}</small></span><b>${money(item.total)}</b></div>`).join('')}</div>
+    <div class="document-payment"><span>FIZETÉS</span><b>${doc.paymentMethod==='transfer'?'📱 ÁTUTALÁS':'💵 KÉSZPÉNZ'}</b></div>
+    <div class="document-grand"><span>ÖSSZESEN</span><strong>${money(doc.total)}</strong></div>
+    <div class="document-footer">RED MOON PUB · SEE CITY RP · ZHEN YU XIAO</div>
+  </div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
   $('#docModal').classList.add('show');window._printHtml=$('#docContent').innerHTML;
 }
 function closeDoc(){$('#docModal').classList.remove('show')}
@@ -468,7 +515,7 @@ async function loadDocumentById(id){
     if(doc)showDocument(doc); else await rmAlert('A számla nem található.','Dokumentum')
   }catch(e){await rmAlert(e.message,'Művelet sikertelen')}
 }
-function printCurrentDoc(){if(!window._printHtml)return;const w=window.open('','_blank','width=700,height=900');w.document.write('<html><head><title>Red Moon Document</title><style>body{font-family:Arial;padding:30px}.receipt-paper{max-width:560px;margin:auto;border:1px solid #ddd;padding:28px}.receipt-line{display:flex;justify-content:space-between;border-bottom:1px dashed #999;padding:9px 0}</style></head><body>'+window._printHtml+'</body></html>');w.document.close();w.focus();w.print()}
+function printCurrentDoc(){if(!window._printHtml)return;const w=window.open('','_blank','width=800,height=1000');w.document.write('<html><head><title>Red Moon Document</title><style>body{font-family:Arial,sans-serif;background:#f4eef0;padding:30px;color:#24151b}.premium-document{max-width:680px;margin:auto;background:#f9f3f5;border:1px solid #d8c7cd;border-radius:16px;padding:28px}.document-brand{display:flex;gap:12px;align-items:center;padding-bottom:18px;border-bottom:1px solid #ddd}.document-orb{width:11px;height:11px;border-radius:50%;background:#e11d3f;display:inline-block}.document-brand strong{display:block;font-size:18px}.document-brand small,.document-title-block>span,.document-grid small,.document-customer small,.document-section>label,.transfer-card>small{display:block;font-size:8px;letter-spacing:2px;color:#806a72}.document-title-block{padding:20px 0}.document-title-block h2{margin:6px 0}.document-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #ddd;border-radius:10px;overflow:hidden}.document-grid>div{padding:12px}.receipt-line{display:flex;justify-content:space-between;border-bottom:1px dashed #b9a9af;padding:10px 0}.document-totals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:16px 0}.document-totals>div{padding:12px;border:1px solid #ddd}.document-totals strong,.document-grand strong{display:block;font-size:20px}.transfer-card{margin-top:16px;padding:16px;border:1px solid #d7aab4}.bank-line{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid #ddd}.document-footer{text-align:center;margin-top:16px;color:#806a72;font-size:8px;letter-spacing:2px}</style></head><body>'+window._printHtml+'</body></html>');w.document.close();w.focus();w.print()}
 
 function renderManager(){
   $('#managerInventory').innerHTML=products.filter(p=>p.active).map(p=>`<div class="manager-row"><div class="manager-product"><img class="stock-thumb manager-thumb" src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><div><b>${esc(p.name)}</b><div class="role">ITAL · ${money(p.price)}</div></div></div><span>${p.stock} db</span><input data-stock="${p.id}" type="number" min="0" value="${p.stock}" style="width:80px;background:#090506;border:1px solid #3a171f;color:white;padding:7px">${me?.role==='owner'?`<input data-price="${p.id}" type="number" min="0" value="${p.price}" style="width:95px;background:#090506;border:1px solid #3a171f;color:white;padding:7px" title="Eladási ár">`:''}<button data-save="${p.id}">MENTÉS</button></div>`).join('');

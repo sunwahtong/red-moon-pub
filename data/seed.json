@@ -1,5 +1,24 @@
 {
-  "users": [],
+  "users": [
+    {
+      "id": "u_manager_7de6ec2d4366",
+      "username": "rei",
+      "name": "Yuna Yue Rei",
+      "nickname": "Rei",
+      "role": "manager",
+      "portal": "staff",
+      "passwordHash": "PBKDF2:310000:sha256:7d4981cb3ec768c15db22853638538d4:d19707f9906cf9f4849cce3391ee1e3299f2f82c77a717d328355ef848a52ca3"
+    },
+    {
+      "id": "u_manager_976fe9eafdeb",
+      "username": "redmoon.manager",
+      "name": "Red Moon Manager",
+      "nickname": "Manager",
+      "role": "manager",
+      "portal": "staff",
+      "passwordHash": "PBKDF2:310000:sha256:e442f4cf2b8d4d6c5258590264520fd6:f66e394031e18517d51c8075e4661279a400a0cc85e6b521caa36fde796bf944"
+    }
+  ],
   "products": [
     {
       "id": "p_kobaltas",
@@ -10,7 +29,8 @@
       "minStock": 8,
       "image": "assets/menu/drinks/kobaltas.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "beer"
     },
     {
       "id": "p_barracho",
@@ -21,7 +41,8 @@
       "minStock": 8,
       "image": "assets/menu/drinks/barracho.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "beer"
     },
     {
       "id": "p_sornyito",
@@ -32,7 +53,8 @@
       "minStock": 6,
       "image": "assets/menu/drinks/sornyito.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "accessories"
     },
     {
       "id": "p_syrah",
@@ -43,7 +65,8 @@
       "minStock": 6,
       "image": "assets/menu/drinks/syrah.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "wine"
     },
     {
       "id": "p_two_roosters",
@@ -54,7 +77,8 @@
       "minStock": 6,
       "image": "assets/menu/drinks/two_roosters.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "wine"
     },
     {
       "id": "p_bleuterd",
@@ -65,7 +89,8 @@
       "minStock": 6,
       "image": "assets/menu/drinks/bleuterd.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "wine"
     },
     {
       "id": "p_mount_bourbon",
@@ -76,7 +101,8 @@
       "minStock": 5,
       "image": "assets/menu/drinks/mount_bourbon.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "spirits"
     },
     {
       "id": "p_vinewood",
@@ -87,7 +113,8 @@
       "minStock": 6,
       "image": "assets/menu/drinks/vinewood.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "wine"
     },
     {
       "id": "p_chernekov",
@@ -98,7 +125,8 @@
       "minStock": 5,
       "image": "assets/menu/drinks/chernekov.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "spirits"
     },
     {
       "id": "p_cazafortunas",
@@ -109,7 +137,8 @@
       "minStock": 5,
       "image": "assets/menu/drinks/cazafortunas.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "spirits"
     },
     {
       "id": "p_sinmisito",
@@ -120,7 +149,8 @@
       "minStock": 4,
       "image": "assets/menu/drinks/sinmisito.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "spirits"
     },
     {
       "id": "p_ragga",
@@ -131,7 +161,8 @@
       "minStock": 5,
       "image": "assets/menu/drinks/ragga.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "spirits"
     },
     {
       "id": "p_sprunk",
@@ -142,7 +173,8 @@
       "minStock": 10,
       "image": "assets/menu/drinks/sprunk.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "nonalcoholic"
     },
     {
       "id": "p_ecola",
@@ -153,7 +185,8 @@
       "minStock": 10,
       "image": "assets/menu/drinks/ecola.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "nonalcoholic"
     },
     {
       "id": "p_raine",
@@ -164,7 +197,8 @@
       "minStock": 10,
       "image": "assets/menu/drinks/raine.png",
       "subtitle": "Red Moon Pub · SeeCity RP",
-      "active": true
+      "active": true,
+      "section": "nonalcoholic"
     }
   ],
   "sales": [],

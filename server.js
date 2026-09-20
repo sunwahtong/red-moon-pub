@@ -71,6 +71,19 @@ function initialsFromName(name){
   const fallback=String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]/g,'').toUpperCase();
   return (fallback.slice(0,3) || 'RED');
 }
+function makeShiftId(db){
+  const d=new Date();
+  const date=d.toISOString().slice(0,10).replace(/-/g,'');
+  const prefix=`SHIFT-${date}-`;
+  const used=new Set((db.shifts||[]).map(s=>String(s.id||'')));
+  let n=1;
+  while(used.has(prefix+String(n).padStart(3,'0'))) n++;
+  return prefix+String(n).padStart(3,'0');
+}
+function makeDocumentId(prefix){
+  return `${prefix}-${new Date().toISOString().replace(/\D/g,'').slice(0,14)}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+}
+
 function makeCartId(shift,user,number){
   return `${initialsFromName(user.name)}${String(number).padStart(2,'0')}`;
 }
@@ -344,7 +357,7 @@ async function api(req,res,url){
   dbState.finance ||= {};
   if(!Number.isFinite(Number(dbState.finance.overallRevenue))) dbState.finance.overallRevenue=dbState.sales.reduce((a,x)=>a+(Number(x.total)||0),0);
   dbState.finance.overallRevenueOffset ||= 0;
-  for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.paymentMethod ??= 'cash'; if(s.paymentMethod==='card') s.paymentMethod='cash'; s.transactionId ??= s.id; }
+  for(const s of dbState.sales){ s.shiftId ??= null; s.documentId ??= null; s.receiptId ??= null; s.paymentMethod ??= 'cash'; if(s.paymentMethod==='card') s.paymentMethod='cash'; s.transactionId ??= s.id; }
   try{
     if(req.method==='GET' && url==='/api/health'){
       return json(res,200,{ok:true,service:'red-moon-staff',version:'19.0-realtime-neon',time:new Date().toISOString()});
@@ -750,7 +763,7 @@ async function api(req,res,url){
       if(!memberIds.includes(u.id)) memberIds.unshift(u.id);
       const members=[...new Set(memberIds.map(id=>db.users.find(x=>x.id===id)?.name).filter(Boolean))];
       const shift={
-        id:'sh_'+crypto.randomBytes(7).toString('hex'),
+        id:makeShiftId(db),
         status:'open',
         startedAt:new Date().toISOString(),
         endedAt:null,
@@ -758,10 +771,12 @@ async function api(req,res,url){
         startedByName:u.name,
         members:[...new Set(members)],
         memberIds,
-        memberHistory:members.map(name=>({name,joinedAt:new Date().toISOString(),joinedById:u.id,joinedByName:u.name})),
+        memberHistory:members.map(name=>({name,userId:db.users.find(x=>x.name===name)?.id||null,joinedAt:new Date().toISOString(),joinedById:u.id,joinedByName:u.name,reason:name===u.name?'műszak indítása':'műszaknyitáskor hozzáadva'})),
         openingCash,
         closingCash:null,
         revenue:0,
+        cashRevenue:0,
+        transferRevenue:0,
         salesCount:0,
         items:0,
         notes:String(b.notes||''),
@@ -824,8 +839,10 @@ async function api(req,res,url){
       if(shift.startedById!==u.id && !['manager','owner'].includes(u.role)) return json(res,403,{error:'Ezt a műszakot csak a műszak indítója, MANAGER vagy OWNER zárhatja.'});
       const b=await readBody(req);
       const sales=db.sales.filter(s=>s.shiftId===shift.id);
-      const revenue=sales.reduce((a,s)=>a+s.total,0);
-      const items=sales.reduce((a,s)=>a+s.qty,0);
+      const revenue=sales.reduce((a,s)=>a+Number(s.total||0),0);
+      const cashRevenue=sales.filter(s=>s.paymentMethod==='cash').reduce((a,s)=>a+Number(s.total||0),0);
+      const transferRevenue=sales.filter(s=>s.paymentMethod==='transfer').reduce((a,s)=>a+Number(s.total||0),0);
+      const items=sales.reduce((a,s)=>a+Number(s.qty||0),0);
       const closingCash=Number(b.closingCash);
       if(!Number.isFinite(closingCash)||closingCash<0)return json(res,400,{error:'Adj meg érvényes záró kassza összeget.'});
       shift.status='closed';
@@ -834,6 +851,9 @@ async function api(req,res,url){
       shift.closedByName=u.name;
       shift.closingCash=closingCash;
       shift.revenue=revenue;
+      shift.cashRevenue=cashRevenue;
+      shift.transferRevenue=transferRevenue;
+      shift.overallRevenue=revenue;
       shift.salesCount=sales.length;
       shift.items=items;
       shift.notes=String(b.notes||shift.notes||'');
@@ -842,7 +862,8 @@ async function api(req,res,url){
       return json(res,200,{shift,transfer:{
         amount:revenue,
         account:'21541444-70524373',
-        name:'Zhen Yu Xiao'
+        name:'Zhen Yu Xiao',
+        reference:shift.id
       }});
     }
 
@@ -856,7 +877,7 @@ async function api(req,res,url){
       if(shift.status!=='closed')return json(res,400,{error:'Csak lezárt műszak törölhető.'});
       const shiftSales=db.sales.filter(x=>x.shiftId===id);
       const saleIds=new Set(shiftSales.map(x=>x.id));
-      const shiftDocs=db.documents.filter(x=>saleIds.has(x.saleId) || shiftSales.some(s=>s.documentId===x.id));
+      const shiftDocs=db.documents.filter(x=>saleIds.has(x.saleId) || shiftSales.some(s=>s.documentId===x.id || s.receiptId===x.id));
       // A műszak törlésekor az ahhoz tartozó eladások is törlődnek,
       // a készlet pedig visszaáll az eladások előtti állapotra.
       for(const sale of shiftSales){
@@ -921,34 +942,72 @@ async function api(req,res,url){
           shiftId:shift.id,paymentMethod,documentId:null
         };
       });
-      db.sales.unshift(...sales);
-      db.finance ||= {}; db.finance.overallRevenue=Number(db.finance.overallRevenue||0)+sales.reduce((sum,s)=>sum+s.total,0);
       const total=sales.reduce((sum,s)=>sum+s.total,0);
+      const receipt={
+        id:makeDocumentId('REC'),type:'receipt',createdAt:at,createdById:u.id,createdByName:u.name,
+        saleId:sales[0]?.id||null,transactionId,shiftId:shift.id,customer:{name:'Vásárló',address:'',taxNumber:''},
+        seller:{name:'Red Moon Pub',owner:'Zhen Yu Xiao'},
+        items:sales.map(s=>({product:s.product,qty:s.qty,unitPrice:s.unitPrice,total:s.total})),
+        total,paymentMethod
+      };
+      sales.forEach(s=>s.receiptId=receipt.id);
+      db.documents.unshift(receipt);
+      db.sales.unshift(...sales);
+      db.finance ||= {}; db.finance.overallRevenue=Number(db.finance.overallRevenue||0)+total;
       audit(db,u,'SALE',`${sales.map(s=>`${s.product} × ${s.qty}`).join(' + ')} · ${total} Ft · ${paymentMethod} · műszak ${shift.id}`);
       await writeDB(db);
       return json(res,201,{sales,product:checked[0]?.p,shift,total,transactionId,cartId});
+    }
+
+    if(req.method==='DELETE' && url.startsWith('/api/sales/cart/')){
+      const u=auth(req,res,'manager');
+      if(!u)return;
+      const cartId=decodeURIComponent(url.slice('/api/sales/cart/'.length));
+      const cartSales=db.sales.filter(x=>String(x.cartId||'')===String(cartId));
+      if(!cartSales.length)return json(res,404,{error:'Az eladási kosár nem található.'});
+      const restored=[];
+      for(const sale of cartSales){
+        const product=db.products.find(p=>p.id===sale.productId);
+        if(product){product.stock=(Number(product.stock)||0)+(Number(sale.qty)||0);restored.push({productId:product.id,product:product.name,qty:Number(sale.qty)||0});}
+      }
+      const total=cartSales.reduce((a,s)=>a+Number(s.total||0),0);
+      const saleIds=new Set(cartSales.map(s=>s.id));
+      // A kapcsolódó számla megmarad, az OWNER később külön törölheti.
+      db.sales=db.sales.filter(x=>!saleIds.has(x.id));
+      db.finance ||= {};
+      db.finance.overallRevenue=Math.max(0,Number(db.finance.overallRevenue||0)-total);
+      audit(db,u,'SALE_CART_DELETE',`${cartId} · ${cartSales.length} tétel · ${total} Ft · teljes kosár törölve · készlet visszaállítva`);
+      await writeDB(db);
+      return json(res,200,{ok:true,deletedCartId:cartId,deletedSales:cartSales.length,deletedTotal:total,restoredStock:restored,invoicePreserved:cartSales.some(s=>s.documentId)});
     }
 
     if(req.method==='DELETE' && url.startsWith('/api/sales/')){
       const u=auth(req,res,'manager');
       if(!u)return;
       const id=decodeURIComponent(url.split('/').pop());
-      const idx=db.sales.findIndex(x=>x.id===id);
-      if(idx<0)return json(res,404,{error:'Az eladás nem található'});
-      const sale=db.sales[idx];
-      const doc=db.documents.find(x=>x.id===sale.documentId);
-      // MANAGER és OWNER is törölhet eladást. A számlát külön dokumentumként megtartjuk.
-      const product=db.products.find(x=>x.id===sale.productId);
-      if(product){
-        product.stock += sale.qty;
-        audit(db,u,'SALE_DELETE_STOCK_RESTORE',`${product.name}: +${sale.qty} db visszahelyezve`);
+      const sale=db.sales.find(x=>x.id===id);
+      if(!sale)return json(res,404,{error:'Az eladás nem található'});
+      // Egy kosár mindig egy tranzakció: törléskor a teljes kosarat töröljük.
+      const cartId=String(sale.cartId||'');
+      if(cartId){
+        const cartSales=db.sales.filter(x=>String(x.cartId||'')===cartId);
+        const restored=[];
+        for(const item of cartSales){const product=db.products.find(p=>p.id===item.productId);if(product){product.stock=(Number(product.stock)||0)+(Number(item.qty)||0);restored.push({productId:product.id,product:product.name,qty:Number(item.qty)||0});}}
+        const total=cartSales.reduce((a,x)=>a+Number(x.total||0),0);
+        const ids=new Set(cartSales.map(x=>x.id));
+        db.sales=db.sales.filter(x=>!ids.has(x.id));
+        db.finance ||= {}; db.finance.overallRevenue=Math.max(0,Number(db.finance.overallRevenue||0)-total);
+        audit(db,u,'SALE_CART_DELETE',`${cartId} · ${cartSales.length} tétel · ${total} Ft · teljes kosár törölve`);
+        await writeDB(db);
+        return json(res,200,{ok:true,deletedCartId:cartId,deletedSales:cartSales.length,deletedTotal:total,restoredStock:restored,invoicePreserved:cartSales.some(x=>x.documentId)});
       }
-      db.sales.splice(idx,1);
+      const product=db.products.find(p=>p.id===sale.productId);
+      if(product) product.stock=(Number(product.stock)||0)+(Number(sale.qty)||0);
+      db.sales=db.sales.filter(x=>x.id!==sale.id);
       db.finance ||= {}; db.finance.overallRevenue=Math.max(0,Number(db.finance.overallRevenue||0)-Number(sale.total||0));
-      // A számla megmarad, mert azt csak OWNER törölheti a számlalistából.
-      audit(db,u,'SALE_DELETE',`${sale.product} × ${sale.qty} · ${sale.total} Ft · ${sale.id}${doc?' · kapcsolt számla: '+doc.id:''}`);
+      audit(db,u,'SALE_DELETE',`${sale.product} × ${sale.qty} · ${sale.total} Ft · ${sale.id}`);
       await writeDB(db);
-      return json(res,200,{ok:true,deletedSaleId:sale.id,deletedInvoiceId:null,restoredStock:sale.qty,invoicePreserved:!!doc});
+      return json(res,200,{ok:true,deletedSaleId:sale.id,restoredStock:Number(sale.qty)||0,invoicePreserved:!!sale.documentId});
     }
 
     if(req.method==='POST' && url==='/api/documents'){
@@ -961,7 +1020,7 @@ async function api(req,res,url){
       const transactionSales=db.sales.filter(s=>((s.transactionId||s.id)===transactionId));
       const type='invoice';
       const doc={
-        id:'DOC-'+new Date().toISOString().replace(/\D/g,'').slice(0,14)+'-'+crypto.randomBytes(3).toString('hex').toUpperCase(),
+        id:makeDocumentId('INV'),
         type,
         createdAt:new Date().toISOString(),
         createdById:u.id,createdByName:u.name,
@@ -997,6 +1056,28 @@ async function api(req,res,url){
       audit(db,u,'INVOICE_DELETE',`${doc.id} · ${doc.total} Ft`);
       await writeDB(db);
       return json(res,200,{ok:true,deletedInvoiceId:doc.id});
+    }
+
+    if(req.method==='POST' && url==='/api/receipts'){
+      const u=auth(req,res);
+      if(!u)return;
+      const b=await readBody(req);
+      const sale=db.sales.find(s=>s.id===String(b.saleId||''));
+      if(!sale)return json(res,404,{error:'Az eladás nem található'});
+      if(sale.receiptId){const existing=db.documents.find(x=>x.id===sale.receiptId);if(existing)return json(res,200,{document:existing});}
+      const transactionId=sale.transactionId||sale.id;
+      const transactionSales=db.sales.filter(s=>(s.transactionId||s.id)===transactionId);
+      const receipt={
+        id:makeDocumentId('REC'),type:'receipt',createdAt:new Date().toISOString(),createdById:u.id,createdByName:u.name,
+        saleId:sale.id,transactionId,shiftId:sale.shiftId,customer:{name:'Vásárló',address:'',taxNumber:''},seller:{name:'Red Moon Pub',owner:'Zhen Yu Xiao'},
+        items:transactionSales.map(s=>({product:s.product,qty:s.qty,unitPrice:s.unitPrice,total:s.total})),
+        total:transactionSales.reduce((sum,s)=>sum+Number(s.total||0),0),paymentMethod:sale.paymentMethod
+      };
+      db.documents.unshift(receipt);
+      transactionSales.forEach(s=>{s.receiptId=receipt.id});
+      audit(db,u,'RECEIPT_CREATE',`${receipt.id} · ${receipt.total} Ft`);
+      await writeDB(db);
+      return json(res,201,{document:receipt});
     }
 
     if(req.method==='GET' && url==='/api/documents'){
