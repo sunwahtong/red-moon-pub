@@ -236,6 +236,7 @@
       if (nextFooter && currentFooter) currentFooter.replaceWith(nextFooter);
       $('#loader')?.remove(); document.documentElement.classList.remove('rm-index-lock');
       if (push) history.pushState({rm:true},'',url.href);
+      document.querySelector('header.nav nav')?.classList.remove('open');
       markNav(); initReveals(); initCountdowns(); window.RedMoonPageInit?.();
       if (url.hash) setTimeout(() => document.querySelector(url.hash)?.scrollIntoView({behavior:'smooth',block:'start'}),30);
       else scrollTo({top:0,behavior:'smooth'});
