@@ -14,3 +14,44 @@
 @media(max-width:900px){.v64-location-main{padding:94px 2vw 25px!important}.v64-sidebar{position:absolute;left:0;top:0;bottom:0;z-index:80;transform:translateX(-100%);transition:.22s ease;box-shadow:20px 0 50px rgba(0,0,0,.55)}.v64-sidebar.is-open{transform:none}.v64-sidebar-close{display:block;width:28px;height:28px;border:1px solid rgba(120,35,52,.5);background:#12080b;color:#fff;border-radius:7px}.v64-map-shell{position:relative;height:78vh;min-height:560px}.v64-title small{display:none}.v64-marker-card{right:15px;bottom:55px;width:190px}.v64-atlas{display:none}.map-zoom-rail{right:10px!important}}
 @media(max-width:560px){.v64-map-shell{height:78vh;min-height:500px;border-radius:14px}.v64-topbar{height:54px;flex-basis:54px;padding:0 8px}.v64-title b{font-size:8px}.v64-icon-button{width:32px;height:32px}.v64-map-corner{display:none}.v64-marker-card{left:12px;right:60px;width:auto}.map-zoom-slider{height:115px!important}}
 .v64-map-shell:fullscreen{width:100vw;height:100vh;border-radius:0;border:0}.v64-map-shell:fullscreen .v64-map-area{height:100vh}
+/* V64.1 — reliable single-image renderer. The map is painted as the stage
+   background so legacy .map-image rules cannot collapse or stretch it away. */
+.map-viewport .v64-map-stage{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  display:block!important;
+  opacity:1!important;
+  visibility:visible!important;
+  background-repeat:no-repeat!important;
+  background-position:center center!important;
+  background-color:#111!important;
+  transform-origin:center center!important;
+  z-index:5!important;
+}
+.map-viewport .v64-map-stage > .v64-map-image{
+  position:absolute!important;
+  left:0!important;
+  top:0!important;
+  width:1px!important;
+  height:1px!important;
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+.map-viewport .v64-map-stage::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.05));
+}
+.map-viewport.map-load-error::before{
+  content:"A GTA V térkép nem tölthető be";
+  position:absolute;
+  left:50%;top:50%;transform:translate(-50%,-50%);
+  z-index:80;color:#fff;font:700 12px Cinzel;letter-spacing:1px;
+}
