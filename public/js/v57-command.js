@@ -160,13 +160,28 @@
       <div class="v57-category-tabs">${cats.map((c,i)=>`<button class="v57-cat ${i===0?'active':''}" data-cat="${esc(c)}">${c==='drink'?'ITALOK':'ÉTELEK'}</button>`).join('')}</div>
       <div id="v57ProductsGrid" class="v57-products-grid"></div></div>
       <aside class="v57-card v57-cart"><div class="v57-card-head"><div><span>CART</span><h3>Kosár</h3></div><button id="v57ClearCart" class="v57-mini">ÜRÍTÉS</button></div><div id="v57CartItems"></div><div class="v57-cart-total"><span>ÖSSZESEN</span><strong id="v57CartTotal">0 Ft</strong></div><div class="v57-pay"><button class="active" data-pay="cash">💵 Készpénz</button><button data-pay="transfer">📱 Átutalás</button></div><button id="v57Checkout" class="v57-btn red wide">ELADÁS RÖGZÍTÉSE ↗</button><p id="v57SaleMsg" class="v57-note"></p></aside>
-    </div>`;
+    </div>
+    <section class="v57-card v59-sales-log"><div class="v57-card-head"><div><span>SALES / CART HISTORY</span><h3>Eladások</h3><small>Minden kosár saját Cart ID-t kap. Egy kosár több tételből is állhat.</small></div></div><div id="v59SalesHistory" class="v57-list"><div class="v57-empty">Betöltés…</div></div></section>`;
     $$('.v57-cat').forEach(b=>b.onclick=()=>{$$('.v57-cat').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderProductGrid(b.dataset.cat)});
     $('#v57ClearCart').onclick=()=>{cart.clear();renderCart()};
     $$('.v57-pay button').forEach(b=>b.onclick=()=>{$$('.v57-pay button').forEach(x=>x.classList.remove('active'));b.classList.add('active')});
     $('#v57Checkout').onclick=checkout;
     renderProductGrid(cats[0]);
     renderCart();
+    renderSalesHistory();
+  }
+  async function renderSalesHistory(){
+    const host=$('#v59SalesHistory'); if(!host)return;
+    try{
+      const d=await api('/api/sales');
+      const grouped=new Map();
+      (d.sales||[]).forEach(s=>{const key=s.cartId||s.transactionId||s.id;if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(s)});
+      const rows=[...grouped.values()].slice(0,80).map(items=>{
+        const first=items[0], total=items.reduce((a,x)=>a+Number(x.total||0),0);
+        return `<article class="v59-sale-card"><div><b>${esc(first.cartId||first.transactionId||'—')}</b><small>${new Date(first.at).toLocaleString('hu-HU')} · ${esc(first.user||'')}</small></div><div class="v59-sale-items">${items.map(x=>`<span class="v59-sale-item">${esc(x.product)} × ${x.qty}</span>`).join('')}</div><div class="v59-sale-total"><strong>${money(total)}</strong><span>${first.paymentMethod==='transfer'?'ÁTUTALÁS':'KÉSZPÉNZ'}</span></div></article>`;
+      }).join('');
+      host.innerHTML=rows||'<div class="v57-empty">Még nincs rögzített eladás.</div>';
+    }catch(e){host.innerHTML=`<div class="v57-empty">Az eladási napló nem tölthető be.</div>`}
   }
   function renderProductGrid(cat){
     const grid=$('#v57ProductsGrid'); if(!grid)return;
@@ -297,7 +312,7 @@
       products=pd.products||[]; shift=sd.shift||null; window.products=products;
       if(active==='pos'){
         const selected=$('.v57-cat.active')?.dataset.cat || products.find(p=>p.active)?.category || 'drink';
-        renderProductGrid(selected); renderCart();
+        renderProductGrid(selected); renderCart(); renderSalesHistory();
       }else if(active==='prices' || active==='stock'){
         await renderActive();
       }else if(active==='overview'){

@@ -12,15 +12,39 @@
  }
 
  const menuGrid=document.querySelector('.drink-grid');
- if(menuGrid){
-  const loadMenu=async()=>{try{const d=await api('/api/public-products');menuGrid.innerHTML=(d.products||[]).map((x,i)=>`<article class="drink-card"><div class="drink-art"><span class="drink-no">${String(i+1).padStart(2,'0')} / RED MOON</span><div class="moon-glow"></div><img src="${esc(x.image)}" alt="${esc(x.name)}" loading="lazy"><span class="art-caption">RED MOON / SEE CITY RP</span></div><div class="drink-info"><div><h3>${esc(x.name)}</h3><p>${esc(x.subtitle||'Red Moon Pub · SeeCity RP')}</p></div><div class="drink-price"><strong>${Number(x.price||0).toLocaleString('hu-HU')} Ft</strong><small class="vat-note">Áraink az ÁFÁ-t tartalmazzák.</small></div></div></article>`).join('');}catch{}};loadMenu();setInterval(loadMenu,2000);
- }
+ const syncPublicProducts=async()=>{
+  try{
+   const d=await api('/api/public-products');
+   const products=d.products||[];
+   if(menuGrid){
+    const sig=products.map(x=>`${x.id}:${x.price}:${x.name}`).join('|');
+    if(menuGrid.dataset.rm59Sig!==sig){
+      menuGrid.dataset.rm59Sig=sig;
+      menuGrid.innerHTML=products.map((x,i)=>`<article class="drink-card"><div class="drink-art"><span class="drink-no">${String(i+1).padStart(2,'0')} / RED MOON</span><div class="moon-glow"></div><img src="${esc(x.image)}" alt="${esc(x.name)}" loading="lazy"><span class="art-caption">RED MOON / SEE CITY RP</span></div><div class="drink-info"><div><h3>${esc(x.name)}</h3><p>${esc(x.subtitle||'Red Moon Pub · SeeCity RP')}</p></div><div class="drink-price"><strong>${Number(x.price||0).toLocaleString('hu-HU')} Ft</strong><small class="vat-note">Áraink az ÁFÁ-t tartalmazzák.</small></div></div></article>`).join('');
+    }
+   }
+   const byName=new Map(products.map(x=>[String(x.name).trim().toLocaleLowerCase('hu-HU'),x]));
+   document.querySelectorAll('.rm17-drink,.featured-grid .drink-card').forEach(card=>{
+    const name=card.querySelector('h3')?.textContent?.trim(); const product=name&&byName.get(name.toLocaleLowerCase('hu-HU')); if(!product)return;
+    const price=card.querySelector('strong'); if(price)price.textContent=`${Number(product.price||0).toLocaleString('hu-HU')} Ft`;
+    let vat=card.querySelector('.vat-note'); if(!vat){vat=document.createElement('small');vat.className='vat-note';card.querySelector('.drink-info')?.appendChild(vat)} if(vat)vat.textContent='Áraink az ÁFÁ-t tartalmazzák.';
+   });
+  }catch{}
+ };
+ if(menuGrid || document.querySelector('.rm17-drink,.featured-grid .drink-card')){syncPublicProducts();setInterval(syncPublicProducts,2000)}
 
  const eventRoot=$('#v56PublicEvents');
- if(eventRoot){
-  document.querySelectorAll('.rm17-events-list > .rm17-event-card').forEach(x=>x.classList.add('v56-hidden-static-event'));
-  const load=async()=>{try{const d=await api('/api/public-events');eventRoot.innerHTML=(d.events||[]).map(x=>`<article class="v56-event-card-live"><div><span class="v56-event-live">RED MOON EVENT</span><h3>${esc(x.title)}</h3><small>${new Date(x.startsAt).toLocaleString('hu-HU')} · ${esc(x.place)}</small><p>${esc(x.description||'')}</p></div><div><div class="v56-countdown" data-event-time="${x.startsAt}">—</div><small>hátralévő idő</small></div></article>`).join('')||'<div class="v56-review-empty">Nincs közzétett rendezvény.</div>';}catch{eventRoot.innerHTML='<div class="v56-review-empty">A rendezvények jelenleg nem érhetők el.</div>';}};
+ const homeEvent=document.querySelector('#tonight .rm17-event');
+ if(eventRoot || homeEvent){
+  if(eventRoot) document.querySelectorAll('.rm17-events-list > .rm17-event-card').forEach(x=>x.classList.add('v56-hidden-static-event'));
+  const renderHomeEvent=(x,root)=>{root.innerHTML=`<div class="rm59-home-event-copy"><div><span class="rm17-label">NEXT EVENT · RED MOON</span><h2>${esc(x.title)}</h2><p class="rm17-lead">${esc(x.description||'')} · ${esc(x.place||'Red Moon Pub')}</p></div><div class="rm59-event-side"><div class="rm59-event-count" data-event-time="${esc(x.startsAt)}">—</div><small>hátralévő idő</small><a class="rm17-btn red" href="events.html">EVENT INFO ↗</a></div></div>`};
+  const loadEvents=async()=>{try{
+   const d=await api('/api/public-events'); const events=d.events||[];
+   if(eventRoot) eventRoot.innerHTML=events.map(x=>`<article class="v56-event-card-live"><div><span class="v56-event-live">RED MOON EVENT</span><h3>${esc(x.title)}</h3><small>${new Date(x.startsAt).toLocaleString('hu-HU')} · ${esc(x.place)}</small><p>${esc(x.description||'')}</p></div><div><div class="v56-countdown" data-event-time="${esc(x.startsAt)}">—</div><small>hátralévő idő</small></div></article>`).join('')||'<div class="v56-review-empty">Nincs közzétett rendezvény.</div>';
+   if(homeEvent){if(events[0])renderHomeEvent(events[0],homeEvent);else homeEvent.innerHTML='<div class="rm59-home-event-copy"><div><span class="rm17-label">RED MOON / TONIGHT</span><h2>Hamarosan új esemény.</h2><p class="rm17-lead">Az új rendezvény automatikusan itt jelenik meg.</p></div><div class="rm59-event-side"><a class="rm17-btn" href="events.html">RENDEZVÉNYEK ↗</a></div></div>';}
+  }catch{if(eventRoot)eventRoot.innerHTML='<div class="v56-review-empty">A rendezvények jelenleg nem érhetők el.</div>';}};
   const tick=()=>document.querySelectorAll('[data-event-time]').forEach(el=>{const d=Math.max(0,new Date(el.dataset.eventTime)-Date.now());const days=Math.floor(d/86400000),hours=Math.floor(d/3600000)%24,mins=Math.floor(d/60000)%60,secs=Math.floor(d/1000)%60;el.textContent=d?`${days}n ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`:'MOST';});
-  load().then(tick);setInterval(tick,1000);setInterval(load,30000);
+  loadEvents().then(tick);setInterval(tick,1000);setInterval(loadEvents,15000);
  }
+
 })();

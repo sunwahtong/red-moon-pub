@@ -186,6 +186,8 @@ function showLogin(){
 }
 $('#openCashAccess')?.addEventListener('click',()=>{playSfx('click',.22);showLogin();});
 function showApp(){
+  $('#accessChooser')?.classList.add('hidden');
+  $('#loginView')?.classList.add('hidden');
   window.me=me;
   if(me?.role==='dj'){ location.href='dj.html'; return; }
   $('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');

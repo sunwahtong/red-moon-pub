@@ -33,7 +33,7 @@
 @media(max-width:700px){#v57Shell{display:block}.v57-sidebar{position:relative;top:auto;width:auto;border-right:0;border-bottom:1px solid #341622}.v57-sidebar nav{grid-template-columns:repeat(2,1fr)}.v57-workspace{margin-left:0;padding:0 12px 50px}.v57-topbar{position:sticky;top:0}.v57-products-grid,.v57-review-grid,.v57-people-grid{grid-template-columns:1fr}.v57-grid.four{grid-template-columns:1fr 1fr}.v57-form-grid{grid-template-columns:1fr}.v57-profile-card{grid-template-columns:1fr}.v57-profile-avatar{margin:auto}.v57-price-row{grid-template-columns:52px 1fr}.v57-price-edit{grid-column:2;text-align:left}.v57-checks{grid-template-columns:1fr}}
 
 /* V57.1 — clean full-screen Command Center layout */
-.staff-page:has(#appView:not(.hidden)) > header.nav{display:none!important}
+.staff-page:has(#appView:not(.hidden)) > header.nav{display:flex!important}
 .staff-page:has(#appView:not(.hidden)) .v57-command-app{min-height:100vh}
 .staff-page:has(#appView:not(.hidden)) #v57Shell{min-height:100vh;grid-template-columns:250px minmax(0,1fr)}
 .staff-page:has(#appView:not(.hidden)) .v57-sidebar{top:0;z-index:300}
@@ -67,3 +67,47 @@
 .v57-field input,.v57-field select,.v57-field textarea{max-width:100%}
 .v57-checks{align-content:start}
 .v57-shift-actions{margin-top:16px}
+
+/* V59 — Command Center stays below the real site header and never overlaps it. */
+.staff-page:has(#appView:not(.hidden)){overflow-x:hidden}
+.staff-page:has(#appView:not(.hidden)) .staff-shell{padding-top:0!important}
+.staff-page:has(#appView:not(.hidden)) #v57Shell{min-height:calc(100vh - 76px);grid-template-columns:250px minmax(0,1fr)}
+.staff-page:has(#appView:not(.hidden)) .v57-sidebar{top:76px;bottom:0}
+.staff-page:has(#appView:not(.hidden)) .v57-workspace{margin-left:250px;padding:0 42px 80px;min-width:0}
+.staff-page:has(#appView:not(.hidden)) .v57-topbar{top:76px;min-height:112px;padding:24px 4px 18px}
+.staff-page:has(#appView:not(.hidden)) .v57-view{max-width:1600px}
+.staff-page:has(#appView:not(.hidden)) #accessChooser,.staff-page:has(#appView:not(.hidden)) #loginView{display:none!important}
+@media(max-width:900px){
+ .staff-page:has(#appView:not(.hidden)) .v57-sidebar{top:76px}
+ .staff-page:has(#appView:not(.hidden)) .v57-workspace{margin-left:0;padding:0 18px 60px}
+ .staff-page:has(#appView:not(.hidden)) .v57-topbar{top:76px}
+}
+
+.v59-sales-log{margin-top:16px}
+.v59-sale-card{display:grid;grid-template-columns:minmax(130px,1fr) 1.6fr auto;gap:18px;align-items:center;padding:14px 16px;border:1px solid #351923;border-radius:13px;background:linear-gradient(145deg,#13090e,#090607);margin-top:9px}
+.v59-sale-card b{display:block;color:#fff;font:600 12px Cinzel}.v59-sale-card small{display:block;color:#8d7b82;font-size:9px;margin-top:4px}.v59-sale-items{display:flex;flex-wrap:wrap;gap:7px}.v59-sale-item{padding:7px 9px;border:1px solid #3c1d29;border-radius:8px;background:#0c0709;color:#d9cbd0;font-size:10px}.v59-sale-total{text-align:right}.v59-sale-total strong{display:block;color:#fff;font:700 16px Cinzel}.v59-sale-total span{display:block;color:#c12748;font-size:8px;letter-spacing:.12em;margin-top:5px}@media(max-width:850px){.v59-sale-card{grid-template-columns:1fr}.v59-sale-total{text-align:left}}
+
+/* V59.1 — reserve the real site header so Command Center content never sits underneath it. */
+.staff-page:has(#appView:not(.hidden)) #v57Shell{padding-top:76px;box-sizing:border-box}
+.staff-page:has(#appView:not(.hidden)) .v57-topbar{position:sticky;top:76px}
+@media(max-width:760px){.staff-page:has(#appView:not(.hidden)) #v57Shell{padding-top:74px}.staff-page:has(#appView:not(.hidden)) .v57-topbar{top:74px}}
+
+/* Homepage live-event presentation */
+.rm59-home-event-copy{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,380px);gap:40px;align-items:center;width:100%}
+.rm59-home-event-copy h2{font:700 clamp(30px,4vw,58px) Cinzel;margin:10px 0;color:#f7edf0}
+.rm59-home-event-copy p{max-width:760px}
+.rm59-event-side{display:grid;gap:10px;justify-items:end;text-align:right}
+.rm59-event-count{font:700 clamp(24px,3vw,42px) Cinzel;color:#fff;text-shadow:0 0 24px rgba(214,30,67,.22);letter-spacing:.02em}
+.rm59-event-side small{font-size:8px;letter-spacing:.18em;color:#806f74;text-transform:uppercase}
+@media(max-width:800px){.rm59-home-event-copy{grid-template-columns:1fr}.rm59-event-side{justify-items:start;text-align:left}}
+
+/* Public review polish — same visual language as the Command Center review cards. */
+.v56-reviews .v56-review-list{border-color:#48202d!important;background:linear-gradient(145deg,#16090f,#090607)!important;box-shadow:0 25px 80px rgba(0,0,0,.42)!important}
+.v56-reviews .v56-review-item,.v56-reviews .v57-review{position:relative;overflow:hidden;border-color:#48202d!important;background:linear-gradient(145deg,rgba(25,10,16,.96),rgba(9,6,8,.98))!important;box-shadow:0 14px 40px rgba(0,0,0,.25)!important}
+.v56-reviews .v56-review-item:before,.v56-reviews .v57-review:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 80% 0,rgba(215,25,49,.12),transparent 42%);pointer-events:none}
+.v56-reviews .v56-review-item b,.v56-reviews .v57-review-top b{color:#fff!important;text-shadow:0 0 18px rgba(226,31,73,.25)!important}
+.v56-reviews .v56-review-item .v56-review-text,.v56-reviews .v57-review blockquote{position:relative;color:#eee4e7!important;font-size:13px!important;line-height:1.75!important}
+.v56-reviews .v56-review-item .v56-stars,.v56-reviews .gold-stars{color:#f4c24a!important;text-shadow:0 0 14px rgba(244,194,74,.28)!important}
+.v56-reviews .v56-review-item .v56-review-text:before,.v56-reviews .v57-review blockquote:before{color:#df2c50!important}
+.v56-reviews .v56-review-item .v56-review-text:after,.v56-reviews .v57-review blockquote:after{color:#df2c50!important}
+.v56-reviews .v56-review-form{max-width:none!important;width:100%!important;border-color:#48202d!important;background:linear-gradient(145deg,#16090f,#090607)!important}

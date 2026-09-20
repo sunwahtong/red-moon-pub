@@ -1,22 +1,26 @@
-# Red Moon Pub V57 — Command Center Rebuild
+# Red Moon Pub V59 — Command Center / Live Public Sync
 
-V57 is a full Staff Command Center rebuild based on V56.3.
+V59 fixes the Command Center layout and connects the public site to the live staff data.
 
-## Included
-- Fixed left-side Command Center navigation.
-- Persistent top-right logout inside Command Center.
-- Working POS catalog with product images, cart, payment selection and shift-membership enforcement.
-- Drink and food product categories; backend sales now accepts both `drink` and `food`.
-- Stock/restock workflow with +1/+5/+10, supplier/source, unit cost and restock logs.
-- Manager sees restock notifications only; Owner has full audit log.
-- Shift opening/closing and closed-shift history.
-- Employee directory and Owner-only account editing.
-- Public review administration and Owner-only deletion.
-- Dedicated Owner price-control tab.
-- Product creation with name, category, price, stock, minimum stock, image path and subtitle.
-- Personal profile editing with nickname and profile image.
-- Owner finance / overall revenue reset and event creation.
-- Public menu polls `/api/public-products` so Owner price changes appear without a page refresh.
-- Existing authentication and backend audit system retained.
+## Main fixes
+- Site navigation remains visible above the Command Center.
+- Access chooser is hidden after staff login so it cannot sit above the Command Center.
+- Command Center reserves the header height and keeps sidebar/workspace separated.
+- POS shows image-based drinks and food, cart, payment and cart history.
+- Sales history groups line items by the same Cart ID used by the backend.
+- Owner-created events appear automatically on both the homepage and Events page with countdowns.
+- Public menu and homepage featured prices poll `/api/public-products` and update after Owner price changes.
+- VAT text is shown on public prices.
+- Public review cards use the same dark/red/gold visual language as Command Center review cards.
 
-Deploy the whole package on Render, including `server.js`, `public/`, and `data/`.
+## Backend already included from V58
+- Owner audit log.
+- Manager + Owner restock permissions.
+- Shift open/close and member management.
+- Owner account management.
+- Owner price control.
+- Dynamic public product endpoint.
+- Dynamic public events endpoint.
+
+## Important
+Upload the complete ZIP to Render. This release contains both frontend and backend files.
