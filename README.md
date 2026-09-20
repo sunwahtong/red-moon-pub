@@ -13,3 +13,10 @@ A Command Center → Eladás részben a részlegek fix, kért sorrendben jelenne
 6. Kellékek — Sörnyitó
 
 A régi adatbázisokban is explicit ID- és név-alapú besorolás történik, ezért a termékek nem esnek véletlenül az Egyéb kategóriába.
+
+## V59.9 — DJ Access / Console polish
+- Fixed DJ toast notifications being visually hidden under the fixed navigation/header.
+- Refined DJ console panels, controls, logout button and login screen to match the Red Moon neon design.
+- Added an OWNER-only DJ ACCESS creation selector inside the Staff Command Center account panel.
+- DJ accounts remain restricted to the DJ portal by the existing server-side role/portal checks.
+- OWNER account editor can now also edit DJ ACCESS accounts.

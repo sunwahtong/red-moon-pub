@@ -46,3 +46,51 @@
 
 /* V42.1 chat moderation */
 .msg-moderation{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:9px;min-width:0}.msg-ip{font-size:10px;letter-spacing:.08em;color:rgba(255,255,255,.42);max-width:100%;overflow-wrap:anywhere}.msg-ban{border:1px solid rgba(190,55,67,.38);background:rgba(190,55,67,.10);color:#f0aeb5;border-radius:8px;padding:6px 9px;font-size:10px;font-weight:800;letter-spacing:.08em;cursor:pointer}.msg-ban:hover{background:rgba(190,55,67,.18);border-color:rgba(220,75,90,.62)}.msg-delete{margin-left:0!important}@media(max-width:640px){.msg-moderation{justify-content:stretch}.msg-ip{flex:1 1 100%}.msg-ban,.msg-delete{flex:1 1 calc(50% - 4px);min-height:36px}}
+
+/* V59.9 — DJ console visual/overlay repair */
+body.dj-page{background:
+  radial-gradient(circle at 82% 8%,rgba(150,10,35,.16),transparent 28%),
+  radial-gradient(circle at 18% 72%,rgba(90,0,20,.12),transparent 32%),#080607;
+}
+body.dj-page .nav{background:linear-gradient(180deg,rgba(6,4,6,.98),rgba(6,4,6,.78));border-bottom-color:rgba(215,30,60,.18)}
+body.dj-page .dj-shell{padding-top:112px}
+body.dj-page .dj-top{align-items:flex-end;gap:28px;margin-bottom:28px}
+body.dj-page .dj-top h1{font-size:clamp(52px,8vw,112px);letter-spacing:-3px;line-height:.9;text-shadow:0 0 38px rgba(255,235,240,.08)}
+body.dj-page .dj-top p{color:#b9aab0;margin-top:14px}
+body.dj-page .dj-top>.btn{background:rgba(12,7,10,.72)!important;color:#f7edf0!important;border:1px solid rgba(220,42,73,.52)!important;box-shadow:0 0 24px rgba(200,20,50,.08)!important;border-radius:999px;min-height:44px}
+body.dj-page .dj-top>.btn:hover{background:rgba(185,14,36,.13)!important;border-color:#e23450!important;color:#fff!important}
+body.dj-page .dj-live-card{border-color:rgba(220,38,70,.24);background:linear-gradient(135deg,rgba(20,10,14,.96),rgba(10,7,9,.92));box-shadow:0 18px 55px rgba(0,0,0,.28),inset 0 0 50px rgba(170,15,45,.04)}
+body.dj-page .dj-panel.panel{background:linear-gradient(145deg,rgba(18,10,13,.94),rgba(9,7,9,.96));border-color:rgba(220,42,73,.18);box-shadow:0 16px 45px rgba(0,0,0,.20)}
+body.dj-page .dj-panel.panel:hover{border-color:rgba(220,42,73,.30)}
+body.dj-page .panel-head h2{color:#f7edf0}
+body.dj-page .panel-note{color:#a9979e}
+body.dj-page .btn-ghost{background:rgba(14,8,11,.88)!important;color:#eee3e7!important;border-color:rgba(220,42,73,.30)!important}
+body.dj-page .btn-ghost:hover{background:rgba(185,14,36,.12)!important;color:#fff!important;border-color:#d82a49!important}
+body.dj-page .btn-red{color:#fff!important;border-radius:10px}
+body.dj-page .field input,body.dj-page .field textarea{background:#0a0709;color:#f7edf0;border-color:#40202a}
+body.dj-page .field input:focus,body.dj-page .field textarea:focus{border-color:#c52a47;box-shadow:0 0 0 3px rgba(197,42,71,.08)}
+body.dj-page .dj-login-view{min-height:calc(100vh - 112px);padding-top:36px;padding-bottom:70px}
+body.dj-page .dj-login-card{background:linear-gradient(145deg,rgba(18,9,13,.98),rgba(8,6,8,.98));border-color:rgba(220,42,73,.26);box-shadow:0 28px 90px rgba(0,0,0,.42),0 0 70px rgba(150,10,35,.08)}
+body.dj-page .dj-login-card h1{color:#f7edf0;text-shadow:0 0 32px rgba(255,235,240,.08)}
+body.dj-page .dj-login-card p{color:#b8a7ae}
+body.dj-page .dj-login-mark{background:radial-gradient(circle at 35% 30%,rgba(220,35,65,.18),rgba(10,6,8,.88) 68%);box-shadow:0 0 42px rgba(220,35,65,.14)}
+
+/* Toasts must always sit above the fixed header and panels. */
+body.dj-page .toast-modal{z-index:100000!important;top:0;align-items:flex-start;padding:96px 18px 18px;overflow:visible}
+body.dj-page .toast-card{position:relative;z-index:100001;margin:8px auto 0;background:rgba(9,6,8,.985);border-color:rgba(235,45,78,.58);box-shadow:0 24px 90px rgba(0,0,0,.72),0 0 55px rgba(220,30,65,.16)}
+body.dj-page .toast-modal.show{pointer-events:auto}
+
+/* Cleaner cards / controls */
+body.dj-page .dj-buttons{gap:10px}
+body.dj-page .dj-buttons .btn,body.dj-page .gocast-callout .btn,body.dj-page .station-card .btn{border-radius:10px}
+body.dj-page .counter{background:rgba(210,28,60,.08);border-color:rgba(220,42,73,.34);color:#ff6d88}
+body.dj-page .request-item{background:rgba(9,6,8,.56);border-color:#321923}
+body.dj-page .empty-state{color:#98868d}
+body.dj-page .live-orb{box-shadow:0 0 35px rgba(255,45,80,.13)}
+
+@media(max-width:800px){
+  body.dj-page .dj-shell{padding-top:92px}
+  body.dj-page .dj-top{align-items:stretch}
+  body.dj-page .dj-top>.btn{width:100%}
+  body.dj-page .toast-modal{padding:82px 10px 10px}
+}

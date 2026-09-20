@@ -494,7 +494,7 @@ async function editUser(user){
     {id:'name',label:'TELJES NÉV',value:user.name,required:true},
     {id:'nickname',label:'BECENÉV · OPCIONÁLIS',value:user.nickname||'',placeholder:'Pl. Rei'},
     {id:'username',label:'FELHASZNÁLÓNÉV',value:user.username,required:true},
-    {id:'role',label:'JOGOSULTSÁG',type:'select',value:user.role,options:[{value:'staff',label:'STAFF'},{value:'manager',label:'MANAGER'},{value:'owner',label:'OWNER'}]},
+    {id:'role',label:'JOGOSULTSÁG',type:'select',value:user.role,options:[{value:'staff',label:'STAFF'},{value:'manager',label:'MANAGER'},{value:'owner',label:'OWNER'},{value:'dj',label:'DJ ACCESS'}]},
     {id:'password',label:'ÚJ JELSZÓ · OPCIONÁLIS',type:'password',value:'',placeholder:'Hagyd üresen, ha nem változik'}
   ],confirmText:'FIÓK MENTÉSE'});
   if(!data)return;

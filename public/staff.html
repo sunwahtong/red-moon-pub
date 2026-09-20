@@ -25,7 +25,9 @@
 .staff-page.staff-unauth #appView{display:none!important}
 .staff-page.staff-unauth .staff-shell{max-width:1180px!important;margin:0 auto!important;padding:0 24px 60px!important}
 </style>
-</head>
+<style>
+.owner-create-tabs{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}.owner-create-tab{cursor:pointer;padding:10px 14px;border:1px solid #3b1c27;border-radius:999px;background:#0d080b;color:#927f87;font-size:9px;letter-spacing:.13em;font-weight:800}.owner-create-tab.active{background:rgba(185,14,36,.14);border-color:#c62a49;color:#fff}.owner-create-tab[data-create-role="dj"].active{box-shadow:0 0 24px rgba(200,35,70,.10)}
+</style></head>
 <body class="staff-page staff-unauth">
 <div class="noise"></div>
 <header class="nav"><a class="brand" href="index.html"><span class="brand-mark">月</span><span>RED MOON <small>PUB</small></span></a><nav><a href="index.html">Főoldal</a><a href="menu.html">Itallap</a><a href="events.html">Rendezvények</a><a href="gallery.html">Galéria</a><a href="about.html">Rólunk</a><a href="location.html">Lokáció</a><a href="club.html">Red Moon Club</a><a class="staff-link active" href="staff.html">STAFF</a></nav><div class="header-context" id="staffUser"></div><button class="hamb" id="hamb" type="button">☰</button></header>
@@ -114,7 +116,9 @@
 <section id="documentsPanel" class="panel staff-extra"><div class="panel-head"><div><span>07 / DOCUMENTS</span><h2>Számla</h2></div></div><div id="documentsBody"><div class="doc-note">A számlázás <b>nem kötelező</b>. Eladáskor vagy később is elkészíthető.</div></div></section>
 
 <section id="ownerPanel" class="panel owner-panel hidden owner-only staff-extra"><div class="panel-head"><div><span>08 / OWNER</span><h2>Fiókok &amp; műszak statisztika</h2></div></div>
-<form id="userForm" class="mini-form"><input id="uName" placeholder="Név" required><input id="uUsername" placeholder="Felhasználónév" required><input id="uPassword" type="password" placeholder="Ideiglenes jelszó" required><select id="uRole"><option value="staff">Staff</option><option value="manager">Manager</option><option value="owner">Owner</option><option value="dj">DJ</option></select><button class="btn btn-red" type="submit">FELHASZNÁLÓ LÉTREHOZÁSA</button></form>
+<div class="owner-create-tabs"><button type="button" class="owner-create-tab active" data-create-role="staff">STAFF FIÓK</button><button type="button" class="owner-create-tab" data-create-role="dj">DJ ACCESS</button></div>
+<form id="userForm" class="mini-form"><input id="uName" placeholder="Név" required><input id="uUsername" placeholder="Felhasználónév" required><input id="uPassword" type="password" placeholder="Ideiglenes jelszó" required><select id="uRole"><option value="staff">Staff</option><option value="manager">Manager</option><option value="owner">Owner</option><option value="dj">DJ</option></select><button class="btn btn-red" type="submit">FIÓK LÉTREHOZÁSA</button></form>
+<div id="djAccessHint" class="mini-note owner-users-hint hidden">DJ ACCESS: ezt a belépést kizárólag az OWNER hozhatja létre, és a fiók csak a DJ vezérlőbe használható.</div>
 <div class="mini-note owner-users-hint">Meglévő fiókok szerkesztése: név, felhasználónév, rang és opcionálisan jelszó.</div><div id="usersList" class="users-list"></div><div id="performance" style="margin-top:18px"></div><div id="ownerShifts" style="margin-top:18px"></div>
 </section>
 </section></main>
@@ -131,5 +135,9 @@
 <div id="toastModal" class="toast-modal" aria-hidden="true"><div class="toast-box"><div class="toast-icon">✓</div><div><b id="toastTitle">Red Moon</b><span id="toastText"></span></div><button type="button" data-toast-close>×</button></div></div>
 
 <div id="docModal" class="doc-modal"><div class="doc-box"><div class="row" style="display:flex;justify-content:space-between;gap:10px"><h2 id="docTitle">Dokumentum</h2><button class="btn btn-ghost" onclick="closeDoc()">×</button></div><div id="docContent"></div></div></div>
-<script src="js/staff.js?v=21.0"></script><script src="js/v57-command.js?v=59.3"></script>
+<script>(function(){
+const tabs=document.querySelectorAll('[data-create-role]'),role=document.getElementById('uRole'),hint=document.getElementById('djAccessHint');
+function syncCreateRole(v){if(role)role.value=v==='dj'?'dj':'staff';tabs.forEach(t=>t.classList.toggle('active',t.dataset.createRole===v));if(hint)hint.classList.toggle('hidden',v!=='dj');}
+tabs.forEach(t=>t.addEventListener('click',()=>syncCreateRole(t.dataset.createRole)));syncCreateRole('staff');
+})();</script><script src="js/staff.js?v=21.0"></script><script src="js/v57-command.js?v=59.3"></script>
 <script>(function(){const b=document.getElementById('hamb'),n=document.querySelector('header.nav nav');if(b&&n)b.addEventListener('click',()=>n.classList.toggle('open'));})();</script><script src="js/v40-premium.js?v=41"></script><script src="js/v41-premium.js?v=41"></script><script src="js/v42-experience.js?v=42"></script><script src="js/v43-nightlife.js?v=43"></script><script src="js/v51-signature-header.js?v=51"></script><script src="js/v52-heading-system.js?v=52"></script><script src="js/v53-performance.js?v=53"></script></body></html>
