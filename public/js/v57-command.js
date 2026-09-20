@@ -63,9 +63,9 @@
         <button data-view="stock">03 · Készlet</button>
         <button data-view="shifts">04 · Műszakok</button>
         <button data-view="employees">05 · Dolgozók</button>
-        <button data-view="reviews">06 · Vélemények</button>
-        <button data-view="prices">07 · MENU / ÁRAK</button>
-        <button data-view="management">08 · Vezetés</button>
+        <button data-view="reviews" style="display:none">06 · Vélemények</button>
+        <button data-view="prices" style="display:none">07 · MENU / ÁRAK</button>
+        <button data-view="management" style="display:none">08 · Vezetés</button>
         <button data-view="documents" data-role-view="manager">09 · SZÁMLÁK / NYUGTÁK</button>
         <button data-view="profile">10 · Saját profil</button>
       </nav>
@@ -90,7 +90,32 @@
 
   let products=[], me=null, shift=null, active='overview', cart=new Map(), refreshTimer=null;
 
+  function canAccessView(id){
+    const role=me?.role;
+    if(role==='owner') return true;
+    if(role==='manager') return id!=='management';
+    if(role==='staff') return !['reviews','prices','management'].includes(id);
+    return id==='profile';
+  }
+  function applyRoleNavigation(){
+    if(!me) return;
+    $$('.v57-sidebar nav button').forEach(b=>{
+      const allowed=canAccessView(b.dataset.view);
+      b.style.display=allowed?'flex':'none';
+      b.setAttribute('aria-hidden',allowed?'false':'true');
+    });
+    $$('.v57-view').forEach(v=>{
+      const allowed=canAccessView(v.dataset.view);
+      v.style.display=allowed?'':'none';
+    });
+    if(!canAccessView(active)){
+      active='overview';
+    }
+  }
   function setView(id){
+    if(!canAccessView(id)){
+      id='overview';
+    }
     active=id; updateGlobalShiftBanner(); $$('.v57-view').forEach(v=>v.classList.toggle('active',v.dataset.view===id));
     $$('.v57-sidebar nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));
     const title=viewDefs.find(x=>x[0]===id)?.[1]||'Command Center'; $('#v57Title').textContent=title;
@@ -143,6 +168,7 @@
       me=md.user; products=pd.products||[]; shift=sd.shift||null; window.me=me; window.products=products; updateGlobalShiftBanner();
       $('#v57SideName').textContent=me?.name||'—'; $('#v57SideRole').textContent=(me?.role||'STAFF').toUpperCase();
       $('#v57Welcome').textContent=`Bejelentkezve: ${me?.name||''} · ${(me?.role||'').toUpperCase()}`;
+      applyRoleNavigation();
       const docNav=$('.v57-sidebar nav [data-view=documents]'); if(docNav) docNav.style.display=['manager','owner'].includes(me?.role)?'flex':'none';
       if(me?.role==='dj'){location.href='dj.html';return}
       renderActive();
