@@ -438,9 +438,8 @@ function showShiftCloseDocument(s,t){
     <div class="document-section compact"><div class="receipt-line"><span>Eladások</span><b>${s.salesCount} kosár</b></div><div class="receipt-line"><span>Eladott tételek</span><b>${s.items} db</b></div><div class="receipt-line"><span>Záró kassza</span><b>${money(s.closingCash)}</b></div></div>
     <div class="transfer-card"><small>ELUTALANDÓ TELJES VÉGÖSSZEG</small><strong>${money(overall)}</strong><div class="bank-line"><span>Számlaszám</span><b>${esc(t.account)}</b></div><div class="bank-line"><span>Név</span><b>${esc(t.name)}</b></div><div class="bank-line"><span>Közlemény</span><b>${esc(s.id)}</b></div></div>
     ${s.notes?`<div class="document-note"><small>MEGJEGYZÉS</small>${esc(s.notes)}</div>`:''}
-  </div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
+  </div>`;
   $('#docModal').classList.add('show');
-  window._printHtml=$('#docContent').innerHTML;
 }
 async function renderDocumentsHint(){
   const box=$('#documentsBody'); if(!box)return;
@@ -476,6 +475,16 @@ async function createReceipt(saleId){
 }
 
 async function createDocument(saleId,type){
+  const existingSale=(window._lastSales||[]).find(x=>x.id===saleId);
+  if(existingSale?.documentId){
+    await rmAlert('Az eladás már ki lett számlázva.','Az eladás már ki lett számlázva.');
+    return;
+  }
+  const existingCart=(window._saleCarts||[]).find(c=>c.items?.some(x=>x.id===saleId));
+  if(existingCart?.documentId){
+    await rmAlert('Az eladás már ki lett számlázva.','Az eladás már ki lett számlázva.');
+    return;
+  }
   const data=await rmForm({title:'Számla létrehozása',kicker:'RED MOON / DOCUMENTS · INVOICE',fields:[
     {id:'name',label:'SZÁMLÁZÁSI NÉV',value:'',placeholder:'Név / cégnév',required:true},
     {id:'address',label:'SZÁMLÁZÁSI CÍM',value:'',placeholder:'Cím',required:true},
@@ -484,7 +493,15 @@ async function createDocument(saleId,type){
   if(!data)return;
   const name=String(data.name||'').trim(),address=String(data.address||'').trim(),tax=String(data.tax||'').trim();
   if(!name||!address){await rmAlert('A számlázási név és cím megadása kötelező.','Hiányzó számlázási adatok');return}
-  try{const d=await api('/api/documents',{method:'POST',body:JSON.stringify({saleId,type:'invoice',customer:{name,address,taxNumber:tax}})});showDocument(d.document);await load()}catch(e){await rmAlert(e.message,'Számlázás sikertelen')}
+  try{
+    const d=await api('/api/documents',{method:'POST',body:JSON.stringify({saleId,type:'invoice',customer:{name,address,taxNumber:tax}})});
+    if(d.alreadyExists){
+      await rmAlert('Az eladás már ki lett számlázva.','Az eladás már ki lett számlázva.');
+      await load();
+      return;
+    }
+    showDocument(d.document);await load()
+  }catch(e){await rmAlert(e.message,'Számlázás sikertelen')}
 }
 function showDocument(doc){
   const isReceipt=doc.type==='receipt';
@@ -500,8 +517,8 @@ function showDocument(doc){
     <div class="document-payment"><span>FIZETÉS</span><b>${doc.paymentMethod==='transfer'?'📱 ÁTUTALÁS':'💵 KÉSZPÉNZ'}</b></div>
     <div class="document-grand"><span>ÖSSZESEN</span><strong>${money(doc.total)}</strong></div>
     <div class="document-footer">RED MOON PUB · SEE CITY RP · ZHEN YU XIAO</div>
-  </div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
-  $('#docModal').classList.add('show');window._printHtml=$('#docContent').innerHTML;
+  </div>`;
+  $('#docModal').classList.add('show');
 }
 function closeDoc(){$('#docModal').classList.remove('show')}
 async function loadDocumentById(id){
@@ -511,8 +528,6 @@ async function loadDocumentById(id){
     if(doc)showDocument(doc); else await rmAlert('A számla nem található.','Dokumentum')
   }catch(e){await rmAlert(e.message,'Művelet sikertelen')}
 }
-function printCurrentDoc(){if(!window._printHtml)return;const w=window.open('','_blank','width=800,height=1000');w.document.write('<html><head><title>Red Moon Document</title><style>body{font-family:Arial,sans-serif;background:#f4eef0;padding:30px;color:#24151b}.premium-document{max-width:680px;margin:auto;background:#f9f3f5;border:1px solid #d8c7cd;border-radius:16px;padding:28px}.document-brand{display:flex;gap:12px;align-items:center;padding-bottom:18px;border-bottom:1px solid #ddd}.document-orb{width:11px;height:11px;border-radius:50%;background:#e11d3f;display:inline-block}.document-brand strong{display:block;font-size:18px}.document-brand small,.document-title-block>span,.document-grid small,.document-customer small,.document-section>label,.transfer-card>small{display:block;font-size:8px;letter-spacing:2px;color:#806a72}.document-title-block{padding:20px 0}.document-title-block h2{margin:6px 0}.document-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #ddd;border-radius:10px;overflow:hidden}.document-grid>div{padding:12px}.receipt-line{display:flex;justify-content:space-between;border-bottom:1px dashed #b9a9af;padding:10px 0}.document-totals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:16px 0}.document-totals>div{padding:12px;border:1px solid #ddd}.document-totals strong,.document-grand strong{display:block;font-size:20px}.transfer-card{margin-top:16px;padding:16px;border:1px solid #d7aab4}.bank-line{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid #ddd}.document-footer{text-align:center;margin-top:16px;color:#806a72;font-size:8px;letter-spacing:2px}</style></head><body>'+window._printHtml+'</body></html>');w.document.close();w.focus();w.print()}
-
 function renderManager(){
   $('#managerInventory').innerHTML=products.filter(p=>p.active).map(p=>`<div class="manager-row"><div class="manager-product"><img class="stock-thumb manager-thumb" src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"><div><b>${esc(p.name)}</b><div class="role">ITAL · ${money(p.price)}</div></div></div><span>${p.stock} db</span><input data-stock="${p.id}" type="number" min="0" value="${p.stock}" style="width:80px;background:#090506;border:1px solid #3a171f;color:white;padding:7px">${me?.role==='owner'?`<input data-price="${p.id}" type="number" min="0" value="${p.price}" style="width:95px;background:#090506;border:1px solid #3a171f;color:white;padding:7px" title="Eladási ár">`:''}<button data-save="${p.id}">MENTÉS</button></div>`).join('');
   document.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.save;const inp=document.querySelector(`[data-stock="${id}"]`);try{const newStock=Number(inp.value);const saved=await api('/api/inventory/adjust',{method:'POST',body:JSON.stringify({productId:id,stock:newStock})});if(me?.role==='owner'){const priceEl=document.querySelector(`[data-price="${id}"]`);if(priceEl)await api('/api/products/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({price:Number(priceEl.value)})});}if(newStock===0)playSfx('error',0.75);else if(newStock<=products.find(p=>p.id===id)?.minStock)playSfx('low_stock',0.7);else playSfx('success',0.5);showToast('Raktár frissítve',`${saved.product.name}: ${newStock} db sikeresen feltöltve.`,'success');await load()}catch(e){await rmAlert(e.message,'Művelet sikertelen')}})

@@ -28,7 +28,48 @@
 <style>
 .owner-create-tabs{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}.owner-create-tab{cursor:pointer;padding:10px 14px;border:1px solid #3b1c27;border-radius:999px;background:#0d080b;color:#927f87;font-size:9px;letter-spacing:.13em;font-weight:800}.owner-create-tab.active{background:rgba(185,14,36,.14);border-color:#c62a49;color:#fff}.owner-create-tab[data-create-role="dj"].active{box-shadow:0 0 24px rgba(200,35,70,.10)}
 </style><link rel="stylesheet" href="css/v60-logo.css?v=60">    <link rel="stylesheet" href="css/v61-readability.css?v=61">
-<link rel="stylesheet" href="css/v64-4-fixes.css?v=64.4.1"></head>
+<link rel="stylesheet" href="css/v64-4-fixes.css?v=64.4.1">
+<style id="v64-6-doc-design">
+/* V64.6 — premium dark documents / shift closing */
+.doc-modal{background:radial-gradient(circle at 50% 20%,rgba(120,15,42,.16),rgba(0,0,0,.86) 48%,rgba(0,0,0,.94));backdrop-filter:blur(10px)}
+.doc-box{width:min(760px,96vw);max-height:92vh;overflow:auto;background:linear-gradient(145deg,#170b11,#0b080b 72%);border:1px solid rgba(173,34,67,.52);box-shadow:0 30px 100px rgba(0,0,0,.72),0 0 35px rgba(190,18,61,.10);border-radius:24px;padding:24px;color:#f7edf1}
+.doc-box .row h2{font-family:Georgia,serif;letter-spacing:.02em;color:#fff;margin:0;text-shadow:0 0 18px rgba(235,34,77,.18)}
+.doc-box .btn.btn-ghost{border-color:#5b2435;color:#f8e9ee;background:#130a0f}
+.premium-document{position:relative;overflow:hidden;background:linear-gradient(160deg,#1a0c13 0%,#10090d 58%,#0a0709 100%);color:#f6edf1;border:1px solid #512337;border-radius:20px;padding:28px;box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 20px 55px rgba(0,0,0,.38)}
+.premium-document:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(120deg,rgba(225,29,63,.09),transparent 28%,transparent 72%,rgba(225,29,63,.045));}
+.premium-document>*{position:relative;z-index:1}
+.document-brand{display:flex;align-items:center;gap:12px;padding:0 0 18px;border-bottom:1px solid #44202d}
+.document-orb{width:10px;height:10px;flex:0 0 10px;border-radius:50%;background:#ef2049;box-shadow:0 0 16px rgba(239,32,73,.8)}
+.document-brand strong{display:block;font-family:Georgia,serif;font-size:18px;letter-spacing:.06em;color:#fff}
+.document-brand small,.document-title-block>span,.document-grid small,.document-customer small,.document-section>label,.transfer-card>small{display:block;font-size:8px;letter-spacing:2.2px;color:#b78392;text-transform:uppercase}
+.document-title-block{padding:22px 0 18px}
+.document-title-block h2{margin:7px 0 3px;color:#fff;font-family:Georgia,serif;font-size:30px;letter-spacing:.02em;text-shadow:0 0 20px rgba(238,32,73,.14)}
+.document-title-block small{color:#8f747e}
+.document-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #42202d;border-radius:14px;overflow:hidden;background:rgba(255,255,255,.018)}
+.document-grid>div{padding:14px 15px;border-right:1px solid #38202a;border-bottom:1px solid #38202a}
+.document-grid>div:nth-child(2n){border-right:0}.document-grid>div:nth-last-child(-n+2){border-bottom:0}
+.document-grid b,.document-customer b{display:block;margin-top:6px;color:#fff;font-size:13px;font-weight:600}
+.document-customer{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.document-customer>div{padding:13px;border:1px solid #3d1d29;border-radius:12px;background:rgba(255,255,255,.018)}
+.document-items{margin-top:14px;border:1px solid #3d1d29;border-radius:14px;padding:5px 14px;background:rgba(255,255,255,.014)}
+.receipt-line{display:flex;justify-content:space-between;align-items:center;gap:18px;border-bottom:1px dashed #4b2a35;padding:12px 0;color:#eee2e7}
+.receipt-line:last-child{border-bottom:0}.receipt-line b{color:#fff}.receipt-line small{color:#a9828e}
+.document-payment{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:14px 16px;border:1px solid #43212e;border-radius:12px;background:#140a10}
+.document-payment span{font-size:9px;letter-spacing:2px;color:#a87988}.document-payment b{color:#fff}
+.document-grand{display:flex;justify-content:space-between;align-items:end;margin-top:10px;padding:17px 16px;border:1px solid #76243b;border-radius:14px;background:linear-gradient(120deg,#2a0d17,#160a10);box-shadow:0 0 24px rgba(208,22,64,.08)}
+.document-grand span{font-size:9px;letter-spacing:2px;color:#d092a2}.document-grand strong{font-family:Georgia,serif;font-size:26px;color:#fff;text-shadow:0 0 18px rgba(240,38,77,.18)}
+.document-footer{text-align:center;margin-top:18px;color:#795b66;font-size:8px;letter-spacing:2px}
+.shift-document .document-title-block h2{font-size:27px}.shift-history-row{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:11px 13px;margin-top:7px;border:1px solid #3a1c28;border-radius:11px;background:rgba(255,255,255,.018)}
+.shift-history-row span{font-weight:600;color:#fff}.shift-history-row small{color:#a98590}.document-section{margin-top:18px}.document-section>label{margin-bottom:9px}
+.document-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.document-totals>div{padding:15px;border:1px solid #40202c;border-radius:13px;background:#12090e}.document-totals span{display:block;font-size:8px;letter-spacing:1.7px;color:#a87887}.document-totals strong{display:block;margin-top:7px;font-family:Georgia,serif;font-size:19px;color:#fff}.document-totals .overall{border-color:#8b2944;background:linear-gradient(135deg,#260c16,#13090e)}
+.transfer-card{margin-top:16px;padding:18px;border:1px solid #7c2942;border-radius:15px;background:linear-gradient(135deg,#210b14,#11080d);box-shadow:0 0 26px rgba(202,25,63,.08)}
+.transfer-card>strong{display:block;margin:7px 0 13px;font-family:Georgia,serif;font-size:25px;color:#fff}.bank-line{display:flex;justify-content:space-between;gap:15px;padding:9px 0;border-top:1px solid #3e202b;color:#cbaeb8}.bank-line b{color:#fff}
+.document-note{margin-top:14px;padding:12px 14px;border-left:2px solid #8d2945;background:rgba(255,255,255,.018);color:#c5aeb6}.document-note small{display:block;color:#a87988;letter-spacing:2px;margin-bottom:5px}
+@media(max-width:700px){.document-customer,.document-totals{grid-template-columns:1fr}.document-grid{grid-template-columns:1fr}.document-grid>div{border-right:0}.document-grid>div:nth-last-child(-n+2){border-bottom:1px solid #38202a}.document-grid>div:last-child{border-bottom:0}.shift-history-row,.bank-line{align-items:flex-start;flex-direction:column;gap:4px}.document-grand{align-items:flex-start;flex-direction:column;gap:8px}}
+/* Make the sales state unmistakable and non-actionable */
+.sales-actions .table-action:disabled{opacity:.9;cursor:default;border-color:#4e2634;color:#d9a9b5;background:#170b11}
+</style>
+</head>
 <body class="staff-page staff-unauth">
 <div class="noise"></div>
 <header class="nav"><a class="brand" href="index.html"><span class="brand-mark" aria-label="Red Moon Pub logo"><img src="assets/red-moon-logo.png" alt="Red Moon Pub"></span><span>RED MOON <small>PUB</small></span></a><nav><a href="index.html">Főoldal</a><a href="menu.html">Itallap</a><a href="events.html">Rendezvények</a><a href="gallery.html">Galéria</a><a href="about.html">Rólunk</a><a href="location.html">Lokáció</a><a href="club.html">Red Moon Club</a><a class="staff-link active" href="staff.html">STAFF</a></nav><div class="header-context" id="staffUser"></div><button class="hamb" id="hamb" type="button">☰</button></header>
