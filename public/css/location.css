@@ -355,3 +355,131 @@
   .map-wrap.map-viewport{height:70vh;min-height:430px}
   .map-zoom-rail{right:10px;bottom:58px;top:auto;transform:none}
 }
+
+/* V63.1 — premium framed map panel */
+.location-card.map-interactive{
+  position:relative;
+  border:1px solid rgba(185,28,55,.48);
+  border-radius:24px;
+  background:linear-gradient(145deg,rgba(20,8,11,.98),rgba(7,5,6,.99));
+  box-shadow:
+    0 34px 90px rgba(0,0,0,.58),
+    0 0 0 1px rgba(255,255,255,.025) inset,
+    0 0 55px rgba(155,0,28,.11);
+  overflow:hidden;
+}
+.location-card.map-interactive::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:24px;
+  box-shadow:inset 0 0 55px rgba(116,0,20,.08);
+  z-index:50;
+}
+.location-card.map-interactive::after{
+  content:"";
+  position:absolute;
+  top:0;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,72,102,.8),transparent);
+  opacity:.7;
+  pointer-events:none;
+  z-index:60;
+}
+.map-toolbar{
+  min-height:68px;
+  padding:12px 16px;
+  border-bottom:1px solid rgba(119,30,46,.48);
+  background:
+    radial-gradient(circle at 10% 50%,rgba(227,28,62,.08),transparent 26%),
+    linear-gradient(180deg,rgba(24,10,13,.98),rgba(11,6,8,.98));
+  position:relative;
+  z-index:10;
+}
+.map-toolbar-copy{
+  padding:8px 12px;
+  border:1px solid rgba(121,36,51,.32);
+  border-radius:13px;
+  background:rgba(255,255,255,.018);
+  box-shadow:inset 0 0 24px rgba(227,28,62,.025);
+}
+.map-toolbar-copy .map-dot{
+  width:9px;height:9px;flex:0 0 9px;
+  box-shadow:0 0 8px rgba(227,28,62,.9),0 0 18px rgba(227,28,62,.38);
+}
+.map-toolbar-copy b{font-size:9px;letter-spacing:2px;text-shadow:0 0 12px rgba(255,255,255,.08)}
+.map-toolbar-copy small{font-size:7px;letter-spacing:1.15px;color:#8f797d}
+.map-controls{padding:4px;border:1px solid rgba(125,36,53,.35);border-radius:14px;background:rgba(0,0,0,.2)}
+.map-control{
+  width:35px;height:35px;border-radius:10px;
+  border-color:rgba(130,40,57,.55);
+  background:linear-gradient(180deg,rgba(35,12,17,.95),rgba(15,7,10,.95));
+  box-shadow:inset 0 0 18px rgba(227,28,62,.045),0 4px 14px rgba(0,0,0,.25);
+}
+.map-control:hover{transform:translateY(-1px) scale(1.025)}
+.map-zoom-value{font-size:8px;color:#d7c5c8;min-width:52px}
+.map-wrap.map-viewport{
+  margin:14px;
+  width:calc(100% - 28px);
+  height:min(72vh,760px);
+  min-height:500px;
+  border:1px solid rgba(125,38,54,.42);
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 50% 45%,rgba(75,9,18,.09),transparent 48%),
+    #08090a!important;
+  box-shadow:
+    0 18px 50px rgba(0,0,0,.48),
+    inset 0 0 0 1px rgba(255,255,255,.025),
+    inset 0 0 60px rgba(0,0,0,.32);
+}
+.map-wrap.map-viewport::before{
+  content:"";
+  position:absolute;inset:0;z-index:20;pointer-events:none;
+  border-radius:18px;
+  box-shadow:inset 0 0 45px rgba(0,0,0,.28),inset 0 -55px 75px rgba(0,0,0,.12);
+}
+.map-wrap.map-viewport::after{
+  content:"GTA V  •  SEE CITY  •  RED MOON PUB";
+  position:absolute;left:18px;bottom:15px;z-index:31;pointer-events:none;
+  padding:7px 10px;border:1px solid rgba(135,39,56,.35);border-radius:8px;
+  background:rgba(8,5,6,.72);backdrop-filter:blur(8px);
+  color:rgba(255,236,239,.68);font:600 7px/1 'Noto Sans';letter-spacing:1.7px;
+  box-shadow:0 6px 20px rgba(0,0,0,.28);
+}
+.map-zoom-rail{
+  right:16px!important;
+  top:16px!important;
+  bottom:16px!important;
+  transform:none!important;
+  padding:7px!important;
+  border:1px solid rgba(130,39,55,.46)!important;
+  border-radius:16px!important;
+  background:rgba(10,6,8,.78)!important;
+  box-shadow:0 12px 32px rgba(0,0,0,.4),inset 0 0 24px rgba(227,28,62,.035)!important;
+  backdrop-filter:blur(12px);
+}
+.map-rail-button,.map-rail-reset{
+  border-color:rgba(137,42,59,.5)!important;
+  background:linear-gradient(180deg,rgba(34,12,17,.96),rgba(13,7,9,.96))!important;
+  border-radius:10px!important;
+  box-shadow:0 5px 15px rgba(0,0,0,.25),inset 0 0 15px rgba(227,28,62,.04)!important;
+}
+.map-rail-button:hover,.map-rail-reset:hover{border-color:#ec3151!important;box-shadow:0 0 16px rgba(227,28,62,.18)!important}
+.map-zoom-slider{accent-color:#e31c3e}
+.map-marker b{
+  border:1px solid rgba(255,255,255,.18)!important;
+  background:rgba(9,5,7,.88)!important;
+  box-shadow:0 7px 22px rgba(0,0,0,.4),0 0 20px rgba(227,28,62,.12)!important;
+  backdrop-filter:blur(7px);
+}
+@media(max-width:800px){
+  .location-card.map-interactive{border-radius:18px}
+  .map-toolbar{padding:10px;gap:10px}
+  .map-toolbar-copy{padding:7px 9px}
+  .map-toolbar-copy small{max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .map-controls{flex:0 0 auto}
+  .map-wrap.map-viewport{margin:10px;width:calc(100% - 20px);height:68vh;min-height:430px;border-radius:15px}
+  .map-wrap.map-viewport::after{left:12px;bottom:12px;font-size:6px;letter-spacing:1.25px}
+  .map-zoom-rail{right:10px!important;top:10px!important;bottom:10px!important}
+}
