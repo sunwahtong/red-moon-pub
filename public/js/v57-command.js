@@ -64,7 +64,7 @@
         <button data-view="shifts">04 · Műszakok</button>
         <button data-view="employees">05 · Dolgozók</button>
         <button data-view="reviews">06 · Vélemények</button>
-        <button data-view="prices">07 · Árvezérlés</button>
+        <button data-view="prices">07 · MENU / ÁRAK</button>
         <button data-view="management">08 · Vezetés</button>
         <button data-view="profile">09 · Saját profil</button>
       </nav>
@@ -81,7 +81,7 @@
 
   const views=$('#v57Views');
   const viewDefs=[
-    ['overview','Áttekintés'],['pos','Eladás'],['stock','Készlet'],['shifts','Műszakok'],['employees','Dolgozók'],['reviews','Vélemények'],['prices','Árvezérlés'],['management','Vezetés'],['profile','Saját profil']
+    ['overview','Áttekintés'],['pos','Eladás'],['stock','Készlet'],['shifts','Műszakok'],['employees','Dolgozók'],['reviews','Vélemények'],['prices','Menu / Árak'],['management','Vezetés'],['profile','Saját profil']
   ];
   viewDefs.forEach(([id,title])=>{
     const s=document.createElement('section'); s.className='v57-view'; s.dataset.view=id; s.innerHTML=`<div class="v57-section-head"><span>RED MOON / ${id.toUpperCase()}</span><h2>${esc(title)}</h2></div><div class="v57-view-body" id="v57-${id}"></div>`; views.appendChild(s);
@@ -207,16 +207,43 @@
   async function renderShifts(){
     const host=$('#v57-shifts'); const can=roleAllowed(me.role);
     let users=[]; try{users=(await api('/api/shifts/available-members')).users||[]}catch{}
-    host.innerHTML=`<div class="v57-grid two"><div class="v57-card"><div class="v57-card-head"><div><span>CURRENT SHIFT</span><h3>${shift?'Aktív műszak':'Műszak indítása'}</h3></div></div>${shift?`<div class="v57-shift-card"><b>${esc(shift.startedByName)}</b><span>${new Date(shift.startedAt).toLocaleString('hu-HU')}</span><span>Tagok: ${(shift.members||[]).map(esc).join(', ')||'—'}</span><strong>${money(shift.revenue||0)}</strong>${currentShiftMember()?'<em>TE MŰSZAKTAG VAGY</em>':'<em class="bad">NEM VAGY MŰSZAKTAG</em>'}</div><div class="v57-form-grid compact"><label class="v57-field"><span>ZÁRÓ KASSZA</span><input id="v57ClosingCash" type="number" min="0" value="0"></label><label class="v57-field wide"><span>MEGJEGYZÉS</span><input id="v57CloseNote" placeholder="Opcionális"></label></div><button id="v57CloseShift" class="v57-btn red">MŰSZAK ZÁRÁSA</button>`:`<div class="v57-form-grid"><label class="v57-field"><span>KEZDŐ KASSZA</span><input id="v57OpeningCash" type="number" min="0" value="0"></label><label class="v57-field wide"><span>MŰSZAKTAGOK</span><div class="v57-checks">${users.filter(u=>u.role!=='dj').map(u=>`<label><input type="checkbox" value="${esc(u.id)}" ${u.id===me.id?'checked':''}> ${esc(u.name)} · ${esc(u.role)}</label>`).join('')}</div></label></div><button id="v57OpenShift" class="v57-btn red">MŰSZAK INDÍTÁSA</button>`}</div><div class="v57-card"><div class="v57-card-head"><div><span>HISTORY / CLOSURES</span><h3>Lezárt műszakok</h3></div></div><div id="v57ShiftHistory" class="v57-list"></div></div></div>`;
-    if(shift) $('#v57CloseShift').onclick=async()=>{if(!can && shift.startedById!==me.id){toast('Nincs jogosultság','Ezt a műszakot csak az indító, Manager vagy Owner zárhatja.',true);return}try{await api('/api/shifts/close',{method:'POST',body:JSON.stringify({closingCash:Number($('#v57ClosingCash').value),notes:$('#v57CloseNote').value})});toast('Műszak lezárva','A zárás naplózva lett.');await loadBase();renderShifts()}catch(e){toast('Műszakzárás sikertelen',e.message,true)}};
-    else $('#v57OpenShift').onclick=async()=>{try{const ids=$$('#v57-shifts input[type=checkbox]:checked').map(x=>x.value);await api('/api/shifts/open',{method:'POST',body:JSON.stringify({openingCash:Number($('#v57OpeningCash').value),memberIds:ids})});toast('Műszak megnyitva','A műszaktagok mentve lettek.');await loadBase();renderShifts()}catch(e){toast('Műszakindítás sikertelen',e.message,true)}};
+    const eligible=shift ? users.filter(u=>!(shift.memberIds||[]).includes(u.id)) : users;
+    host.innerHTML=`<div class="v57-grid two">
+      <div class="v57-card">
+        <div class="v57-card-head"><div><span>SHIFT / CONTROL</span><h3>${shift?'Aktív műszak':'Műszak indítása'}</h3><small>Műszaknyitás, zárás és aktív műszaktagok kezelése egy helyen.</small></div><span class="v57-badge">${shift?'NYITVA':'ZÁRVA'}</span></div>
+        ${shift?`<div class="v57-shift-card">
+          <b>${esc(shift.startedByName)}</b><span>${new Date(shift.startedAt).toLocaleString('hu-HU')}</span>
+          <span>Tagok: ${(shift.members||[]).map(esc).join(', ')||'—'}</span>
+          <strong>${money(shift.revenue||0)}</strong>
+          ${currentShiftMember()?'<em>TE MŰSZAKTAG VAGY</em>':'<em class="bad">NEM VAGY MŰSZAKTAG</em>'}
+        </div>
+        <div class="v57-shift-actions">
+          <div class="v57-form-grid compact"><label class="v57-field"><span>ZÁRÓ KASSZA</span><input id="v57ClosingCash" type="number" min="0" value="0"></label><label class="v57-field"><span>MEGJEGYZÉS</span><input id="v57CloseNote" placeholder="Opcionális"></label></div>
+          <div class="action-row"><button id="v57CloseShift" class="v57-btn red">MŰSZAK ZÁRÁSA</button></div>
+        </div>
+        <div class="v57-shift-members-box"><div class="v57-card-head compact-head"><div><span>TEAM / LIVE</span><h3>Műszaktag hozzáadása</h3></div></div>
+          ${can||shift.startedById===me.id?`<div class="v57-form-grid"><label class="v57-field wide"><span>DOLGOZÓ</span><select id="v57AddShiftMember"><option value="">Válassz dolgozót…</option>${eligible.filter(u=>u.role!=='dj').map(u=>`<option value="${esc(u.id)}">${esc(u.name)} · ${esc(u.role.toUpperCase())}</option>`).join('')}</select></label></div><button id="v57AddShiftMemberBtn" class="v57-btn ghost">+ MŰSZAKTAG HOZZÁADÁSA</button>`:'<p class="v57-note">A műszaktagokat csak a műszak indítója, Manager vagy Owner módosíthatja.</p>'}
+        </div>`
+        :`<div class="v57-form-grid"><label class="v57-field"><span>KEZDŐ KASSZA</span><input id="v57OpeningCash" type="number" min="0" value="0"></label><label class="v57-field wide"><span>MŰSZAKTAGOK</span><div class="v57-checks">${users.filter(u=>u.role!=='dj').map(u=>`<label><input type="checkbox" value="${esc(u.id)}" ${u.id===me.id?'checked':''}> ${esc(u.name)} · ${esc(u.role)}</label>`).join('')}</div></label></div><button id="v57OpenShift" class="v57-btn red">MŰSZAK INDÍTÁSA ↗</button>`}
+      </div>
+      <div class="v57-card"><div class="v57-card-head"><div><span>HISTORY / CLOSURES</span><h3>Lezárt műszakok</h3><small>Manager és Owner hozzáférés.</small></div></div><div id="v57ShiftHistory" class="v57-list"></div></div>
+    </div>`;
+    if(shift){
+      $('#v57CloseShift').onclick=async()=>{
+        if(!can && shift.startedById!==me.id){toast('Nincs jogosultság','Ezt a műszakot csak az indító, Manager vagy Owner zárhatja.',true);return}
+        if(!(await confirmBox('Műszak lezárása','A műszak lezárása után új műszakot kell nyitni az értékesítés folytatásához.')))return;
+        try{await api('/api/shifts/close',{method:'POST',body:JSON.stringify({closingCash:Number($('#v57ClosingCash').value),notes:$('#v57CloseNote').value})});toast('Műszak lezárva','A zárás és az Owner audit mentve lett.');await loadBase();renderShifts()}catch(e){toast('Műszakzárás sikertelen',e.message,true)}
+      };
+      $('#v57AddShiftMemberBtn')?.addEventListener('click',async()=>{const userId=$('#v57AddShiftMember').value;if(!userId){toast('Hiányzó dolgozó','Válassz egy munkatársat.',true);return}try{await api('/api/shifts/members',{method:'POST',body:JSON.stringify({userId})});toast('Műszaktag hozzáadva','A dolgozó azonnal értékesíthet az aktív műszakban.');await loadBase();renderShifts()}catch(e){toast('Műszaktag hozzáadása sikertelen',e.message,true)}});
+    }else $('#v57OpenShift').onclick=async()=>{try{const ids=$$('#v57-shifts input[type=checkbox]:checked').map(x=>x.value);await api('/api/shifts/open',{method:'POST',body:JSON.stringify({openingCash:Number($('#v57OpeningCash').value),memberIds:ids})});toast('Műszak megnyitva','A műszaktagok mentve lettek.');await loadBase();renderShifts()}catch(e){toast('Műszakindítás sikertelen',e.message,true)}};
     try{const d=await api('/api/shifts');$('#v57ShiftHistory').innerHTML=(d.shifts||[]).map(x=>`<div class="v57-row"><div><b>${new Date(x.startedAt).toLocaleString('hu-HU')}</b><small>${esc(x.startedByName)} → ${esc(x.closedByName||'—')} · ${money(x.revenue||0)} · ${(x.members||[]).map(esc).join(', ')}</small></div><span>${x.status==='closed'?'LEZÁRT':'NYITVA'}</span></div>`).join('')||'<div class="v57-empty">Nincs műszaktörténet.</div>'}catch(e){$('#v57ShiftHistory').innerHTML='<div class="v57-empty">A műszaklista Manager / Owner jogosultsághoz kötött.</div>'}
   }
 
   async function renderEmployees(){
     const host=$('#v57-employees'); let users=[]; try{users=(await api('/api/employees')).users||[]}catch(e){host.innerHTML='<div class="v57-empty">Nem tölthető be az alkalmazotti lista.</div>';return}
-    host.innerHTML=`<div class="v57-card"><div class="v57-card-head"><div><span>TEAM DIRECTORY</span><h3>Alkalmazottak</h3><small>Minden dolgozó láthatja · módosítani csak Owner tud.</small></div><span class="v57-badge">${users.length} FŐ</span></div><div class="v57-people-grid">${users.map(u=>`<article class="v57-person"><div class="v57-person-avatar">${u.avatar?`<img src="${esc(u.avatar)}">`:(esc((u.nickname||u.name||'RM').slice(0,2).toUpperCase()))}</div><div><b>${esc(u.name)}</b><small>${esc(u.nickname||'Nincs becenév')}</small><span>${esc(u.role.toUpperCase())}</span></div>${isOwner()?`<button class="v57-mini" data-edit-user="${esc(u.id)}">SZERKESZTÉS</button>`:''}</article>`).join('')}</div></div>`;
+    host.innerHTML=`<div class="v57-card"><div class="v57-card-head"><div><span>TEAM DIRECTORY</span><h3>Alkalmazottak</h3><small>Minden Staff felhasználó láthatja · módosítani és törölni csak Owner tud.</small></div><span class="v57-badge">${users.length} FŐ</span></div><div class="v57-people-grid">${users.map(u=>`<article class="v57-person"><div class="v57-person-avatar">${u.avatar?`<img src="${esc(u.avatar)}">`:(esc((u.nickname||u.name||'RM').slice(0,2).toUpperCase()))}</div><div><b>${esc(u.name)}</b><small>${esc(u.nickname||'Nincs becenév')} · ${esc(u.username)}</small><span>${esc(u.role.toUpperCase())}</span></div>${isOwner()?`<div class="v57-person-actions"><button class="v57-mini" data-edit-user="${esc(u.id)}">SZERKESZTÉS</button>${u.id!==me.id?`<button class="v57-mini danger" data-delete-user="${esc(u.id)}">FIÓK TÖRLÉSE</button>`:''}</div>`:''}</article>`).join('')}</div></div>`;
     $$('#v57-employees [data-edit-user]').forEach(b=>b.onclick=async()=>{const u=users.find(x=>x.id===b.dataset.editUser);if(!u)return;const d=await formModal('Fiók szerkesztése',[{id:'name',label:'NÉV',value:u.name,required:true},{id:'username',label:'FELHASZNÁLÓNÉV',value:u.username,required:true},{id:'role',label:'RANG',type:'select',value:u.role,options:[{value:'staff',label:'Staff'},{value:'manager',label:'Manager'},{value:'owner',label:'Owner'}]},{id:'password',label:'ÚJ JELSZÓ',type:'password',placeholder:'Üresen hagyva nem változik'}]);if(!d)return;try{await api('/api/users/'+encodeURIComponent(u.id),{method:'PATCH',body:JSON.stringify(d)});toast('Fiók frissítve',u.name);renderEmployees()}catch(e){toast('Mentés sikertelen',e.message,true)}})
+    $$('#v57-employees [data-delete-user]').forEach(b=>b.onclick=async()=>{const u=users.find(x=>x.id===b.dataset.deleteUser);if(!u)return;if(!(await confirmBox('Fiók törlése',`A(z) ${u.name} fiókja és aktív munkamenetei törlődnek. Ez nem vonható vissza.`)) )return;try{await api('/api/users/'+encodeURIComponent(u.id),{method:'DELETE'});toast('Fiók törölve',u.name);renderEmployees()}catch(e){toast('Fiók törlése sikertelen',e.message,true)}})
   }
 
   async function renderReviews(){
@@ -261,8 +288,26 @@
   }
 
   // Refresh product/state while staying in the Command Center.
+  let refreshBusy=false;
   async function refresh(){
-    try{const pd=await api('/api/products');products=pd.products||[];const sd=await api('/api/shifts/current');shift=sd.shift||null;window.products=products;window.me=me;if(active==='pos'||active==='prices'||active==='stock')renderActive();if(active==='overview')renderOverview()}catch{}
+    if(refreshBusy || !me || app.classList.contains('hidden'))return;
+    refreshBusy=true;
+    try{
+      const [pd,sd]=await Promise.all([api('/api/products'),api('/api/shifts/current')]);
+      products=pd.products||[]; shift=sd.shift||null; window.products=products;
+      if(active==='pos'){
+        const selected=$('.v57-cat.active')?.dataset.cat || products.find(p=>p.active)?.category || 'drink';
+        renderProductGrid(selected); renderCart();
+      }else if(active==='prices' || active==='stock'){
+        await renderActive();
+      }else if(active==='overview'){
+        updateShiftOverview();
+        const overall=$('#v57Overall'); if(overall){try{const d=await api('/api/dashboard');overall.textContent=money(d.overallRevenue)}catch{}}
+      }else if(active==='shifts'){
+        // Keep the shift screen stable; explicit actions refresh its full layout.
+      }
+    }catch{}
+    finally{refreshBusy=false}
   }
   function init(){if(app.classList.contains('hidden'))return; loadBase().then(()=>setView('overview'))}
   const obs=new MutationObserver(init);obs.observe(app,{attributes:true,attributeFilter:['class']});

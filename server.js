@@ -748,6 +748,7 @@ async function api(req,res,url){
       if(!u)return;
       const shift=db.shifts.find(s=>s.status==='open');
       if(!shift)return json(res,409,{error:'Nincs nyitott műszak.'});
+      if(shift.startedById!==u.id && !['manager','owner'].includes(u.role)) return json(res,403,{error:'Ezt a műszakot csak a műszak indítója, MANAGER vagy OWNER zárhatja.'});
       const b=await readBody(req);
       const sales=db.sales.filter(s=>s.shiftId===shift.id);
       const revenue=sales.reduce((a,s)=>a+s.total,0);

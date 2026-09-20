@@ -22,3 +22,41 @@
 .drink-price{display:flex;flex-direction:column;align-items:flex-end}
 @media(max-width:1000px){.v56-review-items{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media(max-width:650px){.v56-review-items{grid-template-columns:1fr!important}.v56-review-list-head{align-items:flex-start;flex-direction:column}}
+
+/* V57.1 — public reviews match the Command Center review cards */
+.v56-reviews{color:#f5edf0}
+.v56-reviews .rm17-section-head h2{color:#f7edf0;text-shadow:0 0 20px rgba(214,30,67,.12)}
+.v56-reviews .rm17-section-head p{color:#d3c7cb}
+.v56-review-shell{display:flex;flex-direction:column;gap:18px;max-width:1200px;margin:0 auto}
+.v56-review-list{width:100%;box-sizing:border-box;border:1px solid #3a1d28;border-radius:16px;background:linear-gradient(145deg,#14090e,#090607);padding:20px;box-shadow:0 20px 70px rgba(0,0,0,.38)}
+.v56-review-list-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;margin-bottom:18px}
+.v56-review-list-head h2{color:#f5e9ed!important;margin:6px 0 0!important}
+.v56-rating-summary{color:#f2b52d!important;font:600 16px Cinzel!important;text-shadow:0 0 14px rgba(242,181,45,.22)}
+.v56-review-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.v56-review-item{display:block;min-width:0;border:1px solid #3a1d28!important;border-radius:14px!important;background:linear-gradient(145deg,#14090e,#090607)!important;padding:16px!important;box-shadow:none!important}
+.v56-review-item b{display:block;color:#fff!important;font:600 14px Cinzel!important;text-shadow:0 0 14px rgba(200,30,60,.22)}
+.v56-review-meta{color:#796970!important;font-size:9px!important}
+.v56-review-item .v56-stars{margin-top:10px;color:#f2b52d!important;letter-spacing:2px;text-shadow:0 0 12px rgba(242,181,45,.25)}
+.v56-review-item .v56-review-text{margin-top:12px;color:#d9cdd1!important;font:400 12px/1.65 Noto Sans!important}
+.v56-review-item .v56-review-text:before{content:'“';color:#d62b4e;font:700 25px Georgia;vertical-align:-7px;margin-right:3px}
+.v56-review-item .v56-review-text:after{content:'”';color:#d62b4e;font:700 20px Georgia;vertical-align:-4px;margin-left:3px}
+.v56-review-item>span:last-child{display:block;margin-top:13px;color:#a18f95!important}
+.v56-review-form{width:100%;box-sizing:border-box;border:1px solid #3a1d28!important;border-radius:16px!important;background:linear-gradient(145deg,#14090e,#090607)!important;padding:28px!important;box-shadow:0 20px 70px rgba(0,0,0,.38)!important}
+.v56-review-form h2{color:#f5e9ed!important}
+.v56-review-form p{color:#a9979e!important}
+.v56-review-form .v56-field label{color:#bca8b0!important}
+.v56-review-form input,.v56-review-form textarea{color:#f5edf0!important;background:#090607!important}
+.v56-star{color:#5a4a2b!important;border-color:#4b3520!important;background:#0d080b!important}
+.v56-star.active{color:#f2b52d!important;border-color:#9c7020!important;box-shadow:0 0 18px rgba(242,181,45,.14)!important;text-shadow:0 0 10px rgba(242,181,45,.32)}
+@media(max-width:900px){.v56-review-items{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.v56-review-items{grid-template-columns:1fr}.v56-review-form{padding:20px!important}}
+
+/* Exact Command Center review card language on the public homepage */
+.v56-review-items .v57-review{border:1px solid #3a1d28;border-radius:14px;background:linear-gradient(145deg,#14090e,#090607);padding:16px;min-height:150px;box-sizing:border-box;overflow:hidden}
+.v56-review-items .v57-review-top{display:flex;justify-content:space-between;gap:8px}
+.v56-review-items .v57-review-top b{color:#fff;font:600 14px Cinzel;text-shadow:0 0 14px rgba(200,30,60,.2)}
+.v56-review-items .v57-review-top span{color:#796970;font-size:9px}
+.v56-review-items .gold-stars{margin-top:10px;color:#f2b52d;letter-spacing:2px;text-shadow:0 0 12px rgba(242,181,45,.25)}
+.v56-review-items .gold-stars i{color:#4c3d22;font-style:normal}
+.v56-review-items .v57-review blockquote{margin:12px 0;color:#d9cdd1;font:400 12px/1.65 Noto Sans}
+.v56-review-items .v57-review-bottom{display:flex;justify-content:space-between;color:#8b7a80;font-size:9px}
