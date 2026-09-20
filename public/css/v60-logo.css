@@ -1,0 +1,193 @@
+
+/* =========================================================
+   V60 — RED MOON LOGO SYSTEM
+   Web-only logo replacement + subtle neon motion
+   ========================================================= */
+
+.nav .brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.nav .brand-mark {
+  width:52px !important;
+  height:52px !important;
+  min-width:52px;
+  display:grid !important;
+  place-items:center;
+  position:relative;
+  color:transparent !important;
+  text-shadow:none !important;
+  border-radius:50%;
+  overflow:visible;
+  background:transparent !important;
+}
+
+.nav .brand-mark img {
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+  position:relative;
+  z-index:2;
+  filter:
+    drop-shadow(0 0 7px rgba(226,26,59,.62))
+    drop-shadow(0 0 18px rgba(226,26,59,.20));
+  animation: rmLogoFloat 5.8s ease-in-out infinite,
+             rmLogoGlow 3.7s ease-in-out infinite alternate;
+}
+
+.nav .brand-mark::before,
+.nav .brand-mark::after {
+  content:"";
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+}
+
+.nav .brand-mark::before {
+  inset:-5px;
+  border:1px solid rgba(239,35,65,.34);
+  box-shadow:0 0 18px rgba(226,26,59,.14);
+  animation:rmLogoRing 8s linear infinite;
+}
+
+.nav .brand-mark::after {
+  inset:-10px;
+  border:1px solid rgba(239,35,65,.12);
+  border-left-color:transparent;
+  border-right-color:transparent;
+  animation:rmLogoRing 11s linear infinite reverse;
+}
+
+.nav .brand {
+  line-height:1;
+}
+
+.nav .brand > span:last-child {
+  line-height:1.1;
+}
+
+/* Loader: replace the old red sphere with the actual Red Moon mark. */
+.rm-loader .loader-moon {
+  width:220px !important;
+  height:220px !important;
+  background:transparent !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  display:grid !important;
+  place-items:center;
+  position:relative;
+  animation:rmLogoFloat 6.5s ease-in-out infinite,
+            rmLogoGlow 3.8s ease-in-out infinite alternate !important;
+}
+
+.rm-loader .loader-moon img {
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+  position:relative;
+  z-index:3;
+  filter:
+    drop-shadow(0 0 10px rgba(226,26,59,.72))
+    drop-shadow(0 0 35px rgba(226,26,59,.34))
+    drop-shadow(0 0 90px rgba(170,0,30,.20));
+}
+
+.rm-loader .loader-moon::before,
+.rm-loader .loader-moon::after {
+  content:"";
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+  z-index:1;
+}
+
+.rm-loader .loader-moon::before {
+  inset:-25px;
+  border:1px solid rgba(255,45,72,.35);
+  box-shadow:
+    0 0 28px rgba(226,26,59,.16),
+    inset 0 0 24px rgba(226,26,59,.08);
+  animation:rmLogoRing 8.5s linear infinite;
+}
+
+.rm-loader .loader-moon::after {
+  inset:-52px;
+  border:1px solid rgba(255,45,72,.15);
+  border-left-color:transparent;
+  border-right-color:transparent;
+  box-shadow:0 0 34px rgba(226,26,59,.08);
+  animation:rmLogoRing 14s linear infinite reverse;
+}
+
+.rm-loader .loader-kicker {
+  margin-top:56px;
+}
+
+@keyframes rmLogoFloat {
+  0%,100% { transform:translate3d(0,0,0) rotate(0deg); }
+  25% { transform:translate3d(0,-5px,0) rotate(-.4deg); }
+  50% { transform:translate3d(0,-9px,0) rotate(0deg); }
+  75% { transform:translate3d(0,-4px,0) rotate(.4deg); }
+}
+
+@keyframes rmLogoGlow {
+  0%,100% {
+    filter:
+      drop-shadow(0 0 7px rgba(226,26,59,.56))
+      drop-shadow(0 0 20px rgba(226,26,59,.18));
+  }
+  48% {
+    filter:
+      drop-shadow(0 0 10px rgba(255,39,68,.86))
+      drop-shadow(0 0 32px rgba(226,26,59,.34));
+  }
+  53% {
+    filter:
+      brightness(1.12)
+      drop-shadow(0 0 15px rgba(255,65,90,.95))
+      drop-shadow(0 0 42px rgba(226,26,59,.40));
+  }
+  58% {
+    filter:
+      drop-shadow(0 0 8px rgba(226,26,59,.68))
+      drop-shadow(0 0 24px rgba(226,26,59,.22));
+  }
+}
+
+@keyframes rmLogoRing {
+  from { transform:rotate(0deg); }
+  to { transform:rotate(360deg); }
+}
+
+@media (max-width:900px) {
+  .nav .brand-mark {
+    width:45px !important;
+    height:45px !important;
+    min-width:45px;
+  }
+  .rm-loader .loader-moon {
+    width:180px !important;
+    height:180px !important;
+  }
+  .rm-loader .loader-moon::before { inset:-20px; }
+  .rm-loader .loader-moon::after { inset:-38px; }
+}
+
+@media (max-width:600px) {
+  .nav .brand-mark {
+    width:40px !important;
+    height:40px !important;
+    min-width:40px;
+  }
+  .rm-loader .loader-moon {
+    width:150px !important;
+    height:150px !important;
+  }
+  .rm-loader .loader-kicker {
+    margin-top:44px;
+  }
+}
