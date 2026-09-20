@@ -170,15 +170,14 @@ async function api(url,opt={}){
 }
 async function boot(){
   const d=await api('/api/me');
-  if(d.user){if(d.user.portal==='dj' || d.user.role==='dj'){showAccessChooser();$('#loginError').textContent='Ez DJ fiók. A DJ konzolban lehet vele belépni.';return;}me=d.user;showApp();return;}
-  showAccessChooser();
+  if(d.user){if(d.user.portal==='dj' || d.user.role==='dj'){showLogin();$('#loginError').textContent='Ez DJ fiók. A DJ konzolban lehet vele belépni.';return;}me=d.user;showApp();return;}
+  showLogin();
 }
 function showAccessChooser(){
-  $('#accessChooser')?.classList.remove('hidden');
-  $('#loginView')?.classList.add('hidden');
-  $('#appView')?.classList.add('hidden');
+  showLogin();
 }
 function showLogin(){
+  document.body.classList.add('staff-unauth');
   $('#accessChooser')?.classList.add('hidden');
   $('#loginView')?.classList.remove('hidden');
   $('#appView')?.classList.add('hidden');
@@ -186,6 +185,7 @@ function showLogin(){
 }
 $('#openCashAccess')?.addEventListener('click',()=>{playSfx('click',.22);showLogin();});
 function showApp(){
+  document.body.classList.remove('staff-unauth');
   $('#accessChooser')?.classList.add('hidden');
   $('#loginView')?.classList.add('hidden');
   window.me=me;

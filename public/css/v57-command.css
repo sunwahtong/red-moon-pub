@@ -143,3 +143,40 @@
 @media(max-width:1200px){.v57-grid.three{grid-template-columns:repeat(2,minmax(0,1fr))}.v57-products-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:900px){.v57-grid.three{grid-template-columns:1fr}.v57-pos-layout{grid-template-columns:1fr}.v59-sale-card{grid-template-columns:1fr}.v59-sale-total{text-align:left}}
 @media(max-width:600px){#v57Shell{grid-template-columns:1fr}.v57-sidebar{position:relative;top:auto;width:100%;height:auto}.v57-workspace{margin-left:0;padding:0 14px 50px}.v57-products-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* V59.2 — unauthenticated state: login only, no Command Center chrome. */
+.v57-command-app.hidden{display:none!important}
+.staff-page.staff-unauth > header.nav{display:none!important}
+.staff-page.staff-unauth .staff-shell{max-width:920px!important;margin:0 auto!important;padding:0 24px 60px!important}
+.staff-page.staff-unauth #accessChooser{display:none!important}
+.staff-page.staff-unauth #loginView{display:grid!important;min-height:100vh;align-items:center;grid-template-columns:1fr 1fr;gap:60px}
+.staff-page.staff-unauth #appView{display:none!important}
+
+/* Live shift banner is present in every Command Center section through the sticky top bar. */
+.v57-global-shift{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px;min-height:25px;color:#b9a8ae;font-size:9px;letter-spacing:.05em}
+.v57-global-shift b{font-size:8px;letter-spacing:.15em;color:#fff}
+.v57-global-shift span:last-child{color:#98878d}
+.shift-state-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:0 0 auto}
+.shift-state-dot.open{background:#61dda8;box-shadow:0 0 13px rgba(97,221,168,.7)}
+.shift-state-dot.closed{background:#6b555c}
+
+/* Circular profile-image cropper. */
+.v57-crop-modal{position:fixed;inset:0;z-index:100002;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.82);backdrop-filter:blur(10px)}
+.v57-crop-box{width:min(480px,94vw);box-sizing:border-box;padding:22px;border:1px solid #67263e;border-radius:18px;background:linear-gradient(145deg,#170b10,#090607);box-shadow:0 30px 100px #000d}
+.v57-crop-box h3{margin:6px 0 14px;color:#fff;font:600 25px Cinzel}
+.v57-crop-box p{color:#a8949b;font-size:10px;line-height:1.5}
+.v57-crop-stage{position:relative;width:320px;height:320px;max-width:100%;margin:0 auto 18px;overflow:hidden;border-radius:12px;background:#050405;cursor:grab;touch-action:none}
+.v57-crop-stage:active{cursor:grabbing}
+.v57-crop-stage canvas{display:block;width:100%;height:100%}
+.v57-crop-ring{position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 999px rgba(0,0,0,.62),inset 0 0 0 2px rgba(255,49,91,.9),0 0 24px rgba(225,29,63,.22);pointer-events:none}
+.v57-crop-box .v57-dialog-actions{margin-top:16px}
+.v57-profile-avatar{background:#090607}
+.v57-profile-avatar img{object-fit:cover}
+
+@media(max-width:700px){
+  .staff-page.staff-unauth #loginView{grid-template-columns:1fr;gap:25px;padding-top:80px;padding-bottom:50px}
+  .staff-page.staff-unauth .staff-login-art{text-align:center}
+  .staff-page.staff-unauth .staff-moon{margin:auto}
+  .v57-crop-box{padding:17px}
+  .v57-crop-stage{width:min(320px,78vw);height:min(320px,78vw)}
+}

@@ -72,7 +72,7 @@
     </aside>
     <section class="v57-workspace">
       <header class="v57-topbar">
-        <div><span>RED MOON / COMMAND CENTER</span><h1 id="v57Title">Áttekintés</h1><p id="v57Welcome"></p></div>
+        <div><span>RED MOON / COMMAND CENTER</span><h1 id="v57Title">Áttekintés</h1><p id="v57Welcome"></p><div id="v57GlobalShift" class="v57-global-shift"></div></div>
         <button id="v57Logout" class="v57-logout">KIJELENTKEZÉS <b>↗</b></button>
       </header>
       <div id="v57Views"></div>
@@ -90,7 +90,7 @@
   let products=[], me=null, shift=null, active='overview', cart=new Map(), refreshTimer=null;
 
   function setView(id){
-    active=id; $$('.v57-view').forEach(v=>v.classList.toggle('active',v.dataset.view===id));
+    active=id; updateGlobalShiftBanner(); $$('.v57-view').forEach(v=>v.classList.toggle('active',v.dataset.view===id));
     $$('.v57-sidebar nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));
     const title=viewDefs.find(x=>x[0]===id)?.[1]||'Command Center'; $('#v57Title').textContent=title;
     renderActive();
@@ -98,6 +98,12 @@
   $$('.v57-sidebar nav button').forEach(b=>b.onclick=()=>setView(b.dataset.view));
   $('#v57Logout').onclick=async()=>{if(await confirmBox('Kijelentkezés','Biztosan kijelentkezel a Command Centerből?')){await api('/api/logout',{method:'POST'});location.reload()}};
 
+  function updateGlobalShiftBanner(){
+    const el=$('#v57GlobalShift'); if(!el)return;
+    if(!shift){el.innerHTML='<span class=\"shift-state-dot closed\"></span><b>NINCS AKTÍV MŰSZAK</b><span>Műszak jelenleg nem fut.</span>';return}
+    const members=(shift.members||[]).join(', ')||'nincs rögzített tag';
+    el.innerHTML=`<span class=\"shift-state-dot open\"></span><b>JELENLEG MŰSZAK MEGY</b><span>Tagok: ${esc(members)}</span>`;
+  }
   function roleAllowed(role){return ['manager','owner'].includes(role)}
   function isOwner(){return me?.role==='owner'}
   function currentShiftMember(){return !!(shift && Array.isArray(shift.memberIds) && me && shift.memberIds.includes(me.id))}
@@ -105,7 +111,7 @@
   async function loadBase(){
     try{
       const [md,pd,sd]=await Promise.all([api('/api/me'),api('/api/products'),api('/api/shifts/current')]);
-      me=md.user; products=pd.products||[]; shift=sd.shift||null; window.me=me; window.products=products;
+      me=md.user; products=pd.products||[]; shift=sd.shift||null; window.me=me; window.products=products; updateGlobalShiftBanner();
       $('#v57SideName').textContent=me?.name||'—'; $('#v57SideRole').textContent=(me?.role||'STAFF').toUpperCase();
       $('#v57Welcome').textContent=`Bejelentkezve: ${me?.name||''} · ${(me?.role||'').toUpperCase()}`;
       if(me?.role==='dj'){location.href='dj.html';return}
@@ -325,8 +331,60 @@
 
   async function renderProfile(){
     const host=$('#v57-profile');let d;try{d=await api('/api/me')}catch(e){return}
-    const u=d.user;host.innerHTML=`<div class="v57-card v57-profile-card"><div class="v57-profile-avatar">${u.avatar?`<img src="${esc(u.avatar)}">`:`<span>${esc((u.nickname||u.name||'RM').slice(0,2).toUpperCase())}</span>`}</div><div><div class="v57-card-head"><div><span>ACCOUNT / IDENTITY</span><h3>Saját profil</h3><small>${esc(u.role.toUpperCase())} · ${esc(u.username)}</small></div></div><div class="v57-form-grid"><label class="v57-field"><span>NÉV</span><input id="v57ProfName" value="${esc(u.name||'')}"></label><label class="v57-field"><span>BECSENÉV</span><input id="v57ProfNick" value="${esc(u.nickname||'')}"></label><label class="v57-field wide"><span>PROFILKÉP</span><input id="v57ProfFile" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG/JPG/WebP · maximum 280 KB</small></label></div><button id="v57SaveProfile" class="v57-btn red">PROFIL MENTÉSE ↗</button></div></div>`;
-    $('#v57SaveProfile').onclick=async()=>{let avatar=u.avatar||'';const f=$('#v57ProfFile').files?.[0];if(f){if(f.size>280000){toast('Túl nagy kép','A profilkép maximum 280 KB lehet.',true);return}avatar=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)})}try{const out=await api('/api/profile',{method:'PATCH',body:JSON.stringify({name:$('#v57ProfName').value,nickname:$('#v57ProfNick').value,avatar})});me=out.user;window.me=me;$('#v57SideName').textContent=me.name;toast('Profil mentve','A változtatás bekerült az Owner naplóba.');renderProfile()}catch(e){toast('Profil mentés sikertelen',e.message,true)}}
+    const u=d.user;
+    host.innerHTML=`<div class="v57-card v57-profile-card"><div class="v57-profile-avatar" id="v57ProfileAvatar">${u.avatar?`<img src="${esc(u.avatar)}">`:`<span>${esc((u.name||'RM').slice(0,2).toUpperCase())}</span>`}</div><div><div class="v57-card-head"><div><span>ACCOUNT / IDENTITY</span><h3>Saját profil</h3><small>${esc(u.role.toUpperCase())} · ${esc(u.username)}</small></div></div><div class="v57-form-grid"><label class="v57-field wide"><span>NÉV</span><input id="v57ProfName" value="${esc(u.name||'')}"></label><label class="v57-field wide"><span>PROFILKÉP</span><input id="v57ProfFile" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG/JPG/WebP · maximum 5 MB · feltöltés után kör alakban kiválaszthatod a kívánt részletet.</small></label></div><button id="v57SaveProfile" class="v57-btn red">PROFIL MENTÉSE ↗</button></div></div>`;
+    let croppedAvatar=u.avatar||'';
+    $('#v57ProfFile').onchange=async()=>{const f=$('#v57ProfFile').files?.[0];if(!f)return;if(f.size>5*1024*1024){toast('Túl nagy kép','A profilkép maximum 5 MB lehet.',true);$('#v57ProfFile').value='';return}try{croppedAvatar=await cropAvatar(f);$('#v57ProfileAvatar').innerHTML=`<img src="${esc(croppedAvatar)}">`;toast('Profilkép kiválasztva','A kör alakú kivágás elkészült.');}catch(e){if(e.message!=='A kivágás megszakítva.')toast('Kép feldolgozása sikertelen',e.message,true)}};
+    $('#v57SaveProfile').onclick=async()=>{try{const out=await api('/api/profile',{method:'PATCH',body:JSON.stringify({name:$('#v57ProfName').value,avatar:croppedAvatar})});me=out.user;window.me=me;$('#v57SideName').textContent=me.name;toast('Profil mentve','A profil módosításai mentve lettek.');renderProfile()}catch(e){toast('Profil mentés sikertelen',e.message,true)}}
+  }
+
+  function cropAvatar(file){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onerror=reject;
+      reader.onload=()=>{
+        const img=new Image();
+        img.onerror=reject;
+        img.onload=()=>{
+          const size=320, canvas=document.createElement('canvas');
+          canvas.width=canvas.height=size;
+          const ctx=canvas.getContext('2d');
+          let zoom=1, scale=Math.max(size/img.width,size/img.height), x=(size-img.width*scale)/2, y=(size-img.height*scale)/2;
+          let dragging=false,sx=0,sy=0,ox=0,oy=0;
+          const modal=document.createElement('div');
+          modal.className='v57-crop-modal';
+          modal.innerHTML='<div class="v57-crop-box"><div class="v57-kicker">RED MOON / PROFILE IMAGE</div><h3>Profilkép kivágása</h3><div class="v57-crop-stage"><canvas width="320" height="320"></canvas><div class="v57-crop-ring"></div></div><label class="v57-field"><span>NAGYÍTÁS</span><input class="v57-crop-zoom" type="range" min="1" max="3" step="0.01" value="1"></label><p>Húzd a képet a körben a kívánt részre.</p><div class="v57-dialog-actions"><button class="v57-btn ghost" data-crop="cancel">MÉGSE</button><button class="v57-btn red" data-crop="ok">KIVÁLASZTÁS</button></div></div>';
+          document.body.appendChild(modal);
+          const stage=modal.querySelector('canvas');
+          const outCtx=stage.getContext('2d');
+          const zoomEl=modal.querySelector('.v57-crop-zoom');
+          function clamp(){
+            const w=img.width*scale*zoom, h=img.height*scale*zoom;
+            x=Math.min(size/2+w/2,Math.max(size/2-w/2,x+w/2))-w/2;
+            y=Math.min(size/2+h/2,Math.max(size/2-h/2,y+h/2))-h/2;
+          }
+          function draw(){
+            outCtx.clearRect(0,0,size,size);
+            outCtx.save();
+            outCtx.translate(x+img.width*scale*zoom/2,y+img.height*scale*zoom/2);
+            outCtx.scale(scale*zoom,scale*zoom);
+            outCtx.drawImage(img,-img.width/2,-img.height/2);
+            outCtx.restore();
+          }
+          function reset(){x=(size-img.width*scale*zoom)/2;y=(size-img.height*scale*zoom)/2;clamp();draw()}
+          reset();
+          zoomEl.oninput=()=>{zoom=Number(zoomEl.value);reset()};
+          stage.onpointerdown=e=>{dragging=true;sx=e.clientX;sy=e.clientY;ox=x;oy=y;stage.setPointerCapture(e.pointerId)};
+          stage.onpointermove=e=>{if(!dragging)return;x=ox+e.clientX-sx;y=oy+e.clientY-sy;clamp();draw()};
+          stage.onpointerup=()=>{dragging=false};
+          stage.onpointercancel=()=>{dragging=false};
+          modal.querySelector('[data-crop="cancel"]').onclick=()=>{modal.remove();reject(new Error('A kivágás megszakítva.'))};
+          modal.querySelector('[data-crop="ok"]').onclick=()=>{const result=stage.toDataURL('image/jpeg',.9);modal.remove();resolve(result)};
+        };
+        img.src=reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
   // Refresh product/state while staying in the Command Center.
@@ -336,7 +394,7 @@
     refreshBusy=true;
     try{
       const [pd,sd]=await Promise.all([api('/api/products'),api('/api/shifts/current')]);
-      products=pd.products||[]; shift=sd.shift||null; window.products=products;
+      products=pd.products||[]; shift=sd.shift||null; window.products=products; updateGlobalShiftBanner();
       if(active==='pos'){
         const selected=$('.v57-cat.active')?.dataset.cat || products.find(p=>p.active)?.category || 'drink';
         renderProductGrid(selected); renderCart(); renderSalesHistory();

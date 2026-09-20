@@ -276,7 +276,7 @@ function onlineUsers(){
 }
 function roleAtLeast(role,need){ const r={staff:1,manager:2,owner:3}; return (r[role]||0)>=(r[need]||99); }
 function auth(req,res,need='staff'){ const u=sessionUser(req); if(!u){json(res,401,{error:'Bejelentkezés szükséges'});return null;} if((u.portal|| (u.role==='dj'?'dj':'staff'))!=='staff'){json(res,403,{error:'Ez a fiók a DJ konzolhoz tartozik. Kasszához külön Staff / Kasszás fiók szükséges.'});return null;} if(!roleAtLeast(u.role,need)){json(res,403,{error:'Nincs jogosultságod ehhez a művelethez'});return null;} return u; }
-function readBody(req){return new Promise((resolve,reject)=>{let d='';req.on('data',c=>{d+=c;if(d.length>1e6) req.destroy();});req.on('end',()=>{try{resolve(d?JSON.parse(d):{})}catch(e){reject(e)}});req.on('error',reject)})}
+function readBody(req){return new Promise((resolve,reject)=>{let d='';req.on('data',c=>{d+=c;if(d.length>8e6) req.destroy();});req.on('end',()=>{try{resolve(d?JSON.parse(d):{})}catch(e){reject(e)}});req.on('error',reject)})}
 function hashPassword(password,salt=crypto.randomBytes(16).toString('hex')){return {salt,hash:crypto.pbkdf2Sync(password,salt,310000,32,'sha256').toString('hex')}}
 function verifyPassword(password,encoded){ const [scheme,it,alg,salt,hash]=encoded.split(':'); if(scheme!=='PBKDF2') return false; const got=crypto.pbkdf2Sync(password,salt,Number(it),32,alg); return crypto.timingSafeEqual(got,Buffer.from(hash,'hex')); }
 function audit(db,user,action,details){db.audit.unshift({id:crypto.randomUUID(),at:new Date().toISOString(),userId:user.id,user:user.name,role:user.role,action,details}); if(db.audit.length>1000) db.audit.length=1000;}
@@ -613,7 +613,7 @@ async function api(req,res,url){
     // ---------- PROFILE / EMPLOYEES ----------
     if(req.method==='PATCH' && url==='/api/profile'){
       const u=auth(req,res); if(!u)return; const b=await readBody(req); const target=db.users.find(x=>x.id===u.id); if(!target)return json(res,404,{error:'Fiók nem található'});
-      if(b.name!==undefined)target.name=String(b.name).trim().slice(0,100); if(b.nickname!==undefined)target.nickname=String(b.nickname).trim().slice(0,50); if(b.avatar!==undefined){const avatar=String(b.avatar); if(avatar.length>420000)return json(res,400,{error:'A profilkép túl nagy.'}); if(avatar && !/^data:image\/(png|jpe?g|webp);base64,/i.test(avatar))return json(res,400,{error:'A profilképnek PNG/JPG/WebP képnek kell lennie.'}); target.avatar=avatar;}
+      if(b.name!==undefined)target.name=String(b.name).trim().slice(0,100); if(b.avatar!==undefined){const avatar=String(b.avatar); if(avatar.length>7000000)return json(res,400,{error:'A profilkép túl nagy. Maximum kb. 5 MB.'}); if(avatar && !/^data:image\/(png|jpe?g|webp);base64,/i.test(avatar))return json(res,400,{error:'A profilképnek PNG/JPG/WebP képnek kell lennie.'}); target.avatar=avatar;}
       audit(db,target,'PROFILE_UPDATE','Saját profil frissítve'); await writeDB(db); const sid=parseCookies(req).rm_session; const session=sid&&sessions.get(sid); if(session){session.name=target.name;session.username=target.username} return json(res,200,{user:publicUser(target)});
     }
     if(req.method==='GET' && url==='/api/employees'){
