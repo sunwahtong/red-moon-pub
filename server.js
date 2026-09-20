@@ -32,6 +32,7 @@ async function initDB(){
     const beforeSections=JSON.stringify((db.products||[]).map(p=>[p.id,p.section]));
     db.products=(db.products||[]).map(p=>({...p,section:inferProductSection(p)}));
     if(beforeSections!==JSON.stringify(db.products.map(p=>[p.id,p.section]))) changed=true;
+    if(migrateShortShiftIds()) changed=true;
     if(changed) await writeDB(db);
     return;
   }
@@ -55,6 +56,7 @@ async function initDB(){
   await migrateDrinkCatalog();
   let changed = false;
   if(migrateCartIds()) changed = true;
+  if(migrateShortShiftIds()) changed = true;
   if(ensureBuiltInManagers()) changed = true;
   if(changed) await writeDB(db);
 }
@@ -72,13 +74,44 @@ function initialsFromName(name){
   return (fallback.slice(0,3) || 'RED');
 }
 function makeShiftId(db){
-  const d=new Date();
-  const date=d.toISOString().slice(0,10).replace(/-/g,'');
-  const prefix=`SHIFT-${date}-`;
-  const used=new Set((db.shifts||[]).map(s=>String(s.id||'')));
-  let n=1;
-  while(used.has(prefix+String(n).padStart(3,'0'))) n++;
-  return prefix+String(n).padStart(3,'0');
+  // V64.7 — rövid, könnyen bediktálható műszakazonosító.
+  // Példa: M-001, M-002, M-003...
+  const ids=(db.shifts||[]).map(s=>String(s.id||''));
+  const nums=ids.map(id=>{ const m=id.match(/^M-(\d+)$/); return m?Number(m[1]):0; });
+  let n=Math.max(0,...nums)+1;
+  let id=`M-${String(n).padStart(3,'0')}`;
+  const used=new Set(ids);
+  while(used.has(id)){ n++; id=`M-${String(n).padStart(3,'0')}`; }
+  return id;
+}
+
+function migrateShortShiftIds(){
+  db.shifts ||= []; db.sales ||= []; db.documents ||= [];
+  const legacy=db.shifts.filter(s=>!/^M-\d+$/.test(String(s.id||'')));
+  if(!legacy.length) return false;
+  let changed=false;
+  const used=new Set(db.shifts.filter(s=>/^M-\d+$/.test(String(s.id||''))).map(s=>String(s.id)));
+  let next=Math.max(0,...[...used].map(id=>Number(id.slice(2))||0))+1;
+  const mapping=new Map();
+  legacy.sort((a,b)=>new Date(a.startedAt||0)-new Date(b.startedAt||0));
+  for(const shift of legacy){
+    let id=`M-${String(next).padStart(3,'0')}`;
+    while(used.has(id)){ next++; id=`M-${String(next).padStart(3,'0')}`; }
+    mapping.set(String(shift.id),id); shift.id=id;
+    if(shift.closure) shift.closure.shiftId=id;
+    if(shift.closure?.transfer) shift.closure.transfer.reference=id;
+    used.add(id); next++; changed=true;
+  }
+  if(changed){
+    for(const sale of db.sales){ if(mapping.has(String(sale.shiftId))) sale.shiftId=mapping.get(String(sale.shiftId)); }
+    for(const doc of db.documents){ if(mapping.has(String(doc.shiftId))) doc.shiftId=mapping.get(String(doc.shiftId)); }
+    for(const audit of (db.audit||[])){
+      for(const [from,to] of mapping){
+        if(typeof audit.details==='string' && audit.details.includes(from)) audit.details=audit.details.split(from).join(to);
+      }
+    }
+  }
+  return changed;
 }
 function makeDocumentId(prefix){
   return `${prefix}-${new Date().toISOString().replace(/\D/g,'').slice(0,14)}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;

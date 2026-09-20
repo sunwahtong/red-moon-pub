@@ -1,0 +1,39 @@
+/* V64.7 — compact Red Moon Command Center + premium scroll system */
+:root{
+  scrollbar-color:#7d1f3a #090607;
+  scrollbar-width:thin;
+}
+html{scrollbar-color:#7d1f3a #090607;scrollbar-width:thin}
+*{scrollbar-width:thin;scrollbar-color:#702039 #090607}
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-track{background:linear-gradient(180deg,#080607,#10070b);border-left:1px solid rgba(117,28,52,.18)}
+*::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#b92b50,#65162f);border:2px solid #090607;border-radius:999px;box-shadow:0 0 10px rgba(225,29,63,.24)}
+*::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#e33a60,#8e1e40);box-shadow:0 0 14px rgba(225,29,63,.42)}
+*::-webkit-scrollbar-corner{background:#090607}
+
+/* Sidebar: tighter, cleaner, less wasted vertical space. */
+.staff-page:has(#appView:not(.hidden)) #v57Shell{grid-template-columns:228px minmax(0,1fr)}
+.staff-page:has(#appView:not(.hidden)) .v57-sidebar{width:228px;padding:16px 12px;overflow-y:auto;scrollbar-gutter:stable}
+.staff-page:has(#appView:not(.hidden)) .v57-brand{padding:3px 10px 15px;margin-bottom:9px}
+.staff-page:has(#appView:not(.hidden)) .v57-brand strong{font-size:21px;margin-top:5px}
+.staff-page:has(#appView:not(.hidden)) .v57-sidebar nav{gap:2px}
+.staff-page:has(#appView:not(.hidden)) .v57-sidebar nav button{padding:9px 10px;border-radius:8px;font-size:9px;line-height:1.25}
+.staff-page:has(#appView:not(.hidden)) .v57-side-user{margin-top:12px;padding:10px}
+.staff-page:has(#appView:not(.hidden)) .v57-workspace{margin-left:228px}
+
+/* Every command-center page/section gets a consistent Red Moon scroll surface. */
+.v57-workspace,.v57-view,.v57-view-body,.v57-card,.v57-dialog,.v57-modal,.panel,.doc-box,.doc-modal,.inventory,.table-wrap,.v57-sidebar{scrollbar-color:#7d1f3a #090607;scrollbar-width:thin}
+.v57-card,.panel,.v57-dialog,.doc-box{scrollbar-gutter:stable}
+.v57-card::-webkit-scrollbar,.panel::-webkit-scrollbar,.v57-dialog::-webkit-scrollbar,.doc-box::-webkit-scrollbar,.inventory::-webkit-scrollbar,.table-wrap::-webkit-scrollbar{width:7px;height:7px}
+.v57-card::-webkit-scrollbar-thumb,.panel::-webkit-scrollbar-thumb,.v57-dialog::-webkit-scrollbar-thumb,.doc-box::-webkit-scrollbar-thumb,.inventory::-webkit-scrollbar-thumb,.table-wrap::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#a92549,#5b162d);border-radius:999px;border:2px solid transparent;background-clip:padding-box}
+
+/* Long panels feel like one polished Red Moon window instead of a browser-default scroller. */
+.v57-card .table-wrap,.v57-card .inventory,.panel .table-wrap,.panel .inventory{border-radius:12px}
+.table-wrap{scrollbar-gutter:stable}
+
+@media(max-width:900px){
+  .staff-page:has(#appView:not(.hidden)) #v57Shell{grid-template-columns:1fr}
+  .staff-page:has(#appView:not(.hidden)) .v57-sidebar{width:100%;padding:12px 10px}
+  .staff-page:has(#appView:not(.hidden)) .v57-workspace{margin-left:0}
+  .staff-page:has(#appView:not(.hidden)) .v57-sidebar nav button{padding:9px 10px}
+}
