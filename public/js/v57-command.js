@@ -106,6 +106,20 @@
   }
   function roleAllowed(role){return ['manager','owner'].includes(role)}
   function isOwner(){return me?.role==='owner'}
+  function productSection(p){
+    const raw=String(p?.section||'').trim().toLowerCase(); if(raw)return raw;
+    const n=String(p?.name||'').toLowerCase();
+    if(n.includes('sörnyitó')||n.includes('sornyito'))return 'accessories';
+    if(/\b(sör|beer|lager|ale|ipa|pils)\b/.test(n))return 'beer';
+    if(/\b(bor|wine|rozé|rose|pezsgő|prosecco|champagne)\b/.test(n))return 'wine';
+    if(/whiskey|whisky|vodka|tequila|rum|gin|brandy|cognac|pálink|bourbon/.test(n))return 'spirits';
+    if(String(p?.category||'')==='food')return 'food';
+    return 'other';
+  }
+  const POS_SECTIONS=[
+    ['beer','Sörök'],['wine','Borok'],['spirits','Tömény italok'],['other','Egyéb italok'],['accessories','Kellékek a sörnyitónak'],['food','Ételek']
+  ];
+  function sectionLabel(id){return POS_SECTIONS.find(x=>x[0]===id)?.[1]||'Egyéb';}
   function currentShiftMember(){return !!(shift && Array.isArray(shift.memberIds) && me && shift.memberIds.includes(me.id))}
 
   async function loadBase(){
@@ -174,10 +188,10 @@
 
   function renderPOS(){
     const host=$('#v57-pos');
-    const cats=[...new Set(products.filter(p=>p.active).map(p=>p.category))];
+    const cats=POS_SECTIONS.map(x=>x[0]).filter(section=>products.some(p=>p.active&&productSection(p)===section));
     host.innerHTML=`<div class="v57-pos-layout">
       <div class="v57-card"><div class="v57-card-head"><div><span>POS / CATALOG</span><h3>Eladható termékek</h3><small>${currentShiftMember()?'Aktív műszaktagként értékesíthetsz.':'Csak az aktuális műszak tagjai értékesíthetnek.'}</small></div><span class="v57-badge">${currentShiftMember()?'ELADHATÓ':'MŰSZAKON KÍVÜL'}</span></div>
-      <div class="v57-category-tabs">${cats.map((c,i)=>`<button class="v57-cat ${i===0?'active':''}" data-cat="${esc(c)}">${c==='drink'?'ITALOK':'ÉTELEK'}</button>`).join('')}</div>
+      <div class="v57-category-tabs">${cats.map((c,i)=>`<button class="v57-cat ${i===0?'active':''}" data-cat="${esc(c)}">${esc(sectionLabel(c))}</button>`).join('')}</div>
       <div id="v57ProductsGrid" class="v57-products-grid"></div></div>
       <aside class="v57-card v57-cart"><div class="v57-card-head"><div><span>CART</span><h3>Kosár</h3></div><button id="v57ClearCart" class="v57-mini">ÜRÍTÉS</button></div><div id="v57CartItems"></div><div class="v57-cart-total"><span>ÖSSZESEN</span><strong id="v57CartTotal">0 Ft</strong></div><div class="v57-pay"><button class="active" data-pay="cash"><span class="pay-icon pay-cash">$</span><span>Készpénz</span></button><button data-pay="transfer"><span class="pay-icon pay-transfer">▣</span><span>Átutalás</span></button></div><button id="v57Checkout" class="v57-btn red wide">ELADÁS RÖGZÍTÉSE ↗</button><p id="v57SaleMsg" class="v57-note"></p></aside>
     </div>
@@ -186,7 +200,7 @@
     $('#v57ClearCart').onclick=()=>{cart.clear();renderCart()};
     $$('.v57-pay button').forEach(b=>b.onclick=()=>{$$('.v57-pay button').forEach(x=>x.classList.remove('active'));b.classList.add('active')});
     $('#v57Checkout').onclick=checkout;
-    renderProductGrid(cats[0]);
+    renderProductGrid(cats[0]||'other');
     renderCart();
     renderSalesHistory();
   }
@@ -205,7 +219,7 @@
   }
   function renderProductGrid(cat){
     const grid=$('#v57ProductsGrid'); if(!grid)return;
-    const list=products.filter(p=>p.active&&p.category===cat);
+    const list=products.filter(p=>p.active&&productSection(p)===cat);
     grid.innerHTML=list.length?list.map(p=>`<button class="v57-product ${p.stock<1?'sold':''}" data-p="${esc(p.id)}" ${(!currentShiftMember()||p.stock<1)?'disabled':''}>
       <span class="v57-product-img">${p.image?`<img src="/${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">`:'<span class="no-img">RM</span>'}</span>
       <span class="v57-product-info"><b>${esc(p.name)}</b><small>${esc(p.subtitle||'Red Moon Pub')}</small><strong>${money(p.price)}</strong><em>${p.stock>0?p.stock+' db':'ELFOGYOTT'}</em></span>
@@ -229,14 +243,40 @@
   }
 
   async function renderStock(){
-    const host=$('#v57-stock');
-    const can=roleAllowed(me.role);
-    host.innerHTML=`<div class="v57-grid two"><div class="v57-card"><div class="v57-card-head"><div><span>STOCK / RESTOCK</span><h3>Készletfeltöltés</h3><small>Gyors +1 / +5 / +10 mennyiségek</small></div><span class="v57-badge">${can?'MANAGER / OWNER':'NINCS JOG'}</span></div>${can?`<div class="v57-form-grid"><label class="v57-field"><span>TERMÉK</span><select id="v57RestockProduct">${products.filter(p=>p.active).map(p=>`<option value="${esc(p.id)}">${esc(p.name)} · ${p.stock} db</option>`).join('')}</select></label><label class="v57-field"><span>MENNYISÉG</span><div class="v57-plus"><button type="button" data-q="1">+1</button><button type="button" data-q="5">+5</button><button type="button" data-q="10">+10</button></div><input id="v57RestockQty" type="number" min="1" value="1"></label><label class="v57-field"><span>BESZERZÉSI EGYSÉGÁR</span><input id="v57RestockCost" type="number" min="0" value="0"></label><label class="v57-field"><span>FORRÁS</span><select id="v57RestockSource"><option value="nagyker">Nagyker</option><option value="bolt">Bolt</option></select></label></div><button id="v57RestockSave" class="v57-btn red">KÉSZLET FELTÖLTÉSE ↗</button>`:'<div class="v57-empty">A készletfeltöltés Manager / Owner jogosultságú művelet.</div>'}</div><div class="v57-card"><div class="v57-card-head"><div><span>INVENTORY</span><h3>Aktuális készlet</h3></div></div><div class="v57-list">${products.filter(p=>p.active).map(p=>`<div class="v57-row"><div><b>${esc(p.name)}</b><small>${p.category==='drink'?'Ital':'Étel'} · minimum ${p.minStock}</small></div><strong class="${p.stock<=p.minStock?'warn':''}">${p.stock} db</strong></div>`).join('')}</div></div></div><div class="v57-card"><div class="v57-card-head"><div><span>RESTOCK / LOG</span><h3>Feltöltési napló</h3></div></div><div id="v57RestockLogs" class="v57-list"></div></div>`;
-    if(can){
-      $$('#v57-stock [data-q]').forEach(b=>b.onclick=()=>$('#v57RestockQty').value=Number($('#v57RestockQty').value||0)+Number(b.dataset.q));
-      $('#v57RestockSave').onclick=async()=>{try{const d=await api('/api/restock',{method:'POST',body:JSON.stringify({productId:$('#v57RestockProduct').value,qty:Number($('#v57RestockQty').value),unitCost:Number($('#v57RestockCost').value),source:$('#v57RestockSource').value})});products=products.map(p=>p.id===d.product.id?d.product:p);toast('Készlet feltöltve',`${d.product.name} +${d.log.qty} db`);renderStock()}catch(e){toast('Feltöltés sikertelen',e.message,true)}};
-      try{const d=await api('/api/restock/logs');$('#v57RestockLogs').innerHTML=(d.logs||[]).map(x=>`<div class="v57-row"><div><b>${esc(x.product)} · +${x.qty} db</b><small>${esc(x.user)} · ${esc(x.source)} · ${money(x.totalCost)}</small></div><span>${new Date(x.at).toLocaleString('hu-HU')}</span></div>`).join('')||'<div class="v57-empty">Nincs feltöltési napló.</div>'}catch{}
-    }
+    const host=$('#v57-stock'); const can=roleAllowed(me.role);
+    const activeProducts=products.filter(p=>p.active);
+    host.innerHTML=`<div class="v57-grid two">
+      <div class="v57-card"><div class="v57-card-head"><div><span>STOCK / RESTOCK</span><h3>Készletfeltöltés</h3><small>Kosár alapú feltöltés — egyszerre több terméket is hozzáadhatsz.</small></div><span class="v57-badge">${can?'MANAGER / OWNER':'NINCS JOG'}</span></div>
+      ${can?`<div class="v57-restock-layout"><div class="v57-form-grid">
+        <label class="v57-field"><span>TERMÉK</span><select id="v57RestockProduct">${activeProducts.map(p=>`<option value="${esc(p.id)}">${esc(p.name)} · ${p.stock} db</option>`).join('')}</select></label>
+        <label class="v57-field"><span>MENNYISÉG</span><div class="v57-plus"><button type="button" data-q="1">+1</button><button type="button" data-q="5">+5</button><button type="button" data-q="10">+10</button></div><input id="v57RestockQty" type="number" min="1" value="1"></label>
+        <label class="v57-field"><span>BESZERZÉSI EGYSÉGÁR</span><input id="v57RestockCost" type="number" min="0" value="0"></label>
+        <label class="v57-field"><span>FORRÁS</span><select id="v57RestockSource"><option value="nagyker">Nagyker</option><option value="bolt">Bolt</option></select></label>
+      </div><button id="v57RestockAdd" class="v57-btn ghost wide">＋ FELTÖLTÉSI KOSÁRBA</button>
+      <div class="v57-card restock-cart-card"><div class="v57-card-head"><div><span>RESTOCK / CART</span><h3>Feltöltési kosár</h3></div><button id="v57ClearRestock" class="v57-mini danger">ÜRÍTÉS</button></div><div id="v57RestockCart" class="v57-list"><div class="v57-empty">A feltöltési kosár üres.</div></div><div class="v57-cart-total"><span>ÖSSZES BESZERZÉS</span><strong id="v57RestockTotal">0 Ft</strong></div><button id="v57RestockSave" class="v57-btn red wide">KÉSZLET FELTÖLTÉSE ↗</button></div></div>`:'<div class="v57-empty">A készletfeltöltés Manager / Owner jogosultságú művelet.</div>'}
+      </div>
+      <div class="v57-card"><div class="v57-card-head"><div><span>INVENTORY</span><h3>Aktuális készlet</h3></div></div><div class="v57-list">${activeProducts.map(p=>`<div class="v57-row"><div><b>${esc(p.name)}</b><small>${esc(sectionLabel(productSection(p)))} · minimum ${p.minStock}</small></div><strong class="${p.stock<=p.minStock?'warn':''}">${p.stock} db</strong></div>`).join('')||'<div class="v57-empty">Nincs aktív termék.</div>'}</div></div>
+    </div>
+    <div class="v57-card"><div class="v57-card-head"><div><span>RESTOCK / LOG</span><h3>Feltöltési napló</h3><small>Az Owner egyes naplóbejegyzéseket törölhet.</small></div></div><div id="v57RestockLogs" class="v57-log-scroll"></div></div>`;
+    if(!can)return;
+    const restockCart=new Map();
+    const renderRestockCart=()=>{
+      let total=0;
+      const rows=[];
+      for(const [id,item] of restockCart){const p=products.find(x=>x.id===id);if(!p)continue;const line=item.qty*item.unitCost;total+=line;rows.push(`<div class="v57-row restock-cart-row"><div><b>${esc(p.name)} × ${item.qty}</b><small>${money(item.unitCost)} / db · ${esc(item.source)}</small></div><div class="restock-cart-actions"><strong>${money(line)}</strong><button class="v57-mini" data-rminus="${esc(id)}">−</button><button class="v57-mini" data-rplus="${esc(id)}">+</button><button class="v57-mini danger" data-rremove="${esc(id)}">×</button></div></div>`)}
+      $('#v57RestockCart').innerHTML=rows.join('')||'<div class="v57-empty">A feltöltési kosár üres.</div>';
+      $('#v57RestockTotal').textContent=money(total);
+      $$('#v57RestockCart [data-rminus]').forEach(b=>b.onclick=()=>{const x=restockCart.get(b.dataset.rminus);if(!x)return;x.qty--;if(x.qty<=0)restockCart.delete(b.dataset.rminus);renderRestockCart()});
+      $$('#v57RestockCart [data-rplus]').forEach(b=>b.onclick=()=>{const x=restockCart.get(b.dataset.rplus);if(!x)return;x.qty++;renderRestockCart()});
+      $$('#v57RestockCart [data-rremove]').forEach(b=>b.onclick=()=>{restockCart.delete(b.dataset.rremove);renderRestockCart()});
+    };
+    $$('#v57-stock [data-q]').forEach(b=>b.onclick=()=>$('#v57RestockQty').value=Number($('#v57RestockQty').value||0)+Number(b.dataset.q));
+    $('#v57RestockAdd').onclick=()=>{const id=$('#v57RestockProduct').value,p=products.find(x=>x.id===id),qty=Math.floor(Number($('#v57RestockQty').value)),unitCost=Number($('#v57RestockCost').value),source=$('#v57RestockSource').value;if(!p||qty<1||unitCost<0){toast('Hibás feltöltési tétel','Termék, mennyiség és beszerzési ár szükséges.',true);return}const old=restockCart.get(id);restockCart.set(id,{qty:(old?.qty||0)+qty,unitCost,source});$('#v57RestockQty').value=1;renderRestockCart();toast('Feltöltési kosár','A termék bekerült a feltöltési kosárba.')};
+    $('#v57ClearRestock').onclick=()=>{restockCart.clear();renderRestockCart()};
+    $('#v57RestockSave').onclick=async()=>{if(!restockCart.size){toast('Üres kosár','Tegyél legalább egy terméket a feltöltési kosárba.',true);return}try{const items=[...restockCart.entries()].map(([productId,x])=>({productId,qty:x.qty,unitCost:x.unitCost,source:x.source}));const d=await api('/api/restock',{method:'POST',body:JSON.stringify({items})});products=products.map(p=>d.products?.find(x=>x.id===p.id)||p);restockCart.clear();renderStock();toast('Készlet feltöltve',`${d.logs?.length||0} termék került feltöltésre.`)}catch(e){toast('Feltöltés sikertelen',e.message,true)}};
+    try{const d=await api('/api/restock/logs');const logs=d.logs||[];$('#v57RestockLogs').innerHTML=logs.map(x=>`<div class="v57-row"><div><b>${esc(x.product)} · +${x.qty} db</b><small>${esc(x.user)} · ${esc(x.source)} · ${money(x.totalCost)}</small></div><div class="restock-log-right"><span>${new Date(x.at).toLocaleString('hu-HU')}</span>${isOwner()?`<button class="v57-mini danger" data-del-restock="${esc(x.id)}">TÖRLÉS</button>`:''}</div></div>`).join('')||'<div class="v57-empty">Nincs feltöltési napló.</div>';
+      $$('#v57RestockLogs [data-del-restock]').forEach(b=>b.onclick=async()=>{if(!(await confirmBox('Feltöltési napló törlése','Csak a naplóbejegyzés törlődik, a készlet mennyisége nem változik.')))return;try{await api('/api/restock/logs/'+encodeURIComponent(b.dataset.delRestock),{method:'DELETE'});toast('Napló törölve','A feltöltési bejegyzés eltávolítva lett.');renderStock()}catch(e){toast('Törlés sikertelen',e.message,true)}})
+    }catch{ $('#v57RestockLogs').innerHTML='<div class="v57-empty">A feltöltési napló nem érhető el.</div>' }
   }
 
   async function renderShifts(){
@@ -271,7 +311,7 @@
       };
       $('#v57AddShiftMemberBtn')?.addEventListener('click',async()=>{const userId=$('#v57AddShiftMember').value;if(!userId){toast('Hiányzó dolgozó','Válassz egy munkatársat.',true);return}try{await api('/api/shifts/members',{method:'POST',body:JSON.stringify({userId})});toast('Műszaktag hozzáadva','A dolgozó azonnal értékesíthet az aktív műszakban.');await loadBase();renderShifts()}catch(e){toast('Műszaktag hozzáadása sikertelen',e.message,true)}});
     }else $('#v57OpenShift').onclick=async()=>{try{const ids=$$('#v57-shifts input[type=checkbox]:checked').map(x=>x.value);await api('/api/shifts/open',{method:'POST',body:JSON.stringify({openingCash:Number($('#v57OpeningCash').value),memberIds:ids})});toast('Műszak megnyitva','A műszaktagok mentve lettek.');await loadBase();renderShifts()}catch(e){toast('Műszakindítás sikertelen',e.message,true)}};
-    try{const d=await api('/api/shifts');$('#v57ShiftHistory').innerHTML=(d.shifts||[]).map(x=>`<div class="v57-row"><div><b>${new Date(x.startedAt).toLocaleString('hu-HU')}</b><small>${esc(x.startedByName)} → ${esc(x.closedByName||'—')} · ${money(x.revenue||0)} · ${(x.members||[]).map(esc).join(', ')}</small></div><span>${x.status==='closed'?'LEZÁRT':'NYITVA'}</span></div>`).join('')||'<div class="v57-empty">Nincs műszaktörténet.</div>'}catch(e){$('#v57ShiftHistory').innerHTML='<div class="v57-empty">A műszaklista Manager / Owner jogosultsághoz kötött.</div>'}
+    try{const d=await api('/api/shifts');$('#v57ShiftHistory').innerHTML=`<div class="v57-log-scroll">${(d.shifts||[]).map(x=>`<div class="v57-row"><div><b>${new Date(x.startedAt).toLocaleString('hu-HU')}</b><small>${esc(x.startedByName)} → ${esc(x.closedByName||'—')} · ${money(x.revenue||0)} · ${(x.members||[]).map(esc).join(', ')}</small></div><span>${x.status==='closed'?'LEZÁRT':'NYITVA'}</span></div>`).join('')||'<div class="v57-empty">Nincs műszaktörténet.</div>'}</div>`}catch(e){$('#v57ShiftHistory').innerHTML='<div class="v57-empty">A műszaklista Manager / Owner jogosultsághoz kötött.</div>'}
   }
 
   async function renderEmployees(){
@@ -289,7 +329,7 @@
 
   async function renderPrices(){
     const host=$('#v57-prices');const editable=isOwner();
-    host.innerHTML=`<div class="v57-card"><div class="v57-card-head"><div><span>PRICE CONTROL / OWNER</span><h3>Árvezérlés</h3><small>Az eladási ár módosítása azonnal megjelenik a publikus itallapon. Az árak az ÁFÁ-t tartalmazzák.</small></div><span class="v57-badge">${editable?'OWNER':'CSAK MEGTEKINTÉS'}</span></div><div class="v57-price-list">${products.filter(p=>p.active).map(p=>`<article class="v57-price-row"><div class="v57-price-img">${p.image?`<img src="/${esc(p.image)}">`:'RM'}</div><div class="v57-price-main"><b>${esc(p.name)}</b><small>${esc(p.subtitle||'Red Moon Pub')} · ${p.category==='drink'?'Ital':'Étel'}</small></div><div class="v57-price-edit"><strong>${money(p.price)}</strong>${editable?`<button class="v57-mini" data-price="${esc(p.id)}">ÁR MÓDOSÍTÁSA</button>`:''}</div></article>`).join('')}</div></div>${roleAllowed(me.role)?`<div class="v57-card" style="margin-top:16px"><div class="v57-card-head"><div><span>CATALOG / PRODUCT CONTROL</span><h3>Új termék</h3><small>Név, kategória, kép, rövid aláírás, ár és kezdő készlet.</small></div></div><div class="v57-form-grid"><label class="v57-field"><span>NÉV</span><input id="v57NewProductName" placeholder="Termék neve"></label><label class="v57-field"><span>KATEGÓRIA</span><select id="v57NewProductCategory"><option value="drink">Ital</option><option value="food">Étel</option></select></label><label class="v57-field"><span>ELADÁSI ÁR</span><input id="v57NewProductPrice" type="number" min="0" value="0"></label><label class="v57-field"><span>KEZDŐ KÉSZLET</span><input id="v57NewProductStock" type="number" min="0" value="0"></label><label class="v57-field"><span>MINIMUM KÉSZLET</span><input id="v57NewProductMin" type="number" min="0" value="0"></label><label class="v57-field"><span>KÉP ÚTVONAL / URL</span><input id="v57NewProductImage" placeholder="assets/menu/...png"></label><label class="v57-field wide"><span>RÖVID ALÁÍRÁS</span><input id="v57NewProductSubtitle" placeholder="Red Moon Pub · ..."></label></div><button id="v57CreateProduct" class="v57-btn red">TERMÉK HOZZÁADÁSA ↗</button></div>`:''}`;
+    host.innerHTML=`<div class="v57-card"><div class="v57-card-head"><div><span>PRICE CONTROL / OWNER</span><h3>Árvezérlés</h3><small>Az eladási ár módosítása azonnal megjelenik a publikus itallapon. Az árak az ÁFÁ-t tartalmazzák.</small></div><span class="v57-badge">${editable?'OWNER':'CSAK MEGTEKINTÉS'}</span></div><div class="v57-price-list">${products.filter(p=>p.active).map(p=>`<article class="v57-price-row"><div class="v57-price-img">${p.image?`<img src="/${esc(p.image)}">`:'RM'}</div><div class="v57-price-main"><b>${esc(p.name)}</b><small>${esc(p.subtitle||'Red Moon Pub')} · ${p.category==='drink'?'Ital':'Étel'}</small></div><div class="v57-price-edit"><strong>${money(p.price)}</strong>${editable?`<button class="v57-mini" data-price="${esc(p.id)}">ÁR MÓDOSÍTÁSA</button><button class="v57-mini danger" data-delete-product="${esc(p.id)}">TÖRLÉS</button>`:''}</div></article>`).join('')}</div></div>${roleAllowed(me.role)?`<div class="v57-card" style="margin-top:16px"><div class="v57-card-head"><div><span>CATALOG / PRODUCT CONTROL</span><h3>Új termék</h3><small>Név, kategória, kép, rövid aláírás, ár és kezdő készlet.</small></div></div><div class="v57-form-grid"><label class="v57-field"><span>NÉV</span><input id="v57NewProductName" placeholder="Termék neve"></label><label class="v57-field"><span>KATEGÓRIA</span><select id="v57NewProductCategory"><option value="drink">Ital</option><option value="food">Étel</option></select></label><label class="v57-field"><span>RÉSZLEG</span><select id="v57NewProductSection">${POS_SECTIONS.map(x=>`<option value="${x[0]}">${esc(x[1])}</option>`).join('')}</select></label><label class="v57-field"><span>ELADÁSI ÁR</span><input id="v57NewProductPrice" type="number" min="0" value="0"></label><label class="v57-field"><span>KEZDŐ KÉSZLET</span><input id="v57NewProductStock" type="number" min="0" value="0"></label><label class="v57-field"><span>MINIMUM KÉSZLET</span><input id="v57NewProductMin" type="number" min="0" value="0"></label><label class="v57-field"><span>KÉP ÚTVONAL / URL</span><input id="v57NewProductImage" placeholder="assets/menu/...png"></label><label class="v57-field wide"><span>RÖVID ALÁÍRÁS</span><input id="v57NewProductSubtitle" placeholder="Red Moon Pub · ..."></label></div><button id="v57CreateProduct" class="v57-btn red">TERMÉK HOZZÁADÁSA ↗</button></div>`:''}`;
     $$('#v57-prices [data-price]').forEach(b=>b.onclick=async()=>{
       const p=products.find(x=>x.id===b.dataset.price); if(!p)return;
       const d=await formModal('Ár & termék-aláírás',[
@@ -304,7 +344,9 @@
         renderPrices();
       }catch(e){toast('Módosítás sikertelen',e.message,true)}
     })
-    $('#v57CreateProduct')?.addEventListener('click',async()=>{const name=$('#v57NewProductName').value.trim();if(!name){toast('Hiányzó név','A termék neve kötelező.',true);return}try{const out=await api('/api/products',{method:'POST',body:JSON.stringify({name,category:$('#v57NewProductCategory').value,price:Number($('#v57NewProductPrice').value),stock:Number($('#v57NewProductStock').value),minStock:Number($('#v57NewProductMin').value),image:$('#v57NewProductImage').value.trim(),subtitle:$('#v57NewProductSubtitle').value.trim()})});products.push(out.product);toast('Termék hozzáadva',out.product.name);renderPrices()}catch(e){toast('Termék hozzáadása sikertelen',e.message,true)}})
+    $$('#v57-prices [data-delete-product]').forEach(b=>b.onclick=async()=>{const p=products.find(x=>x.id===b.dataset.deleteProduct);if(!p)return;if(!(await confirmBox('Termék törlése',`${p.name} kikerül az eladható termékek közül. A korábbi eladási napló megmarad.`)))return;try{const out=await api('/api/products/'+encodeURIComponent(p.id),{method:'DELETE'});products=products.map(x=>x.id===p.id?out.product:x);toast('Termék törölve',p.name);renderPrices()}catch(e){toast('Törlés sikertelen',e.message,true)}})
+    
+    $('#v57CreateProduct')?.addEventListener('click',async()=>{const name=$('#v57NewProductName').value.trim();if(!name){toast('Hiányzó név','A termék neve kötelező.',true);return}try{const out=await api('/api/products',{method:'POST',body:JSON.stringify({name,category:$('#v57NewProductCategory').value,section:$('#v57NewProductSection').value,price:Number($('#v57NewProductPrice').value),stock:Number($('#v57NewProductStock').value),minStock:Number($('#v57NewProductMin').value),image:$('#v57NewProductImage').value.trim(),subtitle:$('#v57NewProductSubtitle').value.trim()})});products.push(out.product);toast('Termék hozzáadva',out.product.name);renderPrices()}catch(e){toast('Termék hozzáadása sikertelen',e.message,true)}})
   }
 
   async function renderManagement(){
@@ -323,7 +365,7 @@
       $('#v57Users').innerHTML=users.map(u=>`<div class="v57-row"><div><b>${esc(u.name)}</b><small>${esc(u.username)} · ${esc(u.role.toUpperCase())}</small></div><button class="v57-mini" data-u="${esc(u.id)}">SZERKESZTÉS</button></div>`).join('')||'<div class="v57-empty">Nincs fiók.</div>';
       $$('#v57Users [data-u]').forEach(b=>b.onclick=async()=>{const u=users.find(x=>x.id===b.dataset.u);const d=await formModal('Fiók szerkesztése',[{id:'name',label:'NÉV',value:u.name,required:true},{id:'username',label:'FELHASZNÁLÓNÉV',value:u.username,required:true},{id:'role',label:'RANG',type:'select',value:u.role,options:[{value:'staff',label:'Staff'},{value:'manager',label:'Manager'},{value:'owner',label:'Owner'}]},{id:'password',label:'ÚJ JELSZÓ',type:'password'}]);if(!d)return;try{await api('/api/users/'+encodeURIComponent(u.id),{method:'PATCH',body:JSON.stringify(d)});toast('Fiók frissítve',u.name);renderManagement()}catch(e){toast('Fiók frissítés sikertelen',e.message,true)}})
       $('#v57NewUser')?.addEventListener('click',async()=>{const d=await formModal('Új fiók',[{id:'name',label:'NÉV',required:true},{id:'username',label:'FELHASZNÁLÓNÉV',required:true},{id:'password',label:'JELSZÓ',type:'password',required:true},{id:'role',label:'RANG',type:'select',value:'staff',options:[{value:'staff',label:'Staff'},{value:'manager',label:'Manager'},{value:'owner',label:'Owner'}]}]);if(!d)return;try{await api('/api/users',{method:'POST',body:JSON.stringify(d)});toast('Fiók létrehozva',d.name);renderManagement()}catch(e){toast('Fiók létrehozás sikertelen',e.message,true)}})
-      try{const d=await api('/api/audit');$('#v57Audit').innerHTML=(d.audit||[]).map(x=>`<div class="v57-row"><div><b>${esc(x.action)}</b><small>${esc(x.user)} · ${esc(x.role)} · ${esc(x.details)}</small></div><span>${new Date(x.at).toLocaleString('hu-HU')}</span></div>`).join('')||'<div class="v57-empty">Nincs napló.</div>'}catch(e){$('#v57Audit').innerHTML='<div class="v57-empty">Az audit csak Owner számára érhető el.</div>'}
+      try{const d=await api('/api/audit');$('#v57Audit').innerHTML=`<div class="v57-log-scroll">${(d.audit||[]).map(x=>`<div class="v57-row"><div><b>${esc(x.action)}</b><small>${esc(x.user)} · ${esc(x.role)} · ${esc(x.details)}</small></div><span>${new Date(x.at).toLocaleString('hu-HU')}</span></div>`).join('')||'<div class="v57-empty">Nincs napló.</div>'}</div>`}catch(e){$('#v57Audit').innerHTML='<div class="v57-empty">Az audit csak Owner számára érhető el.</div>'}
     }else{
       try{const d=await api('/api/notifications');$('#v57Notifications').innerHTML=(d.notifications||[]).map(x=>`<div class="v57-row"><div><b>${esc(x.title)}</b><small>${esc(x.message)}</small></div><span>${new Date(x.at).toLocaleString('hu-HU')}</span></div>`).join('')||'<div class="v57-empty">Nincs készletfeltöltési értesítés.</div>'}catch(e){}
     }
@@ -399,7 +441,7 @@
         const selected=$('.v57-cat.active')?.dataset.cat || products.find(p=>p.active)?.category || 'drink';
         renderProductGrid(selected); renderCart(); renderSalesHistory();
       }else if(active==='prices' || active==='stock'){
-        await renderActive();
+        // Do not rebuild the visible workspace on the 5s poll: rebuilding inputs/lists caused the Command Center to flicker.
       }else if(active==='overview'){
         updateShiftOverview();
         loadOnlineOverview();

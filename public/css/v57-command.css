@@ -187,3 +187,36 @@
 .v57-profile-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .v57-person-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .v57-product-img img{display:block;width:100%;height:100%;object-fit:contain;}
+
+/* V59.3 — stable logs, multi-item restock cart and anti-flicker pass */
+.v57-log-scroll{
+  max-height:360px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:2px 8px 2px 2px;
+  scrollbar-width:thin;
+  scrollbar-color:#8d2946 #10080c;
+  overscroll-behavior:contain;
+}
+.v57-log-scroll::-webkit-scrollbar{width:9px}
+.v57-log-scroll::-webkit-scrollbar-track{background:#10080c;border-radius:999px}
+.v57-log-scroll::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#b52b50,#581b31);border:2px solid #10080c;border-radius:999px}
+.v57-log-scroll::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#df3a62,#76233f)}
+.v57-log-scroll>.v57-row{margin-bottom:8px}
+.v57-log-scroll>.v57-row:last-child{margin-bottom:0}
+.v57-restock-layout{display:grid;gap:14px}
+.restock-cart-card{padding:15px;background:linear-gradient(145deg,rgba(32,12,20,.72),rgba(9,7,8,.96));border-color:#4b202f}
+.restock-cart-row{align-items:center}
+.restock-cart-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.restock-cart-actions strong{color:#fff;font:700 12px Cinzel;margin-right:4px}
+.restock-log-right{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.restock-log-right>span{color:#88767c;font-size:9px;white-space:nowrap}
+.v57-category-tabs{flex-wrap:wrap}
+.v57-product-info small{color:#b6a4aa}
+.v57-command-app .v57-view.active{animation:none!important}
+.v57-command-app .v57-card,.v57-command-app .v57-product,.v57-command-app .v57-row{animation:none!important}
+@media(max-width:700px){
+  .v57-log-scroll{max-height:340px}
+  .restock-cart-row{align-items:flex-start;flex-direction:column}
+  .restock-cart-actions{width:100%;justify-content:flex-start}
+}

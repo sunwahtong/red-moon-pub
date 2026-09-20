@@ -103,6 +103,18 @@ function migrateCartIds(){
   return changed;
 }
 
+function inferProductSection(p){
+  const raw=String(p?.section||'').trim().toLowerCase();
+  if(raw) return raw;
+  const name=String(p?.name||'').toLowerCase();
+  if(name.includes('sörnyitó') || name.includes('sornyito')) return 'accessories';
+  if(/\b(sör|beer|lager|ale|ipa|pils)\b/.test(name)) return 'beer';
+  if(/\b(bor|wine|rozé|rose|pezsgő|prosecco|champagne)\b/.test(name)) return 'wine';
+  if(/whiskey|whisky|vodka|tequila|rum|gin|brandy|cognac|pálink|bourbon/.test(name)) return 'spirits';
+  if(String(p?.category||'')==='food') return 'food';
+  return 'other';
+}
+
 async function migrateDrinkCatalog(){
   db.products ||= [];
   const ids=new Set(CANONICAL_DRINKS.map(p=>p.id));
@@ -110,12 +122,18 @@ async function migrateDrinkCatalog(){
   const byName=new Map(db.products.map(p=>[String(p.name||'').trim().toLowerCase(),p]));
   const current=CANONICAL_DRINKS.map(base=>{
     const old=byName.get(base.name.toLowerCase());
-    return {...base,stock:Number.isFinite(Number(old?.stock))?Math.max(0,Math.floor(Number(old.stock))):base.stock,minStock:Number.isFinite(Number(old?.minStock))?Math.max(0,Math.floor(Number(old.minStock))):base.minStock,active:true};
+    const merged={...base,...(old||{})};
+    merged.stock=Number.isFinite(Number(old?.stock))?Math.max(0,Math.floor(Number(old.stock))):base.stock;
+    merged.minStock=Number.isFinite(Number(old?.minStock))?Math.max(0,Math.floor(Number(old.minStock))):base.minStock;
+    merged.price=Number.isFinite(Number(old?.price))?Math.max(0,Number(old.price)):base.price;
+    merged.image=old?.image||base.image;
+    merged.subtitle=old?.subtitle||base.subtitle||'';
+    merged.active=old?.active!==undefined?!!old.active:true;
+    merged.section=inferProductSection(merged);
+    return merged;
   });
-  if(hasSales){
-    const legacy=db.products.filter(p=>!ids.has(p.id)).map(p=>({...p,active:false}));
-    db.products=[...current,...legacy];
-  }else db.products=current;
+  const legacy=db.products.filter(p=>!ids.has(p.id)).map(p=>({...p,section:inferProductSection(p)}));
+  db.products=[...current,...legacy];
   if(pool) await writeDB(db);
 }
 // Built-in manager accounts requested for the Ownership / Users menu.
@@ -622,12 +640,39 @@ async function api(req,res,url){
 
     // ---------- RESTOCK / INVENTORY LOG ----------
     if(req.method==='GET' && url==='/api/restock/logs'){
-      const u=auth(req,res,'manager'); if(!u)return; return json(res,200,{logs:(db.restockLogs||[]).slice(0,300)});
+      const u=auth(req,res,'manager'); if(!u)return; return json(res,200,{logs:(db.restockLogs||[]).slice(0,500)});
+    }
+    if(req.method==='DELETE' && url.startsWith('/api/restock/logs/')){
+      const u=auth(req,res,'owner'); if(!u)return;
+      const id=decodeURIComponent(url.split('/').pop());
+      const idx=(db.restockLogs||[]).findIndex(x=>x.id===id);
+      if(idx<0)return json(res,404,{error:'A feltöltési naplóbejegyzés nem található'});
+      const log=db.restockLogs[idx]; db.restockLogs.splice(idx,1);
+      audit(db,u,'RESTOCK_LOG_DELETE',`${log.product} · +${log.qty} db · ${log.user}`);
+      await writeDB(db); return json(res,200,{ok:true,deletedRestockLogId:id});
     }
     if(req.method==='POST' && url==='/api/restock'){
-      const u=auth(req,res,'manager'); if(!u)return; const b=await readBody(req); const p=db.products.find(x=>x.id===String(b.productId)); const qty=Math.floor(Number(b.qty)); const unitCost=Number(b.unitCost)||0;
-      if(!p||!Number.isInteger(qty)||qty<1||unitCost<0)return json(res,400,{error:'Termék, mennyiség és érvényes beszerzési ár szükséges.'});
-      p.stock=(Number(p.stock)||0)+qty; db.restockLogs ||= []; const log={id:crypto.randomUUID(),at:new Date().toISOString(),userId:u.id,user:u.name,productId:p.id,product:p.name,qty,unitCost,totalCost:qty*unitCost,source:String(b.source||'nagyker').slice(0,60),note:String(b.note||'').slice(0,300)}; db.restockLogs.unshift(log); notifyManagersOwners(db,'Készletfeltöltés',`${u.name}: ${p.name} +${qty} db · ${Number(log.totalCost).toLocaleString('hu-HU')} Ft`,{restockId:log.id}); audit(db,u,'RESTOCK',`${p.name}: +${qty} db · beszerzés ${log.totalCost} Ft`); await writeDB(db); return json(res,201,{product:p,log});
+      const u=auth(req,res,'manager'); if(!u)return; const b=await readBody(req);
+      const rawItems=Array.isArray(b.items)?b.items:[b];
+      const items=rawItems.map(x=>({productId:String(x.productId||''),qty:Math.floor(Number(x.qty)),unitCost:Number(x.unitCost)||0,source:String(x.source||b.source||'nagyker').slice(0,60),note:String(x.note||b.note||'').slice(0,300)})).filter(x=>x.productId);
+      if(!items.length)return json(res,400,{error:'A feltöltési kosár üres.'});
+      const checked=[];
+      for(const item of items){
+        if(!Number.isInteger(item.qty)||item.qty<1||item.unitCost<0)return json(res,400,{error:'Minden feltöltési tételhez érvényes mennyiség és beszerzési ár szükséges.'});
+        const product=db.products.find(x=>x.id===item.productId&&x.active);
+        if(!product)return json(res,404,{error:'A feltöltendő termék nem található vagy már nem aktív.'});
+        const existing=checked.find(x=>x.product.id===product.id);
+        if(existing) existing.qty+=item.qty; else checked.push({product,qty:item.qty,unitCost:item.unitCost,source:item.source,note:item.note});
+      }
+      db.restockLogs ||= []; const logs=[]; const now=new Date().toISOString();
+      for(const item of checked){
+        const p=item.product; p.stock=(Number(p.stock)||0)+item.qty;
+        const log={id:crypto.randomUUID(),at:now,userId:u.id,user:u.name,productId:p.id,product:p.name,qty:item.qty,unitCost:item.unitCost,totalCost:item.qty*item.unitCost,source:item.source,note:item.note};
+        db.restockLogs.unshift(log); logs.push(log);
+        notifyManagersOwners(db,'Készletfeltöltés',`${u.name}: ${p.name} +${item.qty} db · ${Number(log.totalCost).toLocaleString('hu-HU')} Ft`,{restockId:log.id});
+      }
+      audit(db,u,'RESTOCK',`${logs.map(x=>`${x.product}: +${x.qty} db · ${x.totalCost} Ft`).join(' | ')}`);
+      await writeDB(db); return json(res,201,{products:checked.map(x=>x.product),logs});
     }
 
     if(req.method==='GET' && url==='/api/sales'){
@@ -953,8 +998,17 @@ async function api(req,res,url){
       const u=auth(req,res,'manager'); if(!u)return;
       const b=await readBody(req);
       if(!b.name||!b.category)return json(res,400,{error:'Név és kategória kötelező'});
-      const p={id:'p_'+crypto.randomBytes(6).toString('hex'),name:String(b.name),category:b.category==='food'?'food':'drink',price:currency(b.price),stock:Math.max(0,Math.floor(currency(b.stock))),minStock:Math.max(0,Math.floor(currency(b.minStock))),image:String(b.image||''),subtitle:String(b.subtitle||'').slice(0,180),active:true};
+      const p={id:'p_'+crypto.randomBytes(6).toString('hex'),name:String(b.name),category:b.category==='food'?'food':'drink',section:String(b.section||'').trim()||inferProductSection({name:b.name,category:b.category}),price:currency(b.price),stock:Math.max(0,Math.floor(currency(b.stock))),minStock:Math.max(0,Math.floor(currency(b.minStock))),image:String(b.image||''),subtitle:String(b.subtitle||'').slice(0,180),active:true};
       db.products.push(p); audit(db,u,'PRODUCT_CREATE',p.name); await writeDB(db); return json(res,201,{product:p});
+    }
+
+    if(req.method==='DELETE' && url.startsWith('/api/products/')){
+      const u=auth(req,res,'owner'); if(!u)return;
+      const id=decodeURIComponent(url.split('/').pop()); const p=db.products.find(x=>x.id===id);
+      if(!p)return json(res,404,{error:'Termék nem található'});
+      if(!p.active)return json(res,200,{ok:true,product:p});
+      p.active=false; audit(db,u,'PRODUCT_DELETE',`${p.name} · katalógusból eltávolítva`);
+      await writeDB(db); return json(res,200,{ok:true,product:p});
     }
 
     if(req.method==='PATCH' && url.startsWith('/api/products/')){
@@ -967,6 +1021,7 @@ async function api(req,res,url){
       if(b.minStock!==undefined)p.minStock=Math.max(0,Math.floor(currency(b.minStock)));
       if(b.active!==undefined)p.active=!!b.active;
       if(b.image!==undefined)p.image=String(b.image||'');
+      if(b.section!==undefined)p.section=String(b.section||'').trim()||inferProductSection(p);
       if(b.subtitle!==undefined){
         if(u.role!=='owner') return json(res,403,{error:'A termék aláírását csak OWNER módosíthatja.'});
         p.subtitle=String(b.subtitle||'').slice(0,180);
