@@ -15,13 +15,19 @@
   const MIN = 0.75;
   const MAX = 4;
   const STEP = 0.18;
-
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+  const slider = document.querySelector('[data-map-zoom-slider]');
+  const value = document.querySelector('[data-map-zoom-value]');
+
+  function syncControls() {
+    if (value) value.textContent = `${Math.round(scale * 100)}%`;
+    if (slider) slider.value = String(Math.round(scale * 100));
+  }
 
   function render() {
     image.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
-    const value = document.querySelector('[data-map-zoom-value]');
-    if (value) value.textContent = `${Math.round(scale * 100)}%`;
+    syncControls();
   }
 
   function reset() {
@@ -76,21 +82,33 @@
 
   viewport.addEventListener('pointerup', stopDrag);
   viewport.addEventListener('pointercancel', stopDrag);
-  viewport.addEventListener('pointerleave', () => {
-    if (dragging) viewport.classList.add('is-dragging');
+
+  document.querySelectorAll('[data-map-zoom-in]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const r = viewport.getBoundingClientRect();
+      zoomAt(scale + STEP, r.left + r.width / 2, r.top + r.height / 2);
+    });
   });
 
-  document.querySelector('[data-map-zoom-in]')?.addEventListener('click', () => {
-    const r = viewport.getBoundingClientRect();
-    zoomAt(scale + STEP, r.left + r.width / 2, r.top + r.height / 2);
+  document.querySelectorAll('[data-map-zoom-out]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const r = viewport.getBoundingClientRect();
+      zoomAt(scale - STEP, r.left + r.width / 2, r.top + r.height / 2);
+    });
   });
-  document.querySelector('[data-map-zoom-out]')?.addEventListener('click', () => {
-    const r = viewport.getBoundingClientRect();
-    zoomAt(scale - STEP, r.left + r.width / 2, r.top + r.height / 2);
-  });
-  document.querySelector('[data-map-reset]')?.addEventListener('click', reset);
 
-  // Touch / trackpad-friendly double click zoom.
+  document.querySelectorAll('[data-map-reset]').forEach(btn => {
+    btn.addEventListener('click', reset);
+  });
+
+  if (slider) {
+    slider.addEventListener('input', () => {
+      const r = viewport.getBoundingClientRect();
+      const next = Number(slider.value) / 100;
+      zoomAt(next, r.left + r.width / 2, r.top + r.height / 2);
+    });
+  }
+
   viewport.addEventListener('dblclick', (event) => {
     zoomAt(scale >= 2 ? 1 : 2, event.clientX, event.clientY);
   });

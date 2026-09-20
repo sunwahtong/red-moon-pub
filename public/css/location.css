@@ -60,3 +60,97 @@
   .map-wrap.map-viewport { height:62vh; min-height:390px; }
   .map-hint { max-width:90%; text-align:center; }
 }
+
+
+/* V61.3 — right-side neon zoom rail */
+.map-zoom-rail{
+  position:absolute;
+  z-index:8;
+  top:50%;
+  right:18px;
+  transform:translateY(-50%);
+  width:48px;
+  padding:10px 8px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:9px;
+  border:1px solid rgba(227,28,62,.38);
+  border-radius:16px;
+  background:linear-gradient(180deg,rgba(15,6,9,.92),rgba(7,4,6,.88));
+  box-shadow:0 0 28px rgba(227,28,62,.14), inset 0 0 20px rgba(227,28,62,.035);
+  backdrop-filter:blur(10px);
+}
+.map-rail-button,.map-rail-reset{
+  width:31px;height:31px;
+  display:grid;place-items:center;
+  border:1px solid #5b1b28;
+  border-radius:9px;
+  background:rgba(20,8,11,.94);
+  color:#fff4f5;
+  cursor:pointer;
+  font:700 16px/1 'Noto Sans';
+  transition:.18s ease;
+}
+.map-rail-button:hover,.map-rail-reset:hover{
+  border-color:#ed294c;
+  color:#fff;
+  box-shadow:0 0 16px rgba(227,28,62,.28);
+  transform:translateY(-1px);
+}
+.map-rail-reset{
+  font-size:14px;
+  margin-top:1px;
+  color:#d7bdc2;
+}
+.map-zoom-slider{
+  -webkit-appearance:slider-vertical;
+  appearance:slider-vertical;
+  width:7px;
+  height:150px;
+  padding:0;
+  margin:2px 0;
+  accent-color:#e31c3e;
+  cursor:pointer;
+  writing-mode:vertical-lr;
+  direction:rtl;
+  filter:drop-shadow(0 0 6px rgba(227,28,62,.35));
+}
+.map-zoom-slider::-webkit-slider-runnable-track{
+  width:5px;
+  border-radius:999px;
+  background:linear-gradient(180deg,#7b1024,#e31c3e,#5b0d1a);
+}
+.map-zoom-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  appearance:none;
+  width:16px;height:16px;
+  margin-left:-5px;
+  border-radius:50%;
+  border:2px solid #fff0f2;
+  background:#e31c3e;
+  box-shadow:0 0 13px rgba(227,28,62,.85);
+}
+.map-zoom-slider::-moz-range-track{
+  width:5px;
+  border-radius:999px;
+  background:#691020;
+}
+.map-zoom-slider::-moz-range-thumb{
+  width:16px;height:16px;
+  border-radius:50%;
+  border:2px solid #fff0f2;
+  background:#e31c3e;
+  box-shadow:0 0 13px rgba(227,28,62,.85);
+}
+@media(max-width:800px){
+  .map-zoom-rail{
+    right:10px;
+    top:auto;
+    bottom:58px;
+    transform:none;
+    width:44px;
+    padding:7px;
+  }
+  .map-zoom-slider{height:110px}
+}
