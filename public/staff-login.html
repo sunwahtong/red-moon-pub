@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Red Moon — Staff Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css?v=15.2">
+<link rel="stylesheet" href="css/premium-v13.css?v=15.2">
+<link rel="stylesheet" href="css/staff.css?v=18.2">
+<link rel="stylesheet" href="css/mobile-v34.css?v=34">
+<link rel="stylesheet" href="css/v40-staff.css?v=40">
+<link rel="stylesheet" href="css/v41-premium.css?v=41">
+<link rel="stylesheet" href="css/v42-experience.css?v=42">
+<link rel="stylesheet" href="css/v43-nightlife.css?v=43">
+<link rel="stylesheet" href="css/v46-neon-headings.css?v=46">
+<link rel="stylesheet" href="css/v47-heading-refine.css?v=47">
+<link rel="stylesheet" href="css/v49-neon-art.css?v=49">
+<link rel="stylesheet" href="css/v50-identity.css?v=50">
+<link rel="stylesheet" href="css/v51-signature-header.css?v=51">
+<link rel="stylesheet" href="css/v52-heading-system.css?v=52">
+<link rel="stylesheet" href="css/v53-performance.css?v=53">
+<link rel="stylesheet" href="css/v54-finish-polish.css?v=54.4">
+<link rel="stylesheet" href="css/v55-volume-design.css?v=55">
+<style>
+html,body{min-height:100%;overflow-x:hidden}
+body.staff-login-page{min-height:100vh;background:#080607;color:#f4eee8}
+.staff-login-page .nav{position:fixed}
+.staff-login-shell{min-height:100vh;display:grid;place-items:center;padding:112px 24px 55px}
+.staff-login-card{width:min(560px,100%);padding:42px;border:1px solid #572337;border-radius:22px;background:linear-gradient(145deg,rgba(25,9,15,.98),rgba(8,6,7,.98));box-shadow:0 35px 110px rgba(0,0,0,.58),0 0 65px rgba(200,25,65,.08);position:relative;overflow:hidden}
+.staff-login-card:before{content:"";position:absolute;width:380px;height:220px;right:-120px;top:-100px;background:radial-gradient(circle,rgba(220,25,65,.18),transparent 68%);filter:blur(12px);pointer-events:none}
+.staff-login-kicker{font-size:9px;letter-spacing:.28em;color:#d52b4e;margin-bottom:12px}
+.staff-login-mark{width:62px;height:62px;border:1px solid #7c2945;border-radius:50%;display:grid;place-items:center;color:#fff;font:700 24px Cinzel;margin-bottom:24px;box-shadow:0 0 28px rgba(220,25,65,.14)}
+.staff-login-card h1{font:800 clamp(42px,8vw,70px)/.9 Cinzel;margin:0;color:#f8f1f2;letter-spacing:.02em;text-shadow:0 0 24px rgba(255,255,255,.08)}
+.staff-login-card h1 em{font-style:normal;color:#e3284e}
+.staff-login-sub{color:#9f8d94;font-size:12px;line-height:1.7;margin:16px 0 28px;max-width:450px}
+.staff-login-form{display:grid;gap:15px}
+.staff-login-form .field{display:grid;gap:7px}
+.staff-login-form .field label{font-size:9px;letter-spacing:.18em;color:#a8949b}
+.staff-login-form input{width:100%;box-sizing:border-box;background:#090708;color:#fff;border:1px solid #4a2631;border-radius:12px;padding:14px 15px;outline:none;font:inherit}
+.staff-login-form input:focus{border-color:#d02b4e;box-shadow:0 0 0 3px rgba(208,43,78,.12),0 0 24px rgba(208,43,78,.08)}
+.staff-login-actions{display:grid;gap:10px;margin-top:5px}
+.staff-login-back{display:inline-flex;justify-content:center;align-items:center;min-height:46px;text-decoration:none}
+.staff-login-error{min-height:18px;color:#ff718b;font-size:11px;line-height:1.5}
+.staff-login-page .header-context{display:none}
+@media(max-width:650px){.staff-login-shell{padding:96px 14px 30px}.staff-login-card{padding:28px 22px;border-radius:18px}.staff-login-card h1{font-size:clamp(38px,13vw,58px)}}
+</style>
+</head>
+<body class="staff-login-page">
+<div class="noise"></div>
+<header class="nav">
+<a class="brand" href="index.html"><span class="brand-mark">月</span><span>RED MOON <small>PUB</small></span></a>
+<nav><a href="index.html">Főoldal</a><a href="menu.html">Itallap</a><a href="events.html">Rendezvények</a><a href="gallery.html">Galéria</a><a href="about.html">Rólunk</a><a href="location.html">Lokáció</a><a href="club.html">Red Moon Club</a><a class="staff-link active" href="staff.html">STAFF</a></nav>
+<button class="hamb" id="hamb" type="button">☰</button>
+</header>
+<main class="staff-login-shell">
+<section class="staff-login-card">
+<div class="staff-login-kicker">RED MOON / PRIVATE OPERATIONS</div>
+<div class="staff-login-mark">月</div>
+<h1>STAFF <em>LOGIN</em></h1>
+<p class="staff-login-sub">Belépés a Kassza &amp; Raktár Command Centerbe. Ez a belépési felület külön oldalon működik, a DJ Pult belépéséhez hasonlóan.</p>
+<form id="staffLoginForm" class="staff-login-form">
+<div class="field"><label>FELHASZNÁLÓNÉV</label><input id="staffLoginUsername" autocomplete="username" required></div>
+<div class="field"><label>JELSZÓ</label><input id="staffLoginPassword" type="password" autocomplete="current-password" required></div>
+<div id="staffLoginError" class="staff-login-error"></div>
+<div class="staff-login-actions"><button class="btn btn-red wide" type="submit">BELÉPÉS A COMMAND CENTERBE ↗</button><a class="btn btn-ghost wide staff-login-back" href="staff.html">← VISSZA A HOZZÁFÉRÉSHEZ</a></div>
+</form>
+</section>
+</main>
+<script>
+(function(){
+ const $=s=>document.querySelector(s);
+ const api=async(url,opt={})=>{const r=await fetch(url,{credentials:'same-origin',headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);return d};
+ const err=$('#staffLoginError');
+ api('/api/me').then(d=>{if(d.user) location.href='staff.html'}).catch(()=>{});
+ $('#staffLoginForm').addEventListener('submit',async e=>{e.preventDefault();err.textContent='';try{await api('/api/login',{method:'POST',body:JSON.stringify({username:$('#staffLoginUsername').value,password:$('#staffLoginPassword').value,portal:'staff'})});location.href='staff.html'}catch(ex){err.textContent=ex.message}});
+ const b=$('#hamb'),n=document.querySelector('header.nav nav');if(b&&n)b.addEventListener('click',()=>n.classList.toggle('open'));
+})();
+</script>
+</body>
+</html>

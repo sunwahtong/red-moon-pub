@@ -186,7 +186,7 @@ function showLogin(){
   $('#appView')?.classList.add('hidden');
   setTimeout(()=>$('#username')?.focus(),60);
 }
-$('#openCashAccess')?.addEventListener('click',()=>{playSfx('click',.22);showLogin();});
+$('#openCashAccess')?.addEventListener('click',e=>{e.preventDefault();location.href='staff-login.html';});
 $('#backToAccess')?.addEventListener('click',()=>{playSfx('click',.18);showAccessChooser();});
 function showApp(){
   document.body.classList.remove('staff-unauth');

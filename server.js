@@ -371,7 +371,7 @@ async function api(req,res,url){
       const sid=crypto.randomBytes(32).toString('hex');
       const now=new Date().toISOString();
       u.lastActiveAt=now;
-      sessions.set(sid,{id:u.id,username:u.username,name:u.name,role:u.role,portal,lastSeen:Date.now(),lastPersistedActive:Date.now(),ip:getClientIP(req)});
+      sessions.set(sid,{id:u.id,username:u.username,name:u.name,role:u.role,portal,avatar:u.avatar||'',lastSeen:Date.now(),lastPersistedActive:Date.now(),ip:getClientIP(req)});
       res.setHeader('Set-Cookie',`rm_session=${sid}; HttpOnly; SameSite=Lax; Path=/; Max-Age=28800${process.env.NODE_ENV==='production'?' ; Secure':''}`.replace(' ; Secure','; Secure'));
       audit(db,u,'LOGIN','Sikeres belépés'); await writeDB(db);
       return json(res,200,{user:publicUser(u)});
@@ -385,7 +385,10 @@ async function api(req,res,url){
     }
 
     if(req.method==='GET' && url==='/api/me'){
-      const u=sessionUser(req); return json(res,200,{user:u||null});
+      const session=sessionUser(req);
+      const fresh=session ? db.users.find(x=>x.id===session.id) : null;
+      if(fresh && session){ session.name=fresh.name; session.username=fresh.username; session.role=fresh.role; session.portal=fresh.portal||(fresh.role==='dj'?'dj':'staff'); session.avatar=fresh.avatar||''; }
+      return json(res,200,{user:fresh?publicUser(fresh):null});
     }
 
     // ---------- REALTIME STAFF CHANNEL ----------
@@ -648,7 +651,7 @@ async function api(req,res,url){
     if(req.method==='PATCH' && url==='/api/profile'){
       const u=auth(req,res); if(!u)return; const b=await readBody(req); const target=db.users.find(x=>x.id===u.id); if(!target)return json(res,404,{error:'Fiók nem található'});
       if(b.name!==undefined)target.name=String(b.name).trim().slice(0,100); if(b.avatar!==undefined){const avatar=String(b.avatar); if(avatar.length>30000000)return json(res,400,{error:'A profilkép túl nagy. Maximum kb. 22 MB.'}); if(avatar && !/^data:image\/(png|jpe?g|webp);base64,/i.test(avatar))return json(res,400,{error:'A profilképnek PNG/JPG/WebP képnek kell lennie.'}); target.avatar=avatar;}
-      audit(db,target,'PROFILE_UPDATE','Saját profil frissítve'); await writeDB(db); const sid=parseCookies(req).rm_session; const session=sid&&sessions.get(sid); if(session){session.name=target.name;session.username=target.username} return json(res,200,{user:publicUser(target)});
+      audit(db,target,'PROFILE_UPDATE','Saját profil frissítve'); await writeDB(db); const sid=parseCookies(req).rm_session; const session=sid&&sessions.get(sid); if(session){session.name=target.name;session.username=target.username;session.avatar=target.avatar||''} return json(res,200,{user:publicUser(target)});
     }
     if(req.method==='GET' && url==='/api/employees'){
       const u=auth(req,res); if(!u)return; return json(res,200,{users:db.users.filter(x=>x.role!=='dj').map(publicUser)});
