@@ -40,11 +40,23 @@
   if(eventRoot) document.querySelectorAll('.rm17-events-list > .rm17-event-card').forEach(x=>x.classList.add('v56-hidden-static-event'));
   const renderHomeEvent=(x,root)=>{root.innerHTML=`<div class="rm59-home-event-copy"><div><span class="rm17-label">NEXT EVENT · RED MOON</span><h2>${esc(x.title)}</h2><p class="rm17-lead">${esc(x.description||'')} · ${esc(x.place||'Red Moon Pub')}</p></div><div class="rm59-event-side"><div class="rm59-event-count" data-event-time="${esc(x.startsAt)}">—</div><small>hátralévő idő</small><a class="rm17-btn red" href="events.html">EVENT INFO ↗</a></div></div>`};
   const loadEvents=async()=>{try{
-   const d=await api('/api/public-events'); const events=d.events||[];
-   if(eventRoot) eventRoot.innerHTML=events.map(x=>`<article class="v56-event-card-live"><div><span class="v56-event-live">RED MOON EVENT</span><h3>${esc(x.title)}</h3><small>${new Date(x.startsAt).toLocaleString('hu-HU')} · ${esc(x.place)}</small><p>${esc(x.description||'')}</p></div><div><div class="v56-countdown" data-event-time="${esc(x.startsAt)}">—</div><small>hátralévő idő</small></div></article>`).join('')||'<div class="v56-review-empty">Nincs közzétett rendezvény.</div>';
-   if(homeEvent){if(events[0])renderHomeEvent(events[0],homeEvent);else homeEvent.innerHTML='<div class="rm59-home-event-copy"><div><span class="rm17-label">RED MOON / TONIGHT</span><h2>Hamarosan új esemény.</h2><p class="rm17-lead">Az új rendezvény automatikusan itt jelenik meg.</p></div><div class="rm59-event-side"><a class="rm17-btn" href="events.html">RENDEZVÉNYEK ↗</a></div></div>';}
+   const d=await api('/api/public-events'); const raw=d.events||[];
+   const now=Date.now();
+   const upcoming=raw.filter(x=>new Date(x.startsAt).getTime()>=now).sort((a,b)=>new Date(a.startsAt)-new Date(b.startsAt));
+   const past=raw.filter(x=>new Date(x.startsAt).getTime()<now).sort((a,b)=>new Date(b.startsAt)-new Date(a.startsAt));
+   const events=[...upcoming,...past];
+   if(eventRoot) eventRoot.innerHTML=events.map(x=>{
+      const dt=new Date(x.startsAt), isPast=dt.getTime()<now;
+      const date=dt.toLocaleDateString('hu-HU',{year:'numeric',month:'long',day:'numeric'});
+      const time=dt.toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'});
+      return `<article class="v64-event-page-item${isPast?' v64-event-page-past':''}">
+        <div class="v64-event-page-copy"><span class="rm17-label">${isPast?'PAST EVENT':'NEXT EVENT · RED MOON'}</span><h2>${esc(x.title)}</h2><p>${esc(x.description||'A Red Moon következő eseménye.')} </p><div class="v64-event-page-meta"><span><b>${esc(date)}</b></span><span><b>${esc(time)}</b></span><span><b>${esc(x.place||'Red Moon Pub')}</b></span></div></div>
+        <div class="v64-event-page-side"><div class="v64-event-page-count${isPast?' live':''}" data-event-time="${esc(x.startsAt)}">—</div><small>${isPast?'AZ ESEMÉNY LEZAJLOTT':'HÁTRALÉVŐ IDŐ'}</small><a class="rm17-btn ${isPast?'':'red'}" href="#top">${isPast?'ARCHÍV':'EVENT INFO'} ↗</a></div>
+      </article>`;
+   }).join('')||'<div class="v64-event-page-empty">Nincs közzétett rendezvény.</div>';
+   if(homeEvent){if(upcoming[0])renderHomeEvent(upcoming[0],homeEvent);else if(past[0])renderHomeEvent(past[0],homeEvent);else homeEvent.innerHTML='<div class="rm59-home-event-copy"><div><span class="rm17-label">RED MOON / TONIGHT</span><h2>Hamarosan új esemény.</h2><p class="rm17-lead">Az új rendezvény automatikusan itt jelenik meg.</p></div><div class="rm59-event-side"><a class="rm17-btn" href="events.html">RENDEZVÉNYEK ↗</a></div></div>';}
   }catch{if(eventRoot)eventRoot.innerHTML='<div class="v56-review-empty">A rendezvények jelenleg nem érhetők el.</div>';}};
-  const tick=()=>document.querySelectorAll('[data-event-time]').forEach(el=>{const d=Math.max(0,new Date(el.dataset.eventTime)-Date.now());const days=Math.floor(d/86400000),hours=Math.floor(d/3600000)%24,mins=Math.floor(d/60000)%60,secs=Math.floor(d/1000)%60;el.textContent=d?`${days}n ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`:'MOST';});
+  const tick=()=>document.querySelectorAll('[data-event-time]').forEach(el=>{const diff=new Date(el.dataset.eventTime)-Date.now();if(diff<=0){el.textContent='ELINDULT';el.classList.add('live');return}const d=diff,days=Math.floor(d/86400000),hours=Math.floor(d/3600000)%24,mins=Math.floor(d/60000)%60,secs=Math.floor(d/1000)%60;el.textContent=`${days}n ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;});
   loadEvents().then(tick);setInterval(tick,1000);setInterval(loadEvents,15000);
  }
 

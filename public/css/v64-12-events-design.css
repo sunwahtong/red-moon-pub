@@ -1,0 +1,23 @@
+/* V64.12 — public events page follows the homepage 02 / MA ESTE visual language */
+#v56PublicEvents.v56-events-live{display:grid;gap:18px;margin-top:10px}
+.v64-event-page-item{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,360px);gap:42px;align-items:center;padding:42px 46px;border:1px solid rgba(213,31,60,.28);background:linear-gradient(120deg,#10090b 0%,#090709 58%,#12080b 100%);overflow:hidden;transition:.35s;min-height:210px}
+.v64-event-page-item:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 78% 50%,rgba(201,20,43,.13),transparent 35%);pointer-events:none}
+.v64-event-page-item:hover{border-color:rgba(213,31,60,.62);transform:translateY(-3px);box-shadow:0 20px 70px rgba(0,0,0,.28),0 0 40px rgba(201,20,43,.07)}
+.v64-event-page-copy,.v64-event-page-side{position:relative;z-index:1}
+.v64-event-page-copy .rm17-label{display:inline-block;margin-bottom:9px}
+.v64-event-page-copy h2{font:700 clamp(30px,4vw,58px)/.98 Cinzel;margin:7px 0 15px;letter-spacing:-1px;color:#f7edf0}
+.v64-event-page-copy h2 em{font-style:normal;color:#c9142b;text-shadow:0 0 35px rgba(201,20,43,.28)}
+.v64-event-page-copy p{max-width:760px;color:#c8bdc0;font-size:14px;line-height:1.75;margin:0}
+.v64-event-page-meta{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:18px;color:#827679;font-size:9px;letter-spacing:.12em;text-transform:uppercase}
+.v64-event-page-meta b{color:#e4dadd;font-weight:500}
+.v64-event-page-side{display:grid;justify-items:end;text-align:right;gap:7px}
+.v64-event-page-count{font:600 clamp(28px,3vw,43px)/1 Cinzel;color:#f3e9eb;letter-spacing:.02em;text-shadow:0 0 25px rgba(213,31,60,.18)}
+.v64-event-page-count.live{color:#d71939;text-shadow:0 0 28px rgba(215,25,57,.34)}
+.v64-event-page-side small{font-size:8px;letter-spacing:.24em;color:#75666a}
+.v64-event-page-empty{padding:70px 30px;text-align:center;border-top:1px solid rgba(213,31,60,.18);border-bottom:1px solid rgba(213,31,60,.18);color:#918286}
+.v64-event-page-past{opacity:.72}
+@media(max-width:800px){
+ .v64-event-page-item{grid-template-columns:1fr;padding:30px 24px;gap:28px}
+ .v64-event-page-side{justify-items:start;text-align:left}
+ .v64-event-page-count{font-size:30px}
+}
