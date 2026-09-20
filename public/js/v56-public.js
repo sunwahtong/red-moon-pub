@@ -20,13 +20,14 @@
     const sig=products.map(x=>`${x.id}:${x.price}:${x.name}`).join('|');
     if(menuGrid.dataset.rm59Sig!==sig){
       menuGrid.dataset.rm59Sig=sig;
-      menuGrid.innerHTML=products.map((x,i)=>`<article class="drink-card"><div class="drink-art"><span class="drink-no">${String(i+1).padStart(2,'0')} / RED MOON</span><div class="moon-glow"></div><img src="${esc(x.image)}" alt="${esc(x.name)}" loading="lazy"><span class="art-caption">RED MOON / SEE CITY RP</span></div><div class="drink-info"><div><h3>${esc(x.name)}</h3><p>${esc(x.subtitle||'Red Moon Pub · SeeCity RP')}</p></div><div class="drink-price"><strong>${Number(x.price||0).toLocaleString('hu-HU')} Ft</strong><small class="vat-note">Áraink az ÁFÁ-t tartalmazzák.</small></div></div></article>`).join('');
+      menuGrid.innerHTML=products.map((x,i)=>`<article class="drink-card"><div class="drink-art"><span class="drink-no">${String(i+1).padStart(2,'0')} / RED MOON</span><div class="moon-glow"></div><img src="${esc(x.image)}" alt="${esc(x.name)}" loading="lazy"></div><div class="drink-info"><div><h3>${esc(x.name)}</h3><p>${esc(x.subtitle||'')}</p></div><div class="drink-price"><strong>${Number(x.price||0).toLocaleString('hu-HU')} Ft</strong><small class="vat-note">Áraink az ÁFÁ-t tartalmazzák.</small></div></div></article>`).join('');
     }
    }
    const byName=new Map(products.map(x=>[String(x.name).trim().toLocaleLowerCase('hu-HU'),x]));
    document.querySelectorAll('.rm17-drink,.featured-grid .drink-card').forEach(card=>{
     const name=card.querySelector('h3')?.textContent?.trim(); const product=name&&byName.get(name.toLocaleLowerCase('hu-HU')); if(!product)return;
     const price=card.querySelector('strong'); if(price)price.textContent=`${Number(product.price||0).toLocaleString('hu-HU')} Ft`;
+    const subtitle=card.querySelector('.drink-info p'); if(subtitle) subtitle.textContent=product.subtitle||'';
     let vat=card.querySelector('.vat-note'); if(!vat){vat=document.createElement('small');vat.className='vat-note';card.querySelector('.drink-info')?.appendChild(vat)} if(vat)vat.textContent='Áraink az ÁFÁ-t tartalmazzák.';
    });
   }catch{}
