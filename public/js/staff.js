@@ -281,7 +281,7 @@ function renderSales(sales){
   window._saleCarts=carts;
   $('#salesTable').innerHTML=carts.length?carts.map(c=>{
     const lines=c.items.map(x=>`${esc(x.product)} × ${x.qty}`).join('<br>');
-    const doc=c.documentId?`<button class="table-action" onclick="loadDocumentById('${esc(c.documentId)}')">SZÁMLA</button>`:`<button class="table-action" onclick="createDocument('${esc(c.items[0].id)}','invoice')">SZÁMLÁZÁS</button>`;
+    const doc=c.documentId?`<button class="table-action" onclick="loadDocumentById('${esc(c.documentId)}')">SZÁMLÁZVA</button>`:`<button class="table-action" onclick="createDocument('${esc(c.items[0].id)}','invoice')">SZÁMLÁZÁS</button>`;
     const receipt=c.receiptId?`<button class="table-action" onclick="loadDocumentById('${esc(c.receiptId)}')">NYUGTA</button>`:`<button class="table-action" onclick="createReceipt('${esc(c.items[0].id)}')">NYUGTA</button>`;
     return `<tr>
       <td data-label="Idő">${new Date(c.at).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</td>
@@ -444,16 +444,12 @@ function showShiftCloseDocument(s,t){
 }
 async function renderDocumentsHint(){
   const box=$('#documentsBody'); if(!box)return;
-  try{
-    const d=await api('/api/documents');
-    const docs=d.documents||[];
-    box.innerHTML=`<div class="doc-note"><b>SZÁMLÁK / NYUGTÁK</b><br>Manager és Owner megtekintheti az elkészült dokumentumokat. Számlát kizárólag OWNER törölhet.</div>`+
-      (docs.length?`<div class="doc-list">${docs.slice(0,120).map(x=>`<div class="doc-item">
-        <span><b>${x.type==='receipt'?'NYUGTA':'SZÁMLA'} · ${esc(x.id)}</b><small>${new Date(x.createdAt).toLocaleString('hu-HU')} · ${esc(x.createdByName||'Red Moon')}</small></span>
-        <span class="doc-actions"><strong>${money(x.total)}</strong><button class="table-action" onclick='showDocument(${JSON.stringify(x).replace(/</g,'\\u003c')})'>MEGNYITÁS</button>${x.type==='invoice'&&me.role==='owner'?`<button class="table-action danger" onclick="deleteInvoice('${esc(x.id)}')">TÖRLÉS</button>`:''}</span>
-      </div>`).join('')}</div>`:'<div class="mini-note">Még nincs kiállított számla vagy nyugta.</div>');
+  try{const d=await api('/api/documents');const docs=d.documents||[];const invoices=docs.filter(x=>x.type==='invoice'),receipts=docs.filter(x=>x.type==='receipt');
+    const section=(title,list,kind)=>`<div class="document-section-card"><div class="doc-note"><b>${title}</b><br>Maximum 6 dokumentum látszik egyszerre · továbbiakhoz görgess.</div><div class="v57-doc-scroll">${list.map(x=>`<div class="doc-item"><span><b>${esc(x.id)}</b><small>${new Date(x.createdAt).toLocaleString('hu-HU')} · ${esc(x.createdByName||'Red Moon')}</small></span><span class="doc-actions"><strong>${money(x.total)}</strong><button class="table-action" onclick='showDocument(${JSON.stringify(x).replace(/</g,'\u003c')})'>MEGNYITÁS</button>${kind==='invoice'&&me.role==='owner'?`<button class="table-action danger" onclick="deleteInvoice('${esc(x.id)}')">TÖRLÉS</button>`:''}</span></div>`).join('')||'<div class="mini-note">Még nincs ilyen dokumentum.</div>'}</div></div>`;
+    box.innerHTML=`<div class="doc-note"><b>SZÁMLÁK / NYUGTÁK</b><br>Manager és Owner megtekintheti az elkészült dokumentumokat. Számlát kizárólag OWNER törölhet.</div>`+section('SZÁMLÁK',invoices,'invoice')+section('NYUGTÁK',receipts,'receipt');
   }catch(e){box.innerHTML='<div class="mini-note">A dokumentumok megnyitásához MANAGER vagy OWNER jogosultság szükséges.</div>'}
 }
+
 function updateLatestDocButtons(){}
 
 async function deleteSaleCart(cartId){

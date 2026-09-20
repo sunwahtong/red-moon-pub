@@ -1,0 +1,8 @@
+/* V64.4.1 — documents & shift closure usability */
+.v57-doc-scroll{max-height:430px;overflow-y:auto;padding-right:5px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:#8f1f3b #12080d}
+.v57-doc-scroll .v57-row{flex:0 0 auto}
+.document-section-card{margin-top:14px}
+.document-section-card:first-child{margin-top:0}
+.shift-history-row-ui{align-items:center}
+.shift-history-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:760px){.v57-doc-scroll{max-height:360px}.shift-history-actions{justify-content:flex-start}.shift-history-row-ui{align-items:flex-start}}

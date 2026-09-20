@@ -857,6 +857,24 @@ async function api(req,res,url){
       shift.salesCount=sales.length;
       shift.items=items;
       shift.notes=String(b.notes||shift.notes||'');
+      shift.closure={
+        shiftId:shift.id,
+        openedAt:shift.startedAt,
+        closedAt:shift.endedAt,
+        startedById:shift.startedById,
+        startedByName:shift.startedByName,
+        closedById:shift.closedById,
+        closedByName:shift.closedByName,
+        members:Array.isArray(shift.memberHistory)&&shift.memberHistory.length?shift.memberHistory.map(m=>({name:m.name,userId:m.userId||null,joinedAt:m.joinedAt,joinedByName:m.joinedByName||null,reason:m.reason||null})):[],
+        cashRevenue,
+        transferRevenue,
+        overallRevenue:revenue,
+        salesCount:sales.length,
+        items,
+        openingCash:shift.openingCash,
+        closingCash,
+        transfer:{amount:revenue,account:'21541444-70524373',name:'Zhen Yu Xiao',reference:shift.id}
+      };
       audit(db,u,'SHIFT_CLOSE',`Műszak zárva · bevétel ${revenue} Ft · záró kassza ${closingCash} Ft`);
       await writeDB(db);
       return json(res,200,{shift,transfer:{
@@ -1018,6 +1036,17 @@ async function api(req,res,url){
       if(!sale)return json(res,404,{error:'Az eladás nem található'});
       const transactionId=sale.transactionId||sale.id;
       const transactionSales=db.sales.filter(s=>((s.transactionId||s.id)===transactionId));
+      const existingInvoiceId=transactionSales.map(s=>s.documentId).find(Boolean);
+      const existingInvoice=existingInvoiceId?db.documents.find(x=>x.id===existingInvoiceId && x.type==='invoice'):null;
+      if(existingInvoice){
+        return json(res,200,{document:existingInvoice,alreadyExists:true});
+      }
+      const existingInvoiceByTransaction=db.documents.find(x=>x.type==='invoice' && x.transactionId===transactionId);
+      if(existingInvoiceByTransaction){
+        transactionSales.forEach(s=>s.documentId=existingInvoiceByTransaction.id);
+        await writeDB(db);
+        return json(res,200,{document:existingInvoiceByTransaction,alreadyExists:true});
+      }
       const type='invoice';
       const doc={
         id:makeDocumentId('INV'),
