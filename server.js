@@ -1023,13 +1023,16 @@ async function api(req,res,url){
       }
       const total=cartSales.reduce((a,s)=>a+Number(s.total||0),0);
       const saleIds=new Set(cartSales.map(s=>s.id));
+      const receiptIds=new Set(cartSales.map(s=>s.receiptId).filter(Boolean));
+      // A kapcsolódó nyugták automatikusan törlődnek az eladással együtt.
+      db.documents=db.documents.filter(doc=>!(doc.type==='receipt' && (receiptIds.has(doc.id) || (saleIds.has(doc.saleId) && doc.transactionId===cartSales[0]?.transactionId))));
       // A kapcsolódó számla megmarad, az OWNER később külön törölheti.
       db.sales=db.sales.filter(x=>!saleIds.has(x.id));
       db.finance ||= {};
       db.finance.overallRevenue=Math.max(0,Number(db.finance.overallRevenue||0)-total);
-      audit(db,u,'SALE_CART_DELETE',`${cartId} · ${cartSales.length} tétel · ${total} Ft · teljes kosár törölve · készlet visszaállítva`);
+      audit(db,u,'SALE_CART_DELETE',`${cartId} · ${cartSales.length} tétel · ${total} Ft · teljes kosár törölve · készlet visszaállítva · nyugta automatikusan törölve`);
       await writeDB(db);
-      return json(res,200,{ok:true,deletedCartId:cartId,deletedSales:cartSales.length,deletedTotal:total,restoredStock:restored,invoicePreserved:cartSales.some(s=>s.documentId)});
+      return json(res,200,{ok:true,deletedCartId:cartId,deletedSales:cartSales.length,deletedTotal:total,restoredStock:restored,deletedReceipts:receiptIds.size,invoicePreserved:cartSales.some(s=>s.documentId)});
     }
 
     if(req.method==='DELETE' && url.startsWith('/api/sales/')){
@@ -1046,19 +1049,23 @@ async function api(req,res,url){
         for(const item of cartSales){const product=db.products.find(p=>p.id===item.productId);if(product){product.stock=(Number(product.stock)||0)+(Number(item.qty)||0);restored.push({productId:product.id,product:product.name,qty:Number(item.qty)||0});}}
         const total=cartSales.reduce((a,x)=>a+Number(x.total||0),0);
         const ids=new Set(cartSales.map(x=>x.id));
+        const receiptIds=new Set(cartSales.map(x=>x.receiptId).filter(Boolean));
+        db.documents=db.documents.filter(doc=>!(doc.type==='receipt' && (receiptIds.has(doc.id) || (ids.has(doc.saleId) && doc.transactionId===cartSales[0]?.transactionId))));
         db.sales=db.sales.filter(x=>!ids.has(x.id));
         db.finance ||= {}; db.finance.overallRevenue=Math.max(0,Number(db.finance.overallRevenue||0)-total);
-        audit(db,u,'SALE_CART_DELETE',`${cartId} · ${cartSales.length} tétel · ${total} Ft · teljes kosár törölve`);
+        audit(db,u,'SALE_CART_DELETE',`${cartId} · ${cartSales.length} tétel · ${total} Ft · teljes kosár törölve · nyugta automatikusan törölve`);
         await writeDB(db);
-        return json(res,200,{ok:true,deletedCartId:cartId,deletedSales:cartSales.length,deletedTotal:total,restoredStock:restored,invoicePreserved:cartSales.some(x=>x.documentId)});
+        return json(res,200,{ok:true,deletedCartId:cartId,deletedSales:cartSales.length,deletedTotal:total,restoredStock:restored,deletedReceipts:receiptIds.size,invoicePreserved:cartSales.some(x=>x.documentId)});
       }
       const product=db.products.find(p=>p.id===sale.productId);
       if(product) product.stock=(Number(product.stock)||0)+(Number(sale.qty)||0);
+      const receiptId=sale.receiptId;
+      if(receiptId) db.documents=db.documents.filter(doc=>!(doc.type==='receipt' && doc.id===receiptId));
       db.sales=db.sales.filter(x=>x.id!==sale.id);
       db.finance ||= {}; db.finance.overallRevenue=Math.max(0,Number(db.finance.overallRevenue||0)-Number(sale.total||0));
-      audit(db,u,'SALE_DELETE',`${sale.product} × ${sale.qty} · ${sale.total} Ft · ${sale.id}`);
+      audit(db,u,'SALE_DELETE',`${sale.product} × ${sale.qty} · ${sale.total} Ft · ${sale.id} · nyugta automatikusan törölve`);
       await writeDB(db);
-      return json(res,200,{ok:true,deletedSaleId:sale.id,restoredStock:Number(sale.qty)||0,invoicePreserved:!!sale.documentId});
+      return json(res,200,{ok:true,deletedSaleId:sale.id,restoredStock:Number(sale.qty)||0,deletedReceipt:!!receiptId,invoicePreserved:!!sale.documentId});
     }
 
     if(req.method==='POST' && url==='/api/documents'){
@@ -1106,14 +1113,21 @@ async function api(req,res,url){
     }
 
     if(req.method==='DELETE' && url.startsWith('/api/documents/')){
-      const u=auth(req,res,'owner');
-      if(!u)return;
       const id=decodeURIComponent(url.split('/').pop());
       const idx=db.documents.findIndex(x=>x.id===id);
-      if(idx<0)return json(res,404,{error:'A számla nem található'});
+      if(idx<0)return json(res,404,{error:'A dokumentum nem található'});
       const doc=db.documents[idx];
-      const sale=db.sales.find(x=>x.id===doc.saleId);
-      db.sales.filter(x=>(x.transactionId||x.id)===(doc.transactionId||doc.saleId)).forEach(s=>{if(s.documentId===doc.id)s.documentId=null});
+      const u=auth(req,res,doc.type==='receipt'?'manager':'owner');
+      if(!u)return;
+      const transactionSales=db.sales.filter(x=>(x.transactionId||x.id)===(doc.transactionId||doc.saleId));
+      if(doc.type==='receipt'){
+        transactionSales.forEach(s=>{if(s.receiptId===doc.id)s.receiptId=null});
+        db.documents.splice(idx,1);
+        audit(db,u,'RECEIPT_DELETE',`${doc.id} · ${doc.total} Ft`);
+        await writeDB(db);
+        return json(res,200,{ok:true,deletedReceiptId:doc.id});
+      }
+      transactionSales.forEach(s=>{if(s.documentId===doc.id)s.documentId=null});
       db.documents.splice(idx,1);
       audit(db,u,'INVOICE_DELETE',`${doc.id} · ${doc.total} Ft`);
       await writeDB(db);

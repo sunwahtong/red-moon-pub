@@ -444,7 +444,7 @@ function showShiftCloseDocument(s,t){
 async function renderDocumentsHint(){
   const box=$('#documentsBody'); if(!box)return;
   try{const d=await api('/api/documents');const docs=d.documents||[];const invoices=docs.filter(x=>x.type==='invoice'),receipts=docs.filter(x=>x.type==='receipt');
-    const section=(title,list,kind)=>`<div class="document-section-card"><div class="doc-note"><b>${title}</b><br>Maximum 6 dokumentum látszik egyszerre · továbbiakhoz görgess.</div><div class="v57-doc-scroll">${list.map(x=>`<div class="doc-item"><span><b>${esc(x.id)}</b><small>${new Date(x.createdAt).toLocaleString('hu-HU')} · ${esc(x.createdByName||'Red Moon')}</small></span><span class="doc-actions"><strong>${money(x.total)}</strong><button class="table-action" onclick='showDocument(${JSON.stringify(x).replace(/</g,'\u003c')})'>MEGNYITÁS</button>${kind==='invoice'&&me.role==='owner'?`<button class="table-action danger" onclick="deleteInvoice('${esc(x.id)}')">TÖRLÉS</button>`:''}</span></div>`).join('')||'<div class="mini-note">Még nincs ilyen dokumentum.</div>'}</div></div>`;
+    const section=(title,list,kind)=>`<div class="document-section-card"><div class="doc-note"><b>${title}</b><br>Maximum 6 dokumentum látszik egyszerre · továbbiakhoz görgess.</div><div class="v57-doc-scroll">${list.map(x=>`<div class="doc-item"><span><b>${esc(x.id)}</b><small>${new Date(x.createdAt).toLocaleString('hu-HU')} · ${esc(x.createdByName||'Red Moon')}</small></span><span class="doc-actions"><strong>${money(x.total)}</strong><button class="table-action" onclick='showDocument(${JSON.stringify(x).replace(/</g,'\u003c')})'>MEGNYITÁS</button>${kind==='invoice'&&me.role==='owner'?`<button class="table-action danger" onclick="deleteInvoice('${esc(x.id)}')">TÖRLÉS</button>`:''}${kind==='receipt'&&['manager','owner'].includes(me?.role)?`<button class="table-action danger" onclick="deleteReceipt('${esc(x.id)}')">TÖRLÉS</button>`:''}</span></div>`).join('')||'<div class="mini-note">Még nincs ilyen dokumentum.</div>'}</div></div>`;
     box.innerHTML=`<div class="doc-note"><b>SZÁMLÁK / NYUGTÁK</b><br>Manager és Owner megtekintheti az elkészült dokumentumokat. Számlát kizárólag OWNER törölhet.</div>`+section('SZÁMLÁK',invoices,'invoice')+section('NYUGTÁK',receipts,'receipt');
   }catch(e){box.innerHTML='<div class="mini-note">A dokumentumok megnyitásához MANAGER vagy OWNER jogosultság szükséges.</div>'}
 }
@@ -456,7 +456,7 @@ async function deleteSaleCart(cartId){
   const cart=(window._saleCarts||[]).find(x=>x.cartId===cartId);
   if(!cart)return;
   const detail=cart.items.map(x=>`${x.product} × ${x.qty}`).join('\n');
-  if(!await rmConfirm(`Biztosan törlöd a teljes kosarat: ${cartId}?\n\n${detail}\n\nA teljes kosár minden tétele egyszerre törlődik, és az összes mennyiség azonnal visszakerül a készletbe. A kapcsolódó számla megmarad.`,'TELJES KOSÁR TÖRLÉSE'))return;
+  if(!await rmConfirm(`Biztosan törlöd a teljes kosarat: ${cartId}?\n\n${detail}\n\nA teljes kosár minden tétele egyszerre törlődik, és az összes mennyiség azonnal visszakerül a készletbe. A kapcsolódó számla megmarad. A nyugta automatikusan törlődik.`,'TELJES KOSÁR TÖRLÉSE'))return;
   try{const d=await api('/api/sales/cart/'+encodeURIComponent(cartId),{method:'DELETE'});playSfx('success',0.5);await rmAlert(`A teljes kosár törölve.\n\nTételek: ${d.deletedSales}\nVisszaadott érték: ${money(d.deletedTotal)}\nA készlet minden érintett termékkel visszaállt.`,'Kosár törölve');await load()}
   catch(e){playSfx('error',0.8);await rmAlert(e.message,'Kosár törlése sikertelen')}
 }
@@ -469,6 +469,13 @@ async function deleteInvoice(id){
   try{await api('/api/documents/'+encodeURIComponent(id),{method:'DELETE'});playSfx('success',0.45);await load()}
   catch(e){playSfx('error',0.8);await rmAlert(e.message,'Művelet sikertelen')}
 }
+async function deleteReceipt(id){
+  if(!['manager','owner'].includes(me?.role)){playSfx('error',0.6);await rmAlert('Nyugtát csak MANAGER vagy OWNER jogosultsággal lehet törölni.','Nincs jogosultság');return}
+  if(!await rmConfirm(`Biztosan törlöd a(z) ${id} nyugtát?\n\nAz eredeti eladás nem törlődik, csak a nyugta kerül eltávolításra.`,'Nyugta törlése'))return;
+  try{await api('/api/documents/'+encodeURIComponent(id),{method:'DELETE'});playSfx('success',0.45);await rmAlert('A nyugta törölve lett.','Nyugta törölve');await load()}
+  catch(e){playSfx('error',0.8);await rmAlert(e.message,'Nyugta törlése sikertelen')}
+}
+
 async function createReceipt(saleId){
   try{const d=await api('/api/receipts',{method:'POST',body:JSON.stringify({saleId})});showDocument(d.document);await load()}
   catch(e){await rmAlert(e.message,'Nyugta készítése sikertelen')}
