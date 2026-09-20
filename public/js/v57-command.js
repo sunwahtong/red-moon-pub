@@ -252,10 +252,18 @@
     if(typeof window.createDocument==='function'){ await window.createDocument(id,'invoice'); return; }
     toast('Számlázás','A számlázó modul nem érhető el ebben a munkamenetben.',true);
   }
-  function showReceiptV57(id){
-    const sale=(window._v57Sales||[]).find(x=>x.id===id); if(!sale)return;
-    const html=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>NYUGTA</b><br>Cart ID: ${esc(sale.cartId||sale.transactionId||sale.id)}<br>Dátum: ${new Date(sale.at).toLocaleString('hu-HU')}</p><div class="receipt-line"><span>${esc(sale.product)} × ${sale.qty}</span><b>${money(sale.total)}</b></div><div class="receipt-line"><span>Fizetés</span><b>${sale.paymentMethod==='transfer'?'📱 Átutalás':'💵 Készpénz'}</b></div><div class="receipt-line"><span>ÖSSZESEN</span><b>${money(sale.total)}</b></div><p style="margin-top:18px">Red Moon Pub · See City RP</p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
-    const modal=$('#docModal'); if(!modal)return; $('#docTitle').textContent='Nyugta · '+(sale.cartId||sale.id); $('#docContent').innerHTML=html; modal.classList.add('show'); window._printHtml=html;
+  async function showReceiptV57(id){
+    if(typeof window.createReceipt==='function'){
+      await window.createReceipt(id);
+      return;
+    }
+    try{
+      const d=await api('/api/documents');
+      const sale=(window._v57Sales||[]).find(x=>x.id===id);
+      const doc=d.documents?.find(x=>x.type==='receipt' && (x.saleId===id || (sale && x.transactionId===(x.transactionId||''))));
+      if(doc && typeof window.showDocument==='function') window.showDocument(doc);
+      else toast('Nyugta','A nyugta nem található.',true);
+    }catch(e){toast('Nyugta','A nyugta nem tölthető be.',true)}
   }
   async function renderDocuments(){
     const host=$('#v57-documents'); if(!host)return;
@@ -306,9 +314,21 @@
       </div><button id="v57RestockAdd" class="v57-btn ghost wide">＋ FELTÖLTÉSI KOSÁRBA</button>
       <div class="v57-card restock-cart-card"><div class="v57-card-head"><div><span>RESTOCK / CART</span><h3>Feltöltési kosár</h3></div><button id="v57ClearRestock" class="v57-mini danger">ÜRÍTÉS</button></div><div id="v57RestockCart" class="v57-list"><div class="v57-empty">A feltöltési kosár üres.</div></div><div class="v57-cart-total"><span>ÖSSZES BESZERZÉS</span><strong id="v57RestockTotal">0 Ft</strong></div><button id="v57RestockSave" class="v57-btn red wide">KÉSZLET FELTÖLTÉSE ↗</button></div></div>`:'<div class="v57-empty">A készletfeltöltés Manager / Owner jogosultságú művelet.</div>'}
       </div>
-      <div class="v57-card"><div class="v57-card-head"><div><span>INVENTORY</span><h3>Aktuális készlet</h3></div></div><div class="v57-list">${activeProducts.map(p=>`<div class="v57-row"><div><b>${esc(p.name)}</b><small>${esc(sectionLabel(productSection(p)))} · minimum ${p.minStock}</small></div><strong class="${p.stock<=p.minStock?'warn':''}">${p.stock} db</strong></div>`).join('')||'<div class="v57-empty">Nincs aktív termék.</div>'}</div></div>
+      <div class="v57-card"><div class="v57-card-head"><div><span>INVENTORY</span><h3>Aktuális készlet</h3><small>Nyitáskor a pontos darabszámot kizárólag az OWNER állíthatja be. Ez nem készletfeltöltés és nem kerül a feltöltési naplóba.</small></div><span class="v57-badge">${isOwner()?'OWNER / NYITÓKÉSZLET':'CSAK MEGTEKINTÉS'}</span></div><div class="v57-list">${activeProducts.map(p=>`<div class="v57-row inventory-opening-row"><div><b>${esc(p.name)}</b><small>${esc(sectionLabel(productSection(p)))} · minimum ${p.minStock}</small></div><div class="inventory-opening-actions"><strong class="${p.stock<=p.minStock?'warn':''}">${p.stock} db</strong>${isOwner()?`<button type="button" class="v57-mini" data-opening-stock="${esc(p.id)}">BEÁLLÍTÁS</button>`:''}</div></div>`).join('')||'<div class="v57-empty">Nincs aktív termék.</div>'}</div></div>
     </div>
     <div class="v57-card"><div class="v57-card-head"><div><span>RESTOCK / LOG</span><h3>Feltöltési napló</h3><small>Az Owner egyes naplóbejegyzéseket törölhet.</small></div></div><div id="v57RestockLogs" class="v57-log-scroll"></div></div>`;
+    $$('#v57-stock [data-opening-stock]').forEach(b=>b.onclick=async()=>{
+      if(!isOwner()) return;
+      const product=products.find(x=>x.id===b.dataset.openingStock); if(!product)return;
+      const data=await formModal('Nyitókészlet beállítása',[{id:'stock',label:'PONTOS DARABSZÁM',type:'number',value:product.stock,min:0,required:true},{id:'note',label:'MEGJEGYZÉS · OPCIONÁLIS',placeholder:'Pl. nyitás előtti leltár'}]);
+      if(!data)return;
+      const stock=Math.floor(Number(data.stock));
+      if(!Number.isInteger(stock)||stock<0){toast('Hibás darabszám','A készlet csak 0 vagy pozitív egész szám lehet.',true);return}
+      try{
+        const d=await api('/api/inventory/adjust',{method:'POST',body:JSON.stringify({productId:product.id,stock})});
+        products=products.map(x=>x.id===product.id?d.product:x); renderStock(); toast('Nyitókészlet beállítva',`${product.name}: ${stock} db · nem került feltöltésként naplózásra.`);
+      }catch(e){toast('Készlet beállítása sikertelen',e.message,true)}
+    });
     if(!can)return;
     const restockCart=new Map();
     const renderRestockCart=()=>{

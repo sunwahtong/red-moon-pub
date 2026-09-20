@@ -37,3 +37,10 @@ html{scrollbar-color:#7d1f3a #090607;scrollbar-width:thin}
   .staff-page:has(#appView:not(.hidden)) .v57-workspace{margin-left:0}
   .staff-page:has(#appView:not(.hidden)) .v57-sidebar nav button{padding:9px 10px}
 }
+
+/* V64.8 — owner-only opening inventory */
+.inventory-opening-row{align-items:center}
+.inventory-opening-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.inventory-opening-actions strong{min-width:72px;text-align:right}
+.inventory-opening-row .v57-mini{white-space:nowrap}
+@media(max-width:760px){.inventory-opening-row{align-items:flex-start;gap:10px}.inventory-opening-actions{width:100%;justify-content:space-between}.inventory-opening-actions strong{text-align:left}}

@@ -1149,11 +1149,11 @@ async function api(req,res,url){
 
     // ---------- INVENTORY / PRODUCTS ----------
     if(req.method==='POST' && url==='/api/inventory/adjust'){
-      const u=auth(req,res,'manager'); if(!u)return;
+      const u=auth(req,res,'owner'); if(!u)return;
       const b=await readBody(req); const p=db.products.find(x=>x.id===b.productId); const stock=Math.floor(Number(b.stock));
       if(!p || !Number.isInteger(stock) || stock<0)return json(res,400,{error:'Érvénytelen készletadat'});
-      const old=p.stock; p.stock=stock; audit(db,u,'INVENTORY_ADJUST',`${p.name}: ${old} → ${stock}`); await writeDB(db);
-      return json(res,200,{product:p});
+      const old=p.stock; p.stock=stock; audit(db,u,'INVENTORY_OPENING_SET',`${p.name}: ${old} → ${stock} · nyitókészlet beállítva`); await writeDB(db);
+      return json(res,200,{product:p,openingStock:true});
     }
 
     if(req.method==='POST' && url==='/api/products'){
