@@ -348,3 +348,10 @@
 @media(max-width:800px){
   .map-wrap.map-viewport{height:68vh!important;min-height:430px!important}
 }
+
+/* V62.3 — definitive stable map surface */
+.map-wrap.map-viewport{height:min(76vh,780px)!important;min-height:520px!important;overflow:hidden!important;background:#090809!important;position:relative!important;}
+.map-wrap.map-viewport .map-stage{position:absolute!important;left:50%!important;top:50%!important;width:2174px!important;height:2909px!important;margin:0!important;transform-origin:center center!important;will-change:transform!important;z-index:1!important;pointer-events:none!important;}
+.map-wrap.map-viewport .map-surface{position:absolute!important;left:0!important;top:0!important;width:2174px!important;height:2909px!important;background:url('../assets/gtav-map-final-opaque.png') center center / 100% 100% no-repeat!important;background-color:#090809!important;}
+.map-wrap.map-viewport .map-image,.map-wrap.map-viewport .map-tile-layer{display:none!important;}
+.map-wrap.map-viewport .map-marker{left:1344px!important;top:2097px!important;}
