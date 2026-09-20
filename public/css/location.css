@@ -296,62 +296,62 @@
 .map-viewport{background:#0a0a0b!important;}
 .map-viewport .map-vignette{z-index:8;pointer-events:none}
 
-/* V62.2 — stable single-canvas map engine: no tile seams, centered fit, Google-style interaction */
+/* V63 — stable GTA V map viewer: one high-resolution source, Google-Maps-like navigation */
 .map-wrap.map-viewport{
-  height:min(76vh,780px)!important;
-  min-height:520px!important;
-  position:relative!important;
-  display:block!important;
-  overflow:hidden!important;
-  background:#090809!important;
-  cursor:grab!important;
-  touch-action:none!important;
+  height:min(78vh,820px);
+  min-height:520px;
+  position:relative;
+  overflow:hidden;
+  display:block;
+  background:#08090a!important;
+  cursor:grab;
+  touch-action:none;
   isolation:isolate;
 }
-.map-wrap.map-viewport.is-dragging{cursor:grabbing!important}
+.map-wrap.map-viewport.is-dragging{cursor:grabbing}
 .map-viewport .map-stage{
-  position:absolute!important;
-  left:50%!important;
-  top:50%!important;
-  width:2940px!important;
-  height:3008px!important;
-  margin:0!important;
-  transform-origin:center center!important;
-  will-change:transform!important;
-  z-index:1!important;
-  pointer-events:none!important;
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:5880px;
+  height:6016px;
+  transform-origin:center center;
+  will-change:transform;
+  z-index:2;
+  user-select:none;
+  pointer-events:none;
 }
 .map-viewport .map-stage .map-image{
-  position:absolute!important;
-  left:0!important;
-  top:0!important;
-  width:2940px!important;
-  height:3008px!important;
+  position:absolute;
+  inset:0;
+  display:block;
+  width:5880px;
+  height:6016px;
   max-width:none!important;
   max-height:none!important;
-  display:block!important;
-  object-fit:contain!important;
+  object-fit:fill;
   transform:none!important;
   filter:none!important;
-  user-select:none!important;
-  -webkit-user-drag:none!important;
+  user-select:none;
+  -webkit-user-drag:none;
+  pointer-events:none;
 }
-.map-tile-layer{display:none!important}
-.map-marker-layer{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important;transform:none!important;z-index:6!important;pointer-events:none!important}
-.map-marker-layer .map-marker{
-  left:1735px!important;
-  top:2196px!important;
-  transform:translate(-50%,-100%)!important;
+.map-viewport .map-marker-layer{
+  position:absolute;
+  left:0;
+  top:0;
+  width:5880px;
+  height:6016px;
+  z-index:5;
+  pointer-events:none;
 }
-.map-viewport:focus{outline:none}
-.map-viewport:focus-visible{box-shadow:inset 0 0 0 1px rgba(227,28,62,.55), inset 0 0 40px rgba(227,28,62,.06)}
+.map-viewport .map-marker-layer .map-marker{
+  position:absolute;
+  margin:0;
+  pointer-events:none;
+}
+.map-zoom-rail{z-index:40}
 @media(max-width:800px){
-  .map-wrap.map-viewport{height:68vh!important;min-height:430px!important}
+  .map-wrap.map-viewport{height:70vh;min-height:430px}
+  .map-zoom-rail{right:10px;bottom:58px;top:auto;transform:none}
 }
-
-/* V62.3 — definitive stable map surface */
-.map-wrap.map-viewport{height:min(76vh,780px)!important;min-height:520px!important;overflow:hidden!important;background:#090809!important;position:relative!important;}
-.map-wrap.map-viewport .map-stage{position:absolute!important;left:50%!important;top:50%!important;width:2174px!important;height:2909px!important;margin:0!important;transform-origin:center center!important;will-change:transform!important;z-index:1!important;pointer-events:none!important;}
-.map-wrap.map-viewport .map-surface{position:absolute!important;left:0!important;top:0!important;width:2174px!important;height:2909px!important;background:url('../assets/gtav-map-final-opaque.png') center center / 100% 100% no-repeat!important;background-color:#090809!important;}
-.map-wrap.map-viewport .map-image,.map-wrap.map-viewport .map-tile-layer{display:none!important;}
-.map-wrap.map-viewport .map-marker{left:1344px!important;top:2097px!important;}

@@ -1,169 +1,236 @@
 (() => {
   const boot = () => {
     const viewport = document.querySelector('[data-map-viewport]');
-    const stage = viewport?.querySelector('[data-map-stage]');
-    const surface = viewport?.querySelector('[data-map-surface]');
-    const marker = viewport?.querySelector('[data-map-marker]');
+    if (!viewport) return;
+    const stage = viewport.querySelector('[data-map-stage]');
+    const marker = viewport.querySelector('[data-map-marker]');
     const slider = document.querySelector('[data-map-zoom-slider]');
     const value = document.querySelector('[data-map-zoom-value]');
-    if (!viewport || !stage || !surface || !marker) return;
+    if (!stage) return;
 
-    // The map is a single, opaque surface. No tile seams, no transparent checkerboard.
-    const MAP_W = 2174;
-    const MAP_H = 2909;
-    const MARKER_X = 0.6182;
-    const MARKER_Y = 0.7208;
-    const MIN_ZOOM = 1;
-    const MAX_ZOOM = 5;
+    const MAP_W = 5880;
+    const MAP_H = 6016;
+    const MAP_URL = 'assets/gtav-map-hires.webp';
+    const MARKER_X = 0.59;
+    const MARKER_Y = 0.73;
+    const MIN_ZOOM = 0;
+    const MAX_ZOOM = 3;
 
+    stage.innerHTML = '';
     stage.style.width = `${MAP_W}px`;
     stage.style.height = `${MAP_H}px`;
-    surface.style.width = `${MAP_W}px`;
-    surface.style.height = `${MAP_H}px`;
 
-    let fit = 1;
-    let zoom = 1;
-    let x = 0, y = 0;
-    let dragging = false, pointerId = null;
-    let sx=0, sy=0, ox=0, oy=0;
-    let lastX=0,lastY=0,lastT=0,vx=0,vy=0,raf=0;
-    const touches = new Map();
-    let pinchStartDistance=0, pinchStartZoom=1, pinchCenter=null;
+    const image = document.createElement('img');
+    image.className = 'map-image';
+    image.src = MAP_URL;
+    image.alt = 'GTA V alap térkép';
+    image.draggable = false;
+    stage.appendChild(image);
 
-    const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-    const rect=()=>viewport.getBoundingClientRect();
-    const scale=()=>fit*zoom;
+    const markerLayer = document.createElement('div');
+    markerLayer.className = 'map-marker-layer';
+    markerLayer.style.width = `${MAP_W}px`;
+    markerLayer.style.height = `${MAP_H}px`;
+    if (marker) {
+      marker.style.left = `${MAP_W * MARKER_X}px`;
+      marker.style.top = `${MAP_H * MARKER_Y}px`;
+      markerLayer.appendChild(marker);
+    }
+    stage.appendChild(markerLayer);
 
-    function calcFit(){
-      const r=rect();
-      // Leave a small breathing margin so the whole island is visible on load.
-      fit=Math.min((r.width-56)/MAP_W,(r.height-40)/MAP_H);
-      fit=clamp(fit,0.12,0.75);
+    let fitScale = 1;
+    let zoom = 0;
+    let panX = 0;
+    let panY = 0;
+    let dragging = false;
+    let activePointer = null;
+    let startX = 0, startY = 0, startPanX = 0, startPanY = 0;
+    let pinchStartDistance = 0;
+    let pinchStartZoom = 0;
+    let pinchCenter = null;
+    const pointers = new Map();
+
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+    const rect = () => viewport.getBoundingClientRect();
+    const scale = () => fitScale * Math.pow(2, zoom);
+
+    function clampPan() {
+      const r = rect();
+      const s = scale();
+      const w = MAP_W * s;
+      const h = MAP_H * s;
+      const maxX = Math.max(0, (w - r.width) / 2);
+      const maxY = Math.max(0, (h - r.height) / 2);
+      panX = clamp(panX, -maxX, maxX);
+      panY = clamp(panY, -maxY, maxY);
     }
 
-    function clampPan(){
-      const r=rect(), s=scale();
-      const w=MAP_W*s, h=MAP_H*s;
-      const maxX=Math.max(0,(w-r.width)/2);
-      const maxY=Math.max(0,(h-r.height)/2);
-      // At minimum zoom the map is centered; at higher zoom the edges can reach the viewport edges.
-      x=clamp(x,-maxX,maxX);
-      y=clamp(y,-maxY,maxY);
+    function syncUI() {
+      const pct = Math.round(Math.pow(2, zoom) * 100);
+      if (value) value.textContent = `${pct}%`;
+      if (slider) slider.value = String(Math.round(zoom * 100));
     }
 
-    function render(){
+    function render() {
       clampPan();
-      stage.style.transform=`translate3d(calc(-50% + ${x}px), calc(-50% + ${y}px), 0) scale(${scale()})`;
-      marker.style.left=`${MAP_W*MARKER_X}px`;
-      marker.style.top=`${MAP_H*MARKER_Y}px`;
-      const pct=Math.round(zoom*100);
-      if(value) value.textContent=`${pct}%`;
-      if(slider) slider.value=String(pct);
+      const s = scale();
+      stage.style.transform = `translate3d(calc(-50% + ${panX}px), calc(-50% + ${panY}px), 0) scale(${s})`;
+      syncUI();
     }
 
-    function stopInertia(){cancelAnimationFrame(raf);vx=vy=0;}
-    function inertia(){
-      vx*=0.90; vy*=0.90;
-      if(Math.abs(vx)<0.05&&Math.abs(vy)<0.05)return;
-      x+=vx; y+=vy; render(); raf=requestAnimationFrame(inertia);
+    function fit() {
+      const r = rect();
+      fitScale = Math.min((r.width - 18) / MAP_W, (r.height - 18) / MAP_H);
+      if (!Number.isFinite(fitScale) || fitScale <= 0) fitScale = 0.1;
     }
 
-    function zoomAt(next,cx,cy){
-      const target=clamp(next,MIN_ZOOM,MAX_ZOOM);
-      const r=rect();
-      const px=cx-r.left-r.width/2, py=cy-r.top-r.height/2;
-      const oldS=scale(), newS=fit*target, ratio=newS/oldS;
-      x=px-(px-x)*ratio;
-      y=py-(py-y)*ratio;
-      zoom=target; render();
+    function reset() {
+      zoom = 0;
+      panX = 0;
+      panY = 0;
+      render();
     }
-    function zoomCenter(delta){
-      const r=rect(); zoomAt(zoom+delta,r.left+r.width/2,r.top+r.height/2);
+
+    function zoomAt(nextZoom, clientX, clientY) {
+      const target = clamp(nextZoom, MIN_ZOOM, MAX_ZOOM);
+      if (Math.abs(target - zoom) < 0.0001) return;
+      const r = rect();
+      const localX = clientX - r.left - r.width / 2;
+      const localY = clientY - r.top - r.height / 2;
+      const oldScale = scale();
+      const newScale = fitScale * Math.pow(2, target);
+      const ratio = newScale / oldScale;
+      panX = localX - (localX - panX) * ratio;
+      panY = localY - (localY - panY) * ratio;
+      zoom = target;
+      render();
     }
-    function reset(){
-      stopInertia(); calcFit(); zoom=1; x=0; y=0; render();
+
+    function zoomCenter(delta) {
+      const r = rect();
+      zoomAt(zoom + delta, r.left + r.width / 2, r.top + r.height / 2);
     }
-    const pt=e=>({x:e.clientX,y:e.clientY});
-    const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 
-    viewport.addEventListener('wheel',e=>{
-      e.preventDefault(); stopInertia();
-      zoomAt(zoom*Math.exp(-e.deltaY*0.0017),e.clientX,e.clientY);
-    },{passive:false});
+    function point(e) { return { x: e.clientX, y: e.clientY }; }
+    function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
-    viewport.addEventListener('dblclick',e=>{
-      if(e.target.closest('button,input'))return;
-      zoomAt(zoom*1.55,e.clientX,e.clientY);
-    });
+    function onPointerDown(e) {
+      if (e.target.closest('button,input')) return;
+      pointers.set(e.pointerId, point(e));
+      try { viewport.setPointerCapture(e.pointerId); } catch (_) {}
 
-    viewport.addEventListener('pointerdown',e=>{
-      if(e.target.closest('button,input'))return;
-      stopInertia(); touches.set(e.pointerId,pt(e));
-      try{viewport.setPointerCapture(e.pointerId)}catch{}
-      if(touches.size===2){
-        const a=[...touches.values()];
-        pinchStartDistance=Math.max(1,dist(a[0],a[1]));
-        pinchStartZoom=zoom;
-        pinchCenter={x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2};
-        dragging=false; viewport.classList.remove('is-dragging'); return;
+      if (pointers.size === 2) {
+        const pts = [...pointers.values()];
+        pinchStartDistance = distance(pts[0], pts[1]);
+        pinchStartZoom = zoom;
+        pinchCenter = {
+          x: (pts[0].x + pts[1].x) / 2,
+          y: (pts[0].y + pts[1].y) / 2
+        };
+        dragging = false;
+        return;
       }
-      dragging=true; pointerId=e.pointerId; sx=e.clientX; sy=e.clientY; ox=x; oy=y;
-      lastX=sx;lastY=sy;lastT=performance.now();vx=vy=0;
-      viewport.classList.add('is-dragging'); e.preventDefault();
-    });
 
-    viewport.addEventListener('pointermove',e=>{
-      if(!touches.has(e.pointerId))return;
-      touches.set(e.pointerId,pt(e));
-      if(touches.size>=2){
-        const a=[...touches.values()], d=Math.max(1,dist(a[0],a[1]));
-        const c={x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2};
-        zoomAt(pinchStartZoom*(d/pinchStartDistance),pinchCenter?.x??c.x,pinchCenter?.y??c.y);
-        e.preventDefault(); return;
+      dragging = true;
+      activePointer = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      startPanX = panX;
+      startPanY = panY;
+      viewport.classList.add('is-dragging');
+      e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, point(e));
+
+      if (pointers.size >= 2 && pinchCenter) {
+        const pts = [...pointers.values()];
+        const d = distance(pts[0], pts[1]);
+        if (!pinchStartDistance) pinchStartDistance = d;
+        zoomAt(pinchStartZoom + Math.log2(Math.max(1, d / pinchStartDistance)), pinchCenter.x, pinchCenter.y);
+        e.preventDefault();
+        return;
       }
-      if(!dragging||e.pointerId!==pointerId)return;
-      x=ox+e.clientX-sx; y=oy+e.clientY-sy;
-      const now=performance.now(),dt=Math.max(8,now-lastT);
-      vx=(e.clientX-lastX)/dt*16; vy=(e.clientY-lastY)/dt*16;
-      lastX=e.clientX;lastY=e.clientY;lastT=now;
-      render(); e.preventDefault();
-    });
 
-    function end(e){
-      touches.delete(e.pointerId);
-      try{viewport.releasePointerCapture(e.pointerId)}catch{}
-      if(touches.size===0){
-        if(dragging&&(Math.abs(vx)>0.6||Math.abs(vy)>0.6))raf=requestAnimationFrame(inertia);
-        dragging=false;pointerId=null;pinchStartDistance=0;pinchCenter=null;viewport.classList.remove('is-dragging');
+      if (!dragging || e.pointerId !== activePointer) return;
+      panX = startPanX + e.clientX - startX;
+      panY = startPanY + e.clientY - startY;
+      render();
+      e.preventDefault();
+    }
+
+    function onPointerUp(e) {
+      pointers.delete(e.pointerId);
+      try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
+      if (pointers.size === 0) {
+        dragging = false;
+        activePointer = null;
+        pinchStartDistance = 0;
+        pinchCenter = null;
+        viewport.classList.remove('is-dragging');
+      } else if (pointers.size === 1) {
+        const [id, pt] = [...pointers.entries()][0];
+        activePointer = id;
+        dragging = true;
+        startX = pt.x;
+        startY = pt.y;
+        startPanX = panX;
+        startPanY = panY;
       }
     }
-    viewport.addEventListener('pointerup',end);
-    viewport.addEventListener('pointercancel',end);
 
-    viewport.addEventListener('keydown',e=>{
-      const r=rect(),step=Math.max(30,Math.min(r.width,r.height)*0.08);
-      if(e.key==='ArrowLeft'){x+=step;render();e.preventDefault()}
-      else if(e.key==='ArrowRight'){x-=step;render();e.preventDefault()}
-      else if(e.key==='ArrowUp'){y+=step;render();e.preventDefault()}
-      else if(e.key==='ArrowDown'){y-=step;render();e.preventDefault()}
-      else if(e.key==='+'||e.key==='='){zoomCenter(.25);e.preventDefault()}
-      else if(e.key==='-'){zoomCenter(-.25);e.preventDefault()}
-      else if(e.key==='0'){reset();e.preventDefault()}
+    viewport.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = -e.deltaY * 0.0025;
+      zoomAt(zoom + delta, e.clientX, e.clientY);
+    }, { passive: false });
+    viewport.addEventListener('pointerdown', onPointerDown, { passive: false });
+    viewport.addEventListener('pointermove', onPointerMove, { passive: false });
+    viewport.addEventListener('pointerup', onPointerUp);
+    viewport.addEventListener('pointercancel', onPointerUp);
+    viewport.addEventListener('contextmenu', e => e.preventDefault());
+    viewport.addEventListener('dblclick', e => {
+      if (e.target.closest('button,input')) return;
+      zoomAt(zoom + 1, e.clientX, e.clientY);
     });
 
-    document.querySelectorAll('[data-map-zoom-in]').forEach(b=>b.addEventListener('click',()=>zoomCenter(.25)));
-    document.querySelectorAll('[data-map-zoom-out]').forEach(b=>b.addEventListener('click',()=>zoomCenter(-.25)));
-    document.querySelectorAll('[data-map-reset]').forEach(b=>b.addEventListener('click',reset));
-    slider?.addEventListener('input',()=>{
-      const r=rect(); zoomAt(Number(slider.value)/100,r.left+r.width/2,r.top+r.height/2);
+    document.querySelectorAll('[data-map-zoom-in]').forEach(btn => btn.addEventListener('click', () => zoomCenter(0.5)));
+    document.querySelectorAll('[data-map-zoom-out]').forEach(btn => btn.addEventListener('click', () => zoomCenter(-0.5)));
+    document.querySelectorAll('[data-map-reset]').forEach(btn => btn.addEventListener('click', reset));
+
+    if (slider) {
+      slider.min = '0';
+      slider.max = String(MAX_ZOOM * 100);
+      slider.step = '1';
+      slider.addEventListener('input', () => {
+        const r = rect();
+        const next = Number(slider.value) / 100;
+        zoomAt(next, r.left + r.width / 2, r.top + r.height / 2);
+      });
+    }
+
+    window.addEventListener('keydown', e => {
+      if (!viewport.matches(':hover') && document.activeElement !== viewport) return;
+      if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomCenter(0.5); }
+      else if (e.key === '-') { e.preventDefault(); zoomCenter(-0.5); }
+      else if (e.key === '0') { e.preventDefault(); reset(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); panX += 70; render(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); panX -= 70; render(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); panY += 70; render(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); panY -= 70; render(); }
     });
 
-    window.addEventListener('resize',()=>{
-      const oldFit=fit; calcFit();
-      const ratio=oldFit?fit/oldFit:1; x*=ratio; y*=ratio; render();
-    });
+    const initialize = () => { fit(); reset(); };
+    window.addEventListener('resize', () => { fit(); render(); });
+    viewport.tabIndex = 0;
+    viewport.setAttribute('aria-label', 'Interaktív GTA V térkép. Húzás, görgős zoom, dupla kattintás és mobilos pinch zoom.');
 
-    calcFit(); reset();
+    if (image.complete) initialize();
+    else image.addEventListener('load', initialize, { once: true });
   };
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+  else boot();
 })();
