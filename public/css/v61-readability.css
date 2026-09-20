@@ -234,3 +234,21 @@ button{
   .rm17-family-heading { grid-template-columns: 1fr; gap: 20px; }
   .rm17-family-heading p { max-width: none; }
 }
+
+/* V61.2 — compact family intro */
+.rm17-family-intro {
+  padding-top: clamp(28px, 4vw, 52px);
+  padding-bottom: clamp(22px, 3vw, 44px);
+}
+.rm17-family-heading {
+  grid-template-columns: minmax(0, 1.1fr) minmax(240px, .65fr);
+  gap: clamp(22px, 4vw, 58px);
+  padding: 22px 0 26px;
+}
+.rm17-family-heading h2 {
+  font-size: clamp(34px, 4.2vw, 60px);
+}
+.rm17-family-heading p {
+  font-size: 13px;
+  line-height: 1.6;
+}
