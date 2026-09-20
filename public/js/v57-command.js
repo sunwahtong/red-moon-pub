@@ -67,8 +67,10 @@
         <button data-view="prices" style="display:none">07 · MENU / ÁRAK</button>
         <button data-view="management" style="display:none">08 · Vezetés</button>
         <button data-view="events" style="display:none">09 · Rendezvények</button>
-        <button data-view="documents" data-role-view="manager">10 · SZÁMLÁK / NYUGTÁK</button>
-        <button data-view="profile">11 · Saját profil</button>
+        <button data-view="signature" style="display:none">10 · SIGNATURE DRINKS</button>
+        <button data-view="documents" data-role-view="manager">11 · SZÁMLÁK / NYUGTÁK</button>
+        <button data-view="profile">12 · Saját profil</button>
+        
       </nav>
       <div class="v57-side-user"><small>BEJELENTKEZVE</small><b id="v57SideName">—</b><span id="v57SideRole">—</span></div>
     </aside>
@@ -83,7 +85,7 @@
 
   const views=$('#v57Views');
   const viewDefs=[
-    ['overview','Áttekintés'],['pos','Eladás'],['stock','Készlet'],['shifts','Műszakok'],['employees','Dolgozók'],['reviews','Vélemények'],['prices','Menu / Árak'],['management','Vezetés'],['events','Rendezvények'],['documents','Számlák / Nyugták'],['profile','Saját profil']
+    ['overview','Áttekintés'],['pos','Eladás'],['stock','Készlet'],['shifts','Műszakok'],['employees','Dolgozók'],['reviews','Vélemények'],['prices','Menu / Árak'],['management','Vezetés'],['events','Rendezvények'],['signature','Signature Drinks'],['documents','Számlák / Nyugták'],['profile','Saját profil']
   ];
   viewDefs.forEach(([id,title])=>{
     const s=document.createElement('section'); s.className='v57-view'; s.dataset.view=id; s.innerHTML=`<div class="v57-section-head"><span>RED MOON / ${id.toUpperCase()}</span><h2>${esc(title)}</h2></div><div class="v57-view-body" id="v57-${id}"></div>`; views.appendChild(s);
@@ -94,8 +96,8 @@
   function canAccessView(id){
     const role=me?.role;
     if(role==='owner') return true;
-    if(role==='manager') return id!=='management' && id!=='events';
-    if(role==='staff') return !['reviews','prices','management','events'].includes(id);
+    if(role==='manager') return id!=='management' && id!=='events' && id!=='signature';
+    if(role==='staff') return !['reviews','prices','management','events','signature'].includes(id);
     return id==='profile';
   }
   function applyRoleNavigation(){
@@ -180,6 +182,7 @@
     if(!me)return;
     if(active==='overview') return renderOverview();
     if(active==='events') return renderEventsControl();
+    if(active==='signature') return renderSignatureDrinks();
     if(active==='pos') return renderPOS();
     if(active==='stock') return renderStock();
     if(active==='shifts') return renderShifts();
@@ -450,6 +453,40 @@
     $$('#v57-prices [data-delete-product]').forEach(b=>b.onclick=async()=>{const p=products.find(x=>x.id===b.dataset.deleteProduct);if(!p)return;if(!(await confirmBox('Termék törlése',`${p.name} kikerül az eladható termékek közül. A korábbi eladási napló megmarad.`)))return;try{const out=await api('/api/products/'+encodeURIComponent(p.id),{method:'DELETE'});products=products.map(x=>x.id===p.id?out.product:x);toast('Termék törölve',p.name);renderPrices()}catch(e){toast('Törlés sikertelen',e.message,true)}})
     
     $('#v57CreateProduct')?.addEventListener('click',async()=>{const name=$('#v57NewProductName').value.trim();if(!name){toast('Hiányzó név','A termék neve kötelező.',true);return}try{const out=await api('/api/products',{method:'POST',body:JSON.stringify({name,category:$('#v57NewProductCategory').value,section:$('#v57NewProductSection').value,price:Number($('#v57NewProductPrice').value),stock:Number($('#v57NewProductStock').value),minStock:Number($('#v57NewProductMin').value),image:$('#v57NewProductImage').value.trim(),subtitle:$('#v57NewProductSubtitle').value.trim()})});products.push(out.product);toast('Termék hozzáadva',out.product.name);renderPrices()}catch(e){toast('Termék hozzáadása sikertelen',e.message,true)}})
+  }
+
+  async function renderSignatureDrinks(){
+    const host=$('#v57-signature'); if(!host || !isOwner()) return;
+    const [pd,sd]=await Promise.all([api('/api/products'),api('/api/signature-drinks')]);
+    const drinks=(pd.products||[]).filter(p=>p.active&&p.category==='drink');
+    const current=sd.drinks||[];
+    host.innerHTML=`<div class="v57-signature-control">
+      <div class="v57-card v57-signature-hero-card">
+        <div class="v57-card-head"><div><span>OWNER / PUBLIC FEATURE</span><h3>Signature Drinks</h3><small>Az itt kiválasztott maximum 3 ital jelenik meg a Főoldal „Signature italok” részében. Az ár szándékosan nem jelenik meg.</small></div><span class="v57-badge">OWNER ONLY · 0–3</span></div>
+        <div class="v57-signature-slots" id="v57SignatureSlots"></div>
+        <div class="action-row"><button id="v57SaveSignature" class="v57-btn red">SIGNATURE DRINKS MENTÉSE ↗</button><button id="v57ClearSignature" class="v57-btn ghost">ÖSSZES ELTÁVOLÍTÁSA</button></div>
+      </div>
+      <div class="v57-card"><div class="v57-card-head"><div><span>CATALOG / ACTIVE DRINKS</span><h3>Ital kiválasztása</h3><small>Csak az aktív italok választhatók. Egy ital csak egyszer szerepelhet.</small></div></div><div class="v57-signature-catalog" id="v57SignatureCatalog"></div></div>
+    </div>`;
+    const slots=[0,1,2].map(i=>current[i]||null);
+    const slotEl=$('#v57SignatureSlots');
+    function slotOptions(selected){return `<option value="">— nincs kiválasztva —</option>`+drinks.map(p=>`<option value="${esc(p.id)}" ${p.id===selected?'selected':''}>${esc(p.name)}</option>`).join('')}
+    slotEl.innerHTML=slots.map((x,i)=>`<article class="v57-signature-slot" data-slot="${i}"><div class="v57-signature-slot-no">0${i+1}</div><div class="v57-signature-slot-main"><label class="v57-field"><span>SIGNATURE ${i+1}</span><select data-sig-product>${slotOptions(x?.productId||'')}</select></label><label class="v57-field wide"><span>KIS BEMUTATÓ</span><textarea data-sig-desc maxlength="260" placeholder="Pl. Füstös, karakteres és lassan bontakozó Red Moon-élmény.">${esc(x?.description||'')}</textarea></label></div></article>`).join('');
+    const catalog=$('#v57SignatureCatalog');
+    catalog.innerHTML=drinks.map(p=>`<button type="button" class="v57-signature-catalog-item" data-pick="${esc(p.id)}"><span class="v57-signature-thumb">${p.image?`<img src="${esc(p.image)}" alt="">`:''}</span><span><b>${esc(p.name)}</b><small>${esc(p.subtitle||'')}</small></span><i>+</i></button>`).join('')||'<div class="v57-empty">Nincs aktív ital.</div>';
+    function pickProduct(id){
+      const used=new Set([...$$('[data-sig-product]',host)].map(x=>x.value).filter(Boolean));
+      if(used.has(id)){toast('Már kiválasztva','Ezt az italt már hozzáadtad.',true);return}
+      const empty=[...$$('[data-sig-product]',host)].find(x=>!x.value); if(!empty){toast('Maximum 3 ital','Legfeljebb három Signature Drink lehet kint.',true);return}
+      empty.value=id; empty.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+    $$('#v57SignatureCatalog [data-pick]').forEach(b=>b.onclick=()=>pickProduct(b.dataset.pick));
+    $('#v57ClearSignature').onclick=()=>{$$('[data-sig-product]',host).forEach(x=>x.value='');$$('[data-sig-desc]',host).forEach(x=>x.value='');};
+    $('#v57SaveSignature').onclick=async()=>{
+      const seen=new Set(), data=[];
+      $$('.v57-signature-slot',host).forEach(slot=>{const productId=slot.querySelector('[data-sig-product]')?.value||'';const description=slot.querySelector('[data-sig-desc]')?.value.trim()||'';if(productId&&!seen.has(productId)){seen.add(productId);data.push({productId,description})}});
+      try{await api('/api/signature-drinks',{method:'PUT',body:JSON.stringify({drinks:data})});toast('Signature Drinks mentve','A Főoldal automatikusan frissül.');renderSignatureDrinks()}catch(e){toast('Mentés sikertelen',e.message,true)}
+    };
   }
 
   async function renderEventsControl(){

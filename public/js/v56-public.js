@@ -1,7 +1,7 @@
 (()=>{
  const $=s=>document.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)], esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
  async function api(u,o={}){const r=await fetch(u,{cache:'no-store',headers:{'Content-Type':'application/json'},...o});let d={};try{d=await r.json()}catch{}if(!r.ok)throw Error(d.error||'Hiba');return d}
- const state={eventsSig:'',productsSig:'',reviewsBound:false,eventPoll:null,productPoll:null};
+ const state={eventsSig:'',productsSig:'',signatureSig:'',reviewsBound:false,eventPoll:null,productPoll:null,signaturePoll:null};
 
  function renderEmpty(root,home=false){
    if(!root)return;
@@ -61,6 +61,19 @@
    });
  }
 
+ async function syncSignatureDrinks(){
+   const root=document.querySelector('#homeSignatureDrinks'); if(!root)return;
+   try{
+     const d=await api('/api/public-signature-drinks'); const drinks=d.drinks||[];
+     const sig=drinks.map(x=>`${x.id}:${x.name}:${x.image||''}:${x.description||''}`).join('|');
+     if(sig===state.signatureSig && root.dataset.rmRenderedSig===sig)return;
+     state.signatureSig=sig;
+     if(!drinks.length){root.innerHTML=`<div class="rm17-signature-empty"><span>RED MOON / SIGNATURE</span><h3>Hamarosan új signature italok.</h3><p>A Red Moon aktuális kedvencei hamarosan itt lesznek.</p></div>`;root.dataset.rmRenderedSig=sig;return}
+     root.innerHTML=drinks.map((x,i)=>`<article class="rm17-signature-card"><div class="rm17-signature-art"><span>0${i+1} / SIGNATURE</span><div class="rm17-signature-glow"></div>${x.image?`<img src="${esc(x.image)}" alt="${esc(x.name)}" loading="lazy">`:`<div class="rm17-signature-fallback">月</div>`}</div><div class="rm17-signature-copy"><span>RED MOON SELECTION</span><h3>${esc(x.name)}</h3><p>${esc(x.description||'A Red Moon aktuális signature választása.')}</p></div></article>`).join('');
+     root.dataset.rmRenderedSig=sig;
+   }catch{}
+ }
+
  async function syncPublicProducts(){
    const menuGrid=document.querySelector('.drink-grid');
    const hasCards=document.querySelector('.rm17-drink,.featured-grid .drink-card');
@@ -95,11 +108,12 @@
  }
 
  window.RedMoonPageInit=async function(){
-   await Promise.allSettled([syncEvents(true),syncPublicProducts(),loadReviews()]);
+   await Promise.allSettled([syncEvents(true),syncPublicProducts(),syncSignatureDrinks(),loadReviews()]);
  };
  // Initial page + SPA pages.
  window.RedMoonPageInit();
  if(!state.eventPoll)state.eventPoll=setInterval(()=>syncEvents(false),15000);
  if(!state.productPoll)state.productPoll=setInterval(()=>syncPublicProducts(),2500);
+ if(!state.signaturePoll)state.signaturePoll=setInterval(()=>syncSignatureDrinks(),2500);
  setInterval(tickEventCountdowns,1000);
 })();

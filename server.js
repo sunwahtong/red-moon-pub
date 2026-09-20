@@ -28,7 +28,7 @@ function readLocalDB(){ return JSON.parse(fs.readFileSync(DB_FILE,'utf8')); }
 async function initDB(){
   if(!pool){
     db = readLocalDB();
-    let changed=false; if(ensureBuiltInManagers()) changed=true; db.products ||= CANONICAL_DRINKS.map(x=>({...x}));
+    let changed=false; if(ensureBuiltInManagers()) changed=true; db.products ||= CANONICAL_DRINKS.map(x=>({...x})); if(!Array.isArray(db.signatureDrinks)){ db.signatureDrinks=DEFAULT_SIGNATURE_DRINKS.map(x=>({...x})); changed=true; }
     const beforeSections=JSON.stringify((db.products||[]).map(p=>[p.id,p.section]));
     db.products=(db.products||[]).map(p=>({...p,section:inferProductSection(p)}));
     if(beforeSections!==JSON.stringify(db.products.map(p=>[p.id,p.section]))) changed=true;
@@ -55,6 +55,7 @@ async function initDB(){
   }
   await migrateDrinkCatalog();
   let changed = false;
+  if(!Array.isArray(db.signatureDrinks)){ db.signatureDrinks=DEFAULT_SIGNATURE_DRINKS.map(x=>({...x})); changed=true; }
   if(migrateCartIds()) changed = true;
   if(migrateShortShiftIds()) changed = true;
   if(ensureBuiltInManagers()) changed = true;
@@ -62,6 +63,12 @@ async function initDB(){
 }
 
 const CANONICAL_DRINKS = [{"id":"p_kobaltas","name":"Kőbaltás","section":"beer","category":"drink","price":1200,"stock":24,"minStock":8,"image":"assets/menu/drinks/kobaltas.png","active":true},{"id":"p_barracho","name":"Barracho","section":"beer","category":"drink","price":1800,"stock":24,"minStock":8,"image":"assets/menu/drinks/barracho.png","active":true},{"id":"p_sornyito","name":"Sörnyitó","section":"accessories","category":"drink","price":2400,"stock":18,"minStock":6,"image":"assets/menu/drinks/sornyito.png","active":true},{"id":"p_syrah","name":"Syrah vörösbor","section":"wine","category":"drink","price":5000,"stock":18,"minStock":6,"image":"assets/menu/drinks/syrah.png","active":true},{"id":"p_two_roosters","name":"Two Roosters rozé","section":"wine","category":"drink","price":5600,"stock":18,"minStock":6,"image":"assets/menu/drinks/two_roosters.png","active":true},{"id":"p_bleuterd","name":"Bleuter'D pezsgő","section":"wine","category":"drink","price":4800,"stock":18,"minStock":6,"image":"assets/menu/drinks/bleuterd.png","active":true},{"id":"p_mount_bourbon","name":"The Mount Bourbon Whiskey","section":"spirits","category":"drink","price":11200,"stock":16,"minStock":5,"image":"assets/menu/drinks/mount_bourbon.png","active":true},{"id":"p_vinewood","name":"Vinewood Sauvignon Blanc fehérbor","section":"wine","category":"drink","price":5800,"stock":18,"minStock":6,"image":"assets/menu/drinks/vinewood.png","active":true},{"id":"p_chernekov","name":"Cherenkov Premium Vodka","section":"spirits","category":"drink","price":12600,"stock":16,"minStock":5,"image":"assets/menu/drinks/chernekov.png","active":true},{"id":"p_cazafortunas","name":"Cazafortunas Tequila","section":"spirits","category":"drink","price":12200,"stock":16,"minStock":5,"image":"assets/menu/drinks/cazafortunas.png","active":true},{"id":"p_sinmisito","name":"Sinmisito Tequila","section":"spirits","category":"drink","price":15800,"stock":14,"minStock":4,"image":"assets/menu/drinks/sinmisito.png","active":true},{"id":"p_ragga","name":"Ragga rum","section":"spirits","category":"drink","price":11200,"stock":16,"minStock":5,"image":"assets/menu/drinks/ragga.png","active":true},{"id":"p_sprunk","name":"Sprunk (dobozos)","section":"nonalcoholic","category":"drink","price":1780,"stock":30,"minStock":10,"image":"assets/menu/drinks/sprunk.png","active":true},{"id":"p_ecola","name":"E-Cola (dobozos)","section":"nonalcoholic","category":"drink","price":1780,"stock":30,"minStock":10,"image":"assets/menu/drinks/ecola.png","active":true},{"id":"p_raine","name":"Rainé ásványvíz","section":"nonalcoholic","category":"drink","price":1600,"stock":32,"minStock":10,"image":"assets/menu/drinks/raine.png","active":true}];
+
+const DEFAULT_SIGNATURE_DRINKS = [
+  {productId:'p_sinmisito',description:'Ha hirtelen akarod megérezni az estét.'},
+  {productId:'p_ragga',description:'Az igazi kalózok ezt isszák.'},
+  {productId:'p_two_roosters',description:'Könnyed, elegáns választás a Red Moon estékhez.'}
+];
 
 function initialsFromName(name){
   const parts=String(name||'').trim().split(/\s+/).filter(Boolean);
@@ -668,6 +675,36 @@ async function api(req,res,url){
       const review=db.reviews[idx]; db.reviews.splice(idx,1);
       audit(db,u,'REVIEW_DELETE',`${review.name} · ${review.rating}/5 · ${review.text}`);
       await writeDB(db); return json(res,200,{ok:true,deletedReviewId:id});
+    }
+
+    // ---------- SIGNATURE DRINKS / OWNER CONTROL ----------
+    if(req.method==='GET' && url==='/api/public-signature-drinks') {
+      const picks=Array.isArray(db.signatureDrinks)?db.signatureDrinks:[];
+      const drinks=picks.map((x,i)=>{ const p=(db.products||[]).find(q=>q.id===x.productId && q.active!==false); if(!p)return null; return {id:p.id,name:p.name,image:p.image||'',description:String(x.description||p.subtitle||'').trim(),slot:i+1}; }).filter(Boolean).slice(0,3);
+      return json(res,200,{drinks});
+    }
+    if(req.method==='GET' && url==='/api/signature-drinks') {
+      const u=auth(req,res,'owner'); if(!u)return;
+      const picks=Array.isArray(db.signatureDrinks)?db.signatureDrinks:[];
+      const drinks=picks.map((x,i)=>{ const p=(db.products||[]).find(q=>q.id===x.productId); if(!p)return null; return {productId:p.id,name:p.name,image:p.image||'',description:String(x.description||'').trim(),slot:i+1}; }).filter(Boolean).slice(0,3);
+      return json(res,200,{drinks});
+    }
+    if(req.method==='PUT' && url==='/api/signature-drinks') {
+      const u=auth(req,res,'owner'); if(!u)return;
+      const b=await readBody(req);
+      const raw=Array.isArray(b.drinks)?b.drinks:[];
+      const seen=new Set(); const cleaned=[];
+      for(const item of raw.slice(0,3)){
+        const productId=String(item?.productId||'').trim();
+        if(!productId || seen.has(productId)) continue;
+        const p=(db.products||[]).find(q=>q.id===productId && q.active!==false && q.category==='drink');
+        if(!p) return json(res,400,{error:'A kiválasztott ital nem található az aktív italok között.'});
+        seen.add(productId); cleaned.push({productId,description:String(item?.description||'').trim().slice(0,260)});
+      }
+      db.signatureDrinks=cleaned;
+      audit(db,u,'SIGNATURE_DRINKS_UPDATE',cleaned.length?cleaned.map((x,i)=>{const p=db.products.find(q=>q.id===x.productId);return `${i+1}. ${p?.name||x.productId}${x.description?' · '+x.description:''}`}).join(' | '):'A Signature Drinks lista kiürítve');
+      await writeDB(db);
+      return json(res,200,{drinks:cleaned.map((x,i)=>{const p=db.products.find(q=>q.id===x.productId);return {productId:p.id,name:p.name,image:p.image||'',description:x.description,slot:i+1}})});
     }
 
     // ---------- PUBLIC EVENTS / OWNER EVENT CONTROL ----------
