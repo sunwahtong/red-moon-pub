@@ -259,3 +259,39 @@
   .map-wrap.map-viewport{height:70vh;min-height:430px}
   .map-toolbar{padding:10px 12px}
 }
+
+/* V62 — tile based map engine */
+.map-viewport .map-stage{
+  position:absolute;
+  left:50%; top:50%;
+  width:735px; height:752px;
+  transform-origin:center center;
+  will-change:transform;
+  z-index:1;
+  pointer-events:none;
+}
+.map-tile-layer,.map-marker-layer{
+  position:absolute;
+  left:0; top:0;
+  transform-origin:0 0;
+  will-change:transform;
+}
+.map-tile-layer{z-index:1}
+.map-tile{
+  position:absolute;
+  width:256px;height:256px;
+  display:block;
+  max-width:none!important;
+  max-height:none!important;
+  user-select:none;
+  -webkit-user-drag:none;
+  pointer-events:none;
+}
+.map-marker-layer{z-index:6;pointer-events:none}
+.map-marker-layer .map-marker{
+  left:433px!important;
+  top:549px!important;
+  transform:translate(-50%,-100%);
+}
+.map-viewport{background:#0a0a0b!important;}
+.map-viewport .map-vignette{z-index:8;pointer-events:none}
