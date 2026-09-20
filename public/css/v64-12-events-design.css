@@ -21,3 +21,23 @@
  .v64-event-page-side{justify-items:start;text-align:left}
  .v64-event-page-count{font-size:30px}
 }
+
+
+/* V64.13 — refined event countdowns; remove legacy date watermark */
+.rm17-event:after{content:none!important;display:none!important}
+.v64-event-page-item:after{content:none!important;display:none!important}
+.rm59-home-event-copy{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:38px;align-items:center;width:100%}
+.rm59-home-event-copy h2{font:600 clamp(34px,5vw,68px)/.98 Cinzel;margin:12px 0 14px;color:#f5edef}
+.rm59-home-event-copy h2 em{font-style:normal;color:var(--red)}
+.rm59-home-event-side{display:flex;flex-direction:column;align-items:flex-end;gap:10px;min-width:300px}
+.rm59-home-event-side small,.v64-event-page-side small{font-size:8px;letter-spacing:.24em;color:#8a777e}
+.rm59-home-countdown,.v64-event-page-countdown{display:flex;gap:7px;align-items:stretch}
+.rm59-home-countdown>div,.v64-event-page-countdown>div{min-width:68px;padding:12px 10px 10px;text-align:center;border:1px solid rgba(213,31,60,.22);background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(213,31,60,.025));box-shadow:inset 0 0 25px rgba(213,31,60,.025),0 12px 35px rgba(0,0,0,.18)}
+.rm59-home-countdown b,.v64-event-page-countdown b{display:block;font:600 27px/1 Cinzel;color:#f7edf0;font-variant-numeric:tabular-nums;text-shadow:0 0 18px rgba(213,31,60,.18)}
+.rm59-home-countdown span,.v64-event-page-countdown span{display:block;margin-top:6px;font-size:7px;letter-spacing:.2em;color:#806f75}
+.v64-event-page-countdown{justify-content:flex-end}
+.v64-event-page-countdown>div{min-width:62px}
+.v64-event-page-countdown b{font-size:24px}
+.v64-event-page-side{align-items:flex-end}
+@media(max-width:800px){.rm59-home-event-copy{grid-template-columns:1fr;gap:25px}.rm59-home-event-side{align-items:flex-start;min-width:0}.v64-event-page-countdown{justify-content:flex-start}.v64-event-page-side{align-items:flex-start}}
+@media(max-width:560px){.rm59-home-countdown,.v64-event-page-countdown{gap:5px;width:100%}.rm59-home-countdown>div,.v64-event-page-countdown>div{min-width:0;flex:1;padding:10px 5px}.rm59-home-countdown b,.v64-event-page-countdown b{font-size:21px}}
