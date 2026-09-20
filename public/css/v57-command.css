@@ -331,3 +331,4 @@
   .v57-grid.four > .v57-card.stat{min-height:104px;padding:18px 19px}
   .v57-grid.four > .v57-card.stat > strong{font-size:24px}
 }
+.v59-sale-actions,.v57-doc-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.v57-mini.danger{border-color:#7a2434!important;color:#ff8c9e!important}.v57-doc-actions{margin-top:0;margin-left:auto;justify-content:flex-end}.v57-sidebar nav button[data-role-view="manager"]{display:flex}

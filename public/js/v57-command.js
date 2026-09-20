@@ -66,7 +66,8 @@
         <button data-view="reviews">06 · Vélemények</button>
         <button data-view="prices">07 · MENU / ÁRAK</button>
         <button data-view="management">08 · Vezetés</button>
-        <button data-view="profile">09 · Saját profil</button>
+        <button data-view="documents" data-role-view="manager">09 · SZÁMLÁK / NYUGTÁK</button>
+        <button data-view="profile">10 · Saját profil</button>
       </nav>
       <div class="v57-side-user"><small>BEJELENTKEZVE</small><b id="v57SideName">—</b><span id="v57SideRole">—</span></div>
     </aside>
@@ -81,7 +82,7 @@
 
   const views=$('#v57Views');
   const viewDefs=[
-    ['overview','Áttekintés'],['pos','Eladás'],['stock','Készlet'],['shifts','Műszakok'],['employees','Dolgozók'],['reviews','Vélemények'],['prices','Menu / Árak'],['management','Vezetés'],['profile','Saját profil']
+    ['overview','Áttekintés'],['pos','Eladás'],['stock','Készlet'],['shifts','Műszakok'],['employees','Dolgozók'],['reviews','Vélemények'],['prices','Menu / Árak'],['management','Vezetés'],['documents','Számlák / Nyugták'],['profile','Saját profil']
   ];
   viewDefs.forEach(([id,title])=>{
     const s=document.createElement('section'); s.className='v57-view'; s.dataset.view=id; s.innerHTML=`<div class="v57-section-head"><span>RED MOON / ${id.toUpperCase()}</span><h2>${esc(title)}</h2></div><div class="v57-view-body" id="v57-${id}"></div>`; views.appendChild(s);
@@ -142,6 +143,7 @@
       me=md.user; products=pd.products||[]; shift=sd.shift||null; window.me=me; window.products=products; updateGlobalShiftBanner();
       $('#v57SideName').textContent=me?.name||'—'; $('#v57SideRole').textContent=(me?.role||'STAFF').toUpperCase();
       $('#v57Welcome').textContent=`Bejelentkezve: ${me?.name||''} · ${(me?.role||'').toUpperCase()}`;
+      const docNav=$('.v57-sidebar nav [data-view=documents]'); if(docNav) docNav.style.display=['manager','owner'].includes(me?.role)?'flex':'none';
       if(me?.role==='dj'){location.href='dj.html';return}
       renderActive();
     }catch(e){toast('Command Center hiba',e.message,true)}
@@ -157,6 +159,7 @@
     if(active==='reviews') return renderReviews();
     if(active==='prices') return renderPrices();
     if(active==='management') return renderManagement();
+    if(active==='documents') return renderDocuments();
     if(active==='profile') return renderProfile();
   }
 
@@ -227,11 +230,44 @@
       (d.sales||[]).forEach(s=>{const key=s.cartId||s.transactionId||s.id;if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(s)});
       const rows=[...grouped.values()].slice(0,80).map(items=>{
         const first=items[0], total=items.reduce((a,x)=>a+Number(x.total||0),0);
-        return `<article class="v59-sale-card"><div><b>${esc(first.cartId||first.transactionId||'—')}</b><small>${new Date(first.at).toLocaleString('hu-HU')} · ${esc(first.user||'')}</small></div><div class="v59-sale-items">${items.map(x=>`<span class="v59-sale-item">${esc(x.product)} × ${x.qty}</span>`).join('')}</div><div class="v59-sale-total"><strong>${money(total)}</strong><span class="payment-chip ${first.paymentMethod==='transfer'?'transfer':'cash'}"><i>${first.paymentMethod==='transfer'?'▣':'$'}</i>${first.paymentMethod==='transfer'?'ÁTUTALÁS':'KÉSZPÉNZ'}</span></div></article>`;
+        return `<article class="v59-sale-card"><div><b>${esc(first.cartId||first.transactionId||'—')}</b><small>${new Date(first.at).toLocaleString('hu-HU')} · ${esc(first.user||'')}</small></div><div class="v59-sale-items">${items.map(x=>`<span class="v59-sale-item">${esc(x.product)} × ${x.qty}</span>`).join('')}</div><div class="v59-sale-total"><strong>${money(total)}</strong><span class="payment-chip ${first.paymentMethod==='transfer'?'transfer':'cash'}"><i>${first.paymentMethod==='transfer'?'▣':'$'}</i>${first.paymentMethod==='transfer'?'ÁTUTALÁS':'KÉSZPÉNZ'}</span></div>${['manager','owner'].includes(me?.role)?`<div class="v59-sale-actions"><button class="v57-mini" data-receipt-sale="${esc(first.id)}">NYUGTA</button><button class="v57-mini" data-invoice-sale="${esc(first.id)}">SZÁMLA</button><button class="v57-mini danger" data-delete-sale="${esc(first.id)}">ELADÁS TÖRLÉSE</button></div>`:''}</article>`;
       }).join('');
       host.innerHTML=rows||'<div class="v57-empty">Még nincs rögzített eladás.</div>';
+      host.querySelectorAll('[data-delete-sale]').forEach(b=>b.onclick=()=>deleteSaleV57(b.dataset.deleteSale));
+      host.querySelectorAll('[data-invoice-sale]').forEach(b=>b.onclick=()=>createInvoiceV57(b.dataset.invoiceSale));
+      host.querySelectorAll('[data-receipt-sale]').forEach(b=>b.onclick=()=>showReceiptV57(b.dataset.receiptSale));
+      window._v57Sales=d.sales||[];
     }catch(e){host.innerHTML=`<div class="v57-empty">Az eladási napló nem tölthető be.</div>`}
   }
+  async function deleteSaleV57(id){
+    if(!['manager','owner'].includes(me?.role))return;
+    const sale=(window._v57Sales||[]).find(x=>x.id===id);
+    if(!sale)return;
+    const ok=await confirmBox('Eladás törlése',`${sale.product} × ${sale.qty} · ${money(sale.total)}\n\nA törlés azonnal visszateszi a termék mennyiségét a készletbe. A kapcsolódó számla nem törlődik; azt csak OWNER törölheti a Számlák / Nyugták fülön.`);
+    if(!ok)return;
+    try{const d=await api('/api/sales/'+encodeURIComponent(id),{method:'DELETE'}); toast('Eladás törölve',`${d.restoredStock||sale.qty} db visszakerült a készletbe.`); await loadBase(); setView('pos');}catch(e){toast('Törlés sikertelen',e.message,true)}
+  }
+  async function createInvoiceV57(id){
+    if(!['manager','owner'].includes(me?.role))return;
+    if(typeof window.createDocument==='function'){ await window.createDocument(id,'invoice'); return; }
+    toast('Számlázás','A számlázó modul nem érhető el ebben a munkamenetben.',true);
+  }
+  function showReceiptV57(id){
+    const sale=(window._v57Sales||[]).find(x=>x.id===id); if(!sale)return;
+    const html=`<div class="receipt-paper"><h2>RED MOON PUB</h2><p><b>NYUGTA</b><br>Cart ID: ${esc(sale.cartId||sale.transactionId||sale.id)}<br>Dátum: ${new Date(sale.at).toLocaleString('hu-HU')}</p><div class="receipt-line"><span>${esc(sale.product)} × ${sale.qty}</span><b>${money(sale.total)}</b></div><div class="receipt-line"><span>Fizetés</span><b>${sale.paymentMethod==='transfer'?'📱 Átutalás':'💵 Készpénz'}</b></div><div class="receipt-line"><span>ÖSSZESEN</span><b>${money(sale.total)}</b></div><p style="margin-top:18px">Red Moon Pub · See City RP</p></div><div class="action-row" style="margin-top:12px"><button class="btn btn-red" onclick="printCurrentDoc()">NYOMTATÁS</button></div>`;
+    const modal=$('#docModal'); if(!modal)return; $('#docTitle').textContent='Nyugta · '+(sale.cartId||sale.id); $('#docContent').innerHTML=html; modal.classList.add('show'); window._printHtml=html;
+  }
+  async function renderDocuments(){
+    const host=$('#v57-documents'); if(!host)return;
+    if(!['manager','owner'].includes(me?.role)){host.innerHTML='<div class="v57-empty">Ehhez a fülhöz MANAGER vagy OWNER jogosultság szükséges.</div>';return;}
+    try{
+      const d=await api('/api/documents'); const docs=d.documents||[];
+      host.innerHTML=`<div class="v57-card"><div class="v57-card-head"><div><span>DOCUMENTS / INVOICES</span><h3>Számlák és nyugták</h3><small>A számlákhoz MANAGER és OWNER fér hozzá. Számlát kizárólag OWNER törölhet.</small></div><span class="v57-badge">${docs.length} DOKUMENTUM</span></div><div class="v57-list">${docs.map(x=>`<div class="v57-row"><div><b>${esc(x.id)}</b><small>${new Date(x.createdAt).toLocaleString('hu-HU')} · ${esc(x.createdByName||'')} · ${esc(x.customer?.name||'Vásárló')}</small></div><strong>${money(x.total)}</strong><div class="v57-doc-actions"><button class="v57-mini" data-open-doc="${esc(x.id)}">MEGNYITÁS</button>${me?.role==='owner'?`<button class="v57-mini danger" data-delete-doc="${esc(x.id)}">TÖRLÉS</button>`:''}</div></div>`).join('')||'<div class="v57-empty">Még nincs kiállított számla.</div>'}</div></div>`;
+      host.querySelectorAll('[data-open-doc]').forEach(b=>b.onclick=async()=>{if(typeof window.loadDocumentById==='function')window.loadDocumentById(b.dataset.openDoc)});
+      host.querySelectorAll('[data-delete-doc]').forEach(b=>b.onclick=async()=>{if(!await confirmBox('Számla törlése',`Biztosan törlöd a(z) ${b.dataset.deleteDoc} számlát? Az eredeti eladás ettől nem törlődik.`))return;try{await api('/api/documents/'+encodeURIComponent(b.dataset.deleteDoc),{method:'DELETE'});toast('Számla törölve','A számla eltávolításra került.');renderDocuments()}catch(e){toast('Törlés sikertelen',e.message,true)}});
+    }catch(e){host.innerHTML=`<div class="v57-empty">A számlák nem tölthetők be: ${esc(e.message)}</div>`}
+  }
+
   function renderProductGrid(cat){
     const grid=$('#v57ProductsGrid'); if(!grid)return;
     const list=products.filter(p=>p.active&&(cat==='all' ? ['drink','food'].includes(String(p.category||'')) : productSection(p)===cat));
