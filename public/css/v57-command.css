@@ -111,3 +111,35 @@
 .v56-reviews .v56-review-item .v56-review-text:before,.v56-reviews .v57-review blockquote:before{color:#df2c50!important}
 .v56-reviews .v56-review-item .v56-review-text:after,.v56-reviews .v57-review blockquote:after{color:#df2c50!important}
 .v56-reviews .v56-review-form{max-width:none!important;width:100%!important;border-color:#48202d!important;background:linear-gradient(145deg,#16090f,#090607)!important}
+
+/* V59.1 — stable command layout + live team + payment log polish */
+#v57Views{min-width:0;overflow:visible}
+.v57-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.v57-online-list{display:grid;gap:8px;max-height:255px;overflow:auto;padding-right:2px}
+.v57-online-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto;align-items:center;gap:10px;padding:11px 12px;border:1px solid #2b171e;background:#0b0709;border-radius:11px}
+.v57-online-row b{display:block;color:#f6eef1;font-size:11px}
+.v57-online-row small{display:block;color:#8c7b81;font-size:9px;margin-top:3px;letter-spacing:.06em}
+.v57-online-row em{font-style:normal;color:#68e0ad;font:700 8px Noto Sans;letter-spacing:.12em}
+.v57-online-dot{width:8px;height:8px;border-radius:50%;background:#55d9a0;box-shadow:0 0 12px rgba(85,217,160,.65)}
+.v59-sales-log{margin-top:16px}
+.v59-sale-card{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(0,2fr) auto;gap:16px;align-items:center;padding:15px;border:1px solid #321a23;background:linear-gradient(145deg,#12090d,#090708);border-radius:13px}
+.v59-sale-card small{display:block;color:#88777d;font-size:9px;margin-top:5px}
+.v59-sale-items{display:flex;flex-wrap:wrap;gap:6px}
+.v59-sale-item{padding:6px 9px;border:1px solid #321b24;border-radius:999px;background:#0c0709;color:#e8dde1;font-size:10px}
+.v59-sale-total{text-align:right;min-width:130px}
+.v59-sale-total strong{display:block;font:700 18px Cinzel;color:#f7edf0}
+.payment-chip{display:inline-flex!important;align-items:center;gap:5px!important;margin-top:7px;padding:6px 9px;border:1px solid #4a2230;border-radius:999px;color:#d92a4c;font:700 8px Noto Sans;letter-spacing:.1em}
+.payment-chip i{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:4px;border:1px solid #5c2b3a;font-style:normal;color:#fff}
+.payment-chip.cash i{color:#ffd2dc}
+.payment-chip.transfer i{color:#cfefff}
+.v57-price-main small{display:block;color:#9a888e;margin-top:5px;line-height:1.45}
+.v57-price-edit{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.v57-price-edit strong{font:700 16px Cinzel;color:#fff}
+.v57-field textarea{min-height:84px;resize:vertical}
+.v57-pay{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.v57-pay button{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border:1px solid #39202a;border-radius:10px;background:#0c0709;color:#9e8b92;cursor:pointer;font:700 9px Noto Sans;letter-spacing:.08em}
+.v57-pay button.active{border-color:#8e2945;background:#260b15;color:#fff;box-shadow:0 0 20px rgba(210,30,65,.08)}
+.pay-icon{display:grid;place-items:center;width:20px;height:20px;border:1px solid #633047;border-radius:6px;color:#fff;font-weight:800}
+@media(max-width:1200px){.v57-grid.three{grid-template-columns:repeat(2,minmax(0,1fr))}.v57-products-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){.v57-grid.three{grid-template-columns:1fr}.v57-pos-layout{grid-template-columns:1fr}.v59-sale-card{grid-template-columns:1fr}.v59-sale-total{text-align:left}}
+@media(max-width:600px){#v57Shell{grid-template-columns:1fr}.v57-sidebar{position:relative;top:auto;width:100%;height:auto}.v57-workspace{margin-left:0;padding:0 14px 50px}.v57-products-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

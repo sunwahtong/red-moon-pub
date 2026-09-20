@@ -135,9 +135,10 @@
       <article class="v57-card stat"><span>KÉSZLET</span><strong>${products.filter(p=>p.active).length}</strong><small>aktív termék</small></article>
       <article class="v57-card stat"><span>JOGOSULTSÁG</span><strong>${esc(me.role.toUpperCase())}</strong><small>Command Center hozzáférés</small></article>
     </div>
-    <div class="v57-grid two">
+    <div class="v57-grid three">
       <div class="v57-card"><div class="v57-card-head"><div><span>LOW STOCK</span><h3>Alacsony készlet</h3></div><button class="v57-mini" id="v57RefreshOverview">↻</button></div><div id="v57LowStock" class="v57-list"></div></div>
       <div class="v57-card"><div class="v57-card-head"><div><span>LIVE / SHIFT</span><h3>Műszak állapota</h3></div></div><div id="v57OverviewShift"></div></div>
+      <div class="v57-card"><div class="v57-card-head"><div><span>LIVE / TEAM</span><h3>Online dolgozók</h3></div><span class="v57-badge" id="v57OnlineCount">—</span></div><div id="v57OnlineList" class="v57-online-list"><div class="v57-empty">Betöltés…</div></div></div>
     </div>`;
     $('#v57RefreshOverview').onclick=()=>{host.dataset.ready='';renderOverview()};
     try{
@@ -145,6 +146,19 @@
       const low=(d.lowStock||[]);$('#v57LowStock').innerHTML=low.length?low.map(p=>`<div class="v57-row"><div><b>${esc(p.name)}</b><small>${p.stock} db / minimum ${p.minStock}</small></div><em>${p.stock<=0?'ELFOGYOTT':'ALACSONY'}</em></div>`).join(''):'<div class="v57-empty">Nincs alacsony készlet.</div>';
     }catch{}
     updateShiftOverview();
+    loadOnlineOverview();
+  }
+  async function loadOnlineOverview(){
+    const host=$('#v57OnlineList'), count=$('#v57OnlineCount');
+    if(!host||!count)return;
+    try{
+      const d=await api('/api/presence');
+      count.textContent=(d.onlineCount||0)+' ONLINE';
+      host.innerHTML=(d.online||[]).length ? (d.online||[]).map(u=>'<div class="v57-online-row"><span class="v57-online-dot"></span><div><b>'+esc(u.name)+'</b><small>'+esc(String(u.role||'staff').toUpperCase())+(u.id===me?.id?' · TE VAGY':'')+'</small></div><em>ONLINE</em></div>').join('') : '<div class="v57-empty">Jelenleg nincs online dolgozó.</div>';
+    }catch(e){
+      host.innerHTML='<div class="v57-empty">Az online lista pillanatnyilag nem érhető el.</div>';
+      count.textContent='—';
+    }
   }
   function updateShiftOverview(){
     const open=shift; $('#v57ShiftStatus').textContent=open?'NYITVA':'ZÁRVA'; $('#v57ShiftMembers').textContent=open?`${(open.members||[]).join(', ')||'nincs tag'}`:'Nincs aktív műszak';
@@ -159,7 +173,7 @@
       <div class="v57-card"><div class="v57-card-head"><div><span>POS / CATALOG</span><h3>Eladható termékek</h3><small>${currentShiftMember()?'Aktív műszaktagként értékesíthetsz.':'Csak az aktuális műszak tagjai értékesíthetnek.'}</small></div><span class="v57-badge">${currentShiftMember()?'ELADHATÓ':'MŰSZAKON KÍVÜL'}</span></div>
       <div class="v57-category-tabs">${cats.map((c,i)=>`<button class="v57-cat ${i===0?'active':''}" data-cat="${esc(c)}">${c==='drink'?'ITALOK':'ÉTELEK'}</button>`).join('')}</div>
       <div id="v57ProductsGrid" class="v57-products-grid"></div></div>
-      <aside class="v57-card v57-cart"><div class="v57-card-head"><div><span>CART</span><h3>Kosár</h3></div><button id="v57ClearCart" class="v57-mini">ÜRÍTÉS</button></div><div id="v57CartItems"></div><div class="v57-cart-total"><span>ÖSSZESEN</span><strong id="v57CartTotal">0 Ft</strong></div><div class="v57-pay"><button class="active" data-pay="cash">💵 Készpénz</button><button data-pay="transfer">📱 Átutalás</button></div><button id="v57Checkout" class="v57-btn red wide">ELADÁS RÖGZÍTÉSE ↗</button><p id="v57SaleMsg" class="v57-note"></p></aside>
+      <aside class="v57-card v57-cart"><div class="v57-card-head"><div><span>CART</span><h3>Kosár</h3></div><button id="v57ClearCart" class="v57-mini">ÜRÍTÉS</button></div><div id="v57CartItems"></div><div class="v57-cart-total"><span>ÖSSZESEN</span><strong id="v57CartTotal">0 Ft</strong></div><div class="v57-pay"><button class="active" data-pay="cash"><span class="pay-icon pay-cash">$</span><span>Készpénz</span></button><button data-pay="transfer"><span class="pay-icon pay-transfer">▣</span><span>Átutalás</span></button></div><button id="v57Checkout" class="v57-btn red wide">ELADÁS RÖGZÍTÉSE ↗</button><p id="v57SaleMsg" class="v57-note"></p></aside>
     </div>
     <section class="v57-card v59-sales-log"><div class="v57-card-head"><div><span>SALES / CART HISTORY</span><h3>Eladások</h3><small>Minden kosár saját Cart ID-t kap. Egy kosár több tételből is állhat.</small></div></div><div id="v59SalesHistory" class="v57-list"><div class="v57-empty">Betöltés…</div></div></section>`;
     $$('.v57-cat').forEach(b=>b.onclick=()=>{$$('.v57-cat').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderProductGrid(b.dataset.cat)});
@@ -178,7 +192,7 @@
       (d.sales||[]).forEach(s=>{const key=s.cartId||s.transactionId||s.id;if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(s)});
       const rows=[...grouped.values()].slice(0,80).map(items=>{
         const first=items[0], total=items.reduce((a,x)=>a+Number(x.total||0),0);
-        return `<article class="v59-sale-card"><div><b>${esc(first.cartId||first.transactionId||'—')}</b><small>${new Date(first.at).toLocaleString('hu-HU')} · ${esc(first.user||'')}</small></div><div class="v59-sale-items">${items.map(x=>`<span class="v59-sale-item">${esc(x.product)} × ${x.qty}</span>`).join('')}</div><div class="v59-sale-total"><strong>${money(total)}</strong><span>${first.paymentMethod==='transfer'?'ÁTUTALÁS':'KÉSZPÉNZ'}</span></div></article>`;
+        return `<article class="v59-sale-card"><div><b>${esc(first.cartId||first.transactionId||'—')}</b><small>${new Date(first.at).toLocaleString('hu-HU')} · ${esc(first.user||'')}</small></div><div class="v59-sale-items">${items.map(x=>`<span class="v59-sale-item">${esc(x.product)} × ${x.qty}</span>`).join('')}</div><div class="v59-sale-total"><strong>${money(total)}</strong><span class="payment-chip ${first.paymentMethod==='transfer'?'transfer':'cash'}"><i>${first.paymentMethod==='transfer'?'▣':'$'}</i>${first.paymentMethod==='transfer'?'ÁTUTALÁS':'KÉSZPÉNZ'}</span></div></article>`;
       }).join('');
       host.innerHTML=rows||'<div class="v57-empty">Még nincs rögzített eladás.</div>';
     }catch(e){host.innerHTML=`<div class="v57-empty">Az eladási napló nem tölthető be.</div>`}
@@ -270,7 +284,20 @@
   async function renderPrices(){
     const host=$('#v57-prices');const editable=isOwner();
     host.innerHTML=`<div class="v57-card"><div class="v57-card-head"><div><span>PRICE CONTROL / OWNER</span><h3>Árvezérlés</h3><small>Az eladási ár módosítása azonnal megjelenik a publikus itallapon. Az árak az ÁFÁ-t tartalmazzák.</small></div><span class="v57-badge">${editable?'OWNER':'CSAK MEGTEKINTÉS'}</span></div><div class="v57-price-list">${products.filter(p=>p.active).map(p=>`<article class="v57-price-row"><div class="v57-price-img">${p.image?`<img src="/${esc(p.image)}">`:'RM'}</div><div class="v57-price-main"><b>${esc(p.name)}</b><small>${esc(p.subtitle||'Red Moon Pub')} · ${p.category==='drink'?'Ital':'Étel'}</small></div><div class="v57-price-edit"><strong>${money(p.price)}</strong>${editable?`<button class="v57-mini" data-price="${esc(p.id)}">ÁR MÓDOSÍTÁSA</button>`:''}</div></article>`).join('')}</div></div>${roleAllowed(me.role)?`<div class="v57-card" style="margin-top:16px"><div class="v57-card-head"><div><span>CATALOG / PRODUCT CONTROL</span><h3>Új termék</h3><small>Név, kategória, kép, rövid aláírás, ár és kezdő készlet.</small></div></div><div class="v57-form-grid"><label class="v57-field"><span>NÉV</span><input id="v57NewProductName" placeholder="Termék neve"></label><label class="v57-field"><span>KATEGÓRIA</span><select id="v57NewProductCategory"><option value="drink">Ital</option><option value="food">Étel</option></select></label><label class="v57-field"><span>ELADÁSI ÁR</span><input id="v57NewProductPrice" type="number" min="0" value="0"></label><label class="v57-field"><span>KEZDŐ KÉSZLET</span><input id="v57NewProductStock" type="number" min="0" value="0"></label><label class="v57-field"><span>MINIMUM KÉSZLET</span><input id="v57NewProductMin" type="number" min="0" value="0"></label><label class="v57-field"><span>KÉP ÚTVONAL / URL</span><input id="v57NewProductImage" placeholder="assets/menu/...png"></label><label class="v57-field wide"><span>RÖVID ALÁÍRÁS</span><input id="v57NewProductSubtitle" placeholder="Red Moon Pub · ..."></label></div><button id="v57CreateProduct" class="v57-btn red">TERMÉK HOZZÁADÁSA ↗</button></div>`:''}`;
-    $$('#v57-prices [data-price]').forEach(b=>b.onclick=async()=>{const p=products.find(x=>x.id===b.dataset.price);const d=await formModal('Eladási ár módosítása',[{id:'price',label:'ÚJ ELADÁSI ÁR (Ft)',type:'number',value:p.price,required:true}]);if(!d)return;try{const out=await api('/api/products/'+encodeURIComponent(p.id),{method:'PATCH',body:JSON.stringify({price:Number(d.price)})});products=products.map(x=>x.id===p.id?out.product:x);toast('Ár frissítve',`${p.name} · ${money(out.product.price)}`);renderPrices()}catch(e){toast('Ármódosítás sikertelen',e.message,true)}})
+    $$('#v57-prices [data-price]').forEach(b=>b.onclick=async()=>{
+      const p=products.find(x=>x.id===b.dataset.price); if(!p)return;
+      const d=await formModal('Ár & termék-aláírás',[
+        {id:'price',label:'ÚJ ELADÁSI ÁR (Ft)',type:'number',value:p.price,required:true},
+        {id:'subtitle',label:'RÖVID ALÁÍRÁS / LEÍRÁS',type:'textarea',value:p.subtitle||'',wide:true,placeholder:'Prémium Red Moon válogatás · jéggel ajánlva.'}
+      ]);
+      if(!d)return;
+      try{
+        const out=await api('/api/products/'+encodeURIComponent(p.id),{method:'PATCH',body:JSON.stringify({price:Number(d.price),subtitle:String(d.subtitle||'').trim()})});
+        products=products.map(x=>x.id===p.id?out.product:x);
+        toast('Termék frissítve',p.name+' · '+money(out.product.price));
+        renderPrices();
+      }catch(e){toast('Módosítás sikertelen',e.message,true)}
+    })
     $('#v57CreateProduct')?.addEventListener('click',async()=>{const name=$('#v57NewProductName').value.trim();if(!name){toast('Hiányzó név','A termék neve kötelező.',true);return}try{const out=await api('/api/products',{method:'POST',body:JSON.stringify({name,category:$('#v57NewProductCategory').value,price:Number($('#v57NewProductPrice').value),stock:Number($('#v57NewProductStock').value),minStock:Number($('#v57NewProductMin').value),image:$('#v57NewProductImage').value.trim(),subtitle:$('#v57NewProductSubtitle').value.trim()})});products.push(out.product);toast('Termék hozzáadva',out.product.name);renderPrices()}catch(e){toast('Termék hozzáadása sikertelen',e.message,true)}})
   }
 
@@ -317,6 +344,7 @@
         await renderActive();
       }else if(active==='overview'){
         updateShiftOverview();
+        loadOnlineOverview();
         const overall=$('#v57Overall'); if(overall){try{const d=await api('/api/dashboard');overall.textContent=money(d.overallRevenue)}catch{}}
       }else if(active==='shifts'){
         // Keep the shift screen stable; explicit actions refresh its full layout.

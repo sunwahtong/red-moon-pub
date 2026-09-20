@@ -326,6 +326,15 @@ async function api(req,res,url){
       const allowedDJ=['dj','manager','owner'].includes(u.role);
       if(portal==='staff' && !allowedStaff) return json(res,403,{error:'Ez DJ fiók. Ezzel a fiókkal csak a DJ konzolba lehet belépni.'});
       if(portal==='dj' && !allowedDJ) return json(res,403,{error:'Ez kasszás / Staff fiók. A DJ konzolhoz külön DJ fiók szükséges.'});
+      // One account may have only one active session at a time.
+      const sessionCutoff=Date.now()-60000;
+      for(const [oldSid,oldSession] of sessions.entries()){
+        if(!oldSession?.id || oldSession.lastSeen<sessionCutoff) sessions.delete(oldSid);
+      }
+      const existingSession=[...sessions.entries()].find(([,session])=>session.id===u.id && session.lastSeen>=sessionCutoff);
+      if(existingSession){
+        return json(res,409,{error:'Ez a fiók jelenleg már be van jelentkezve egy másik eszközön. Előbb jelentkezz ki onnan.'});
+      }
       const sid=crypto.randomBytes(32).toString('hex');
       const now=new Date().toISOString();
       u.lastActiveAt=now;
@@ -956,7 +965,12 @@ async function api(req,res,url){
       if(b.name!==undefined)p.name=String(b.name);
       if(b.price!==undefined){ if(u.role!=='owner') return json(res,403,{error:'Az eladási árat csak OWNER módosíthatja.'}); p.price=currency(b.price); }
       if(b.minStock!==undefined)p.minStock=Math.max(0,Math.floor(currency(b.minStock)));
-      if(b.active!==undefined)p.active=!!b.active; if(b.image!==undefined)p.image=String(b.image||''); if(b.subtitle!==undefined)p.subtitle=String(b.subtitle||'').slice(0,180);
+      if(b.active!==undefined)p.active=!!b.active;
+      if(b.image!==undefined)p.image=String(b.image||'');
+      if(b.subtitle!==undefined){
+        if(u.role!=='owner') return json(res,403,{error:'A termék aláírását csak OWNER módosíthatja.'});
+        p.subtitle=String(b.subtitle||'').slice(0,180);
+      }
       audit(db,u,'PRODUCT_UPDATE',p.name); await writeDB(db); return json(res,200,{product:p});
     }
 
