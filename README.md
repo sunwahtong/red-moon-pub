@@ -25,3 +25,7 @@ A régi adatbázisokban is explicit ID- és név-alapú besorolás történik, e
 - Added an OWNER-only DJ ACCESS creation selector inside the Staff Command Center account panel.
 - DJ accounts remain restricted to the DJ portal by the existing server-side role/portal checks.
 - OWNER account editor can now also edit DJ ACCESS accounts.
+
+
+## V61
+Global readability pass: accidental black/inherited text is replaced with white/red-neon typography while preserving the existing Red Moon dark theme.

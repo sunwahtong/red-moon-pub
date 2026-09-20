@@ -1,0 +1,184 @@
+
+/* =========================================================
+   V61 — GLOBAL READABILITY / WHITE + RED NEON TYPE SYSTEM
+   Replaces accidental black/inherited text across the site.
+   ========================================================= */
+
+:root{
+  --rm61-white:#f7f1f3;
+  --rm61-soft:#ddd0d4;
+  --rm61-red:#e21f45;
+  --rm61-glow:rgba(226,31,69,.34);
+}
+
+/* Base typography */
+html, body{
+  color:var(--rm61-white);
+}
+body{
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+/* The most common source of the black-on-black issue:
+   headings that relied on browser defaults for their color. */
+h1,h2,h3,h4,h5,h6,
+.hero h1,.hero h2,.hero h3,
+.page-hero h1,.page-hero h2,.page-hero h3,
+.section-title,.section-head h1,.section-head h2,
+.panel h1,.panel h2,.panel h3,.panel h4,
+.card h1,.card h2,.card h3,.card h4,
+.rm17-owner h3,
+.rm17-owner p,
+.v56-review-form h2,.v56-review-list h2,
+.v56-review-item b,
+.v56-review-text,
+.v56-event-card-live h3,
+.staff-head h1,
+.staff-head h2,
+.staff-head h3,
+.staff-grid h2,.staff-grid h3,
+.stat-grid strong,
+.v57-topbar h1,.v57-topbar h2,.v57-topbar h3,
+.v57-workspace h1,.v57-workspace h2,.v57-workspace h3,
+.v57-command-app h1,.v57-command-app h2,.v57-command-app h3,
+.dj-top h1,.dj-top h2,.dj-top h3,
+.dj-page .panel h2,.dj-page .panel h3,
+.club-hero h1,.club-hero h2,.club-hero h3{
+  color:var(--rm61-white) !important;
+  -webkit-text-fill-color:var(--rm61-white);
+  text-shadow:
+    0 0 1px rgba(255,255,255,.85),
+    0 0 10px rgba(226,31,69,.12);
+}
+
+/* Keep body copy readable without making every small metadata label
+   excessively bright. */
+p, li, dd, dt, td, th,
+.card p,.panel p,
+.rm17-owner p,
+.staff-head p,
+.staff-grid p,
+.dj-page .panel-note,
+.dj-page .empty-state{
+  color:var(--rm61-soft);
+}
+
+/* Labels / names that previously inherited black */
+label,
+.field label,
+.v56-field label,
+.v56-review-item b,
+.v57-side-user b,
+.v57-sidebar nav button,
+.staff-user,
+.staff-grid strong,
+.staff-grid b,
+.queue-item,
+.request-item,
+.station-card,
+.gocast-callout,
+.stat-grid strong{
+  color:var(--rm61-white);
+}
+
+/* Navigation and links: white base, red neon on interaction */
+nav a, footer a{
+  color:#d9cbd0;
+}
+nav a:hover, nav a.active,
+footer a:hover,
+a:hover{
+  color:#ff4d70;
+  text-shadow:0 0 12px rgba(255,45,80,.35);
+}
+
+/* Review cards / quote text */
+.v56-review-text,
+.review-text,
+blockquote,
+blockquote p{
+  color:#f1e8eb !important;
+  text-shadow:0 0 8px rgba(226,31,69,.14);
+}
+.v56-review-item b{
+  color:#fff7f9 !important;
+  text-shadow:0 0 10px rgba(226,31,69,.24);
+}
+
+/* Owner / about hierarchy */
+.rm17-owner h3{
+  text-shadow:
+    0 0 8px rgba(255,255,255,.14),
+    0 0 18px rgba(226,31,69,.20);
+}
+.rm17-owner p{
+  color:#d2c4c9 !important;
+}
+
+/* Inputs remain dark, but their entered text is always visible. */
+input, textarea, select, option{
+  color:#f8f1f4 !important;
+  -webkit-text-fill-color:#f8f1f4;
+}
+input::placeholder, textarea::placeholder{
+  color:#9d8d93 !important;
+  -webkit-text-fill-color:#9d8d93;
+  opacity:1;
+}
+
+/* Buttons: preserve existing red/transparent button design,
+   only prevent accidental black text. */
+button{
+  color:inherit;
+}
+.btn, button.btn,
+.staff-btn, .dj-buttons button,
+.queue-form button, .request-actions button{
+  text-shadow:0 0 8px rgba(255,255,255,.08);
+}
+
+/* Status / KPI numbers */
+.stat-grid strong,
+.v57-stat strong,
+.v57-kpi strong,
+.v57-metric strong{
+  color:#fff4f6 !important;
+  text-shadow:
+    0 0 8px rgba(255,255,255,.12),
+    0 0 16px rgba(226,31,69,.18);
+}
+
+/* Prevent old utility classes from making important text black. */
+.text-dark,.text-black,.dark-text,
+.black,.ink{
+  color:#f7f1f3 !important;
+  -webkit-text-fill-color:#f7f1f3 !important;
+}
+
+/* Red Moon neon accents */
+.eyebrow,.section-kicker,.kicker,
+.staff-kicker,.panel-head span,
+.v56-review-list .v56-rating-summary,
+.v57-brand span,.v57-topbar>div>span{
+  text-shadow:0 0 10px rgba(226,31,69,.28);
+}
+
+/* Accessibility: selected/focused text stays readable. */
+::selection{
+  background:#8e1733;
+  color:#fff;
+}
+
+/* A few known old selectors whose headings had no explicit color. */
+.rm17-owner h3,
+.rm17-owner p,
+.v56-review-form h2,
+.v56-review-list h2,
+.v56-event-card-live h3,
+.staff-head h1,
+.dj-top h1,
+.panel-head h2{
+  position:relative;
+  z-index:2;
+}
