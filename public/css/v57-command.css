@@ -263,3 +263,71 @@
 .v57-cat{white-space:nowrap;min-height:40px;padding:10px 17px;border-radius:999px;letter-spacing:.12em}
 .v57-cat.active{box-shadow:0 0 18px rgba(214,29,65,.14), inset 0 0 14px rgba(214,29,65,.08)}
 @media(max-width:800px){.v57-category-tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin;padding-bottom:8px}.v57-cat{flex:0 0 auto}}
+
+/* V59.7 — Command Center overview KPI polish */
+.v57-grid.four > .v57-card.stat{
+  position:relative;
+  min-height:112px;
+  padding:20px 22px 18px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:0;
+  overflow:hidden;
+  border-color:rgba(142,39,65,.42);
+  background:
+    radial-gradient(circle at 88% 10%,rgba(220,30,67,.08),transparent 45%),
+    linear-gradient(145deg,rgba(28,12,18,.94),rgba(9,7,8,.98));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 18px 55px rgba(0,0,0,.24);
+}
+.v57-grid.four > .v57-card.stat:after{
+  content:"";
+  position:absolute;
+  left:22px;
+  right:22px;
+  bottom:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(220,30,67,.5),transparent);
+}
+.v57-grid.four > .v57-card.stat > span{
+  display:block;
+  margin:0 0 9px;
+  color:#d52a4d;
+  font:700 8px/1.2 Noto Sans;
+  letter-spacing:.2em;
+  white-space:nowrap;
+}
+.v57-grid.four > .v57-card.stat > strong{
+  display:block;
+  margin:0;
+  color:#f8eef1;
+  font:700 clamp(21px,2vw,28px)/1.1 Cinzel;
+  letter-spacing:.015em;
+  white-space:nowrap;
+  text-shadow:0 0 16px rgba(255,255,255,.04);
+}
+.v57-grid.four > .v57-card.stat > small{
+  display:block;
+  margin-top:8px;
+  color:#8f7c83;
+  font:500 9px/1.35 Noto Sans;
+  letter-spacing:.01em;
+}
+.v57-grid.four > .v57-card.stat:hover{
+  transform:translateY(-2px);
+  border-color:rgba(211,39,73,.58);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 22px 65px rgba(0,0,0,.3),0 0 28px rgba(200,25,62,.06);
+}
+.v57-grid.four > .v57-card.stat:nth-child(2) > strong{color:#f4e8eb}
+.v57-grid.four > .v57-card.stat:nth-child(3) > strong{color:#f4e8eb}
+.v57-grid.four > .v57-card.stat:nth-child(4) > strong{color:#f0e4e7}
+
+/* Keep overview cards comfortably separated on narrower desktop screens. */
+@media(max-width:1200px){
+  .v57-grid.four{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:700px){
+  .v57-grid.four{grid-template-columns:1fr}
+  .v57-grid.four > .v57-card.stat{min-height:104px;padding:18px 19px}
+  .v57-grid.four > .v57-card.stat > strong{font-size:24px}
+}
