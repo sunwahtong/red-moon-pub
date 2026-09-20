@@ -66,8 +66,9 @@
         <button data-view="reviews" style="display:none">06 · Vélemények</button>
         <button data-view="prices" style="display:none">07 · MENU / ÁRAK</button>
         <button data-view="management" style="display:none">08 · Vezetés</button>
-        <button data-view="documents" data-role-view="manager">09 · SZÁMLÁK / NYUGTÁK</button>
-        <button data-view="profile">10 · Saját profil</button>
+        <button data-view="events" style="display:none">09 · Rendezvények</button>
+        <button data-view="documents" data-role-view="manager">10 · SZÁMLÁK / NYUGTÁK</button>
+        <button data-view="profile">11 · Saját profil</button>
       </nav>
       <div class="v57-side-user"><small>BEJELENTKEZVE</small><b id="v57SideName">—</b><span id="v57SideRole">—</span></div>
     </aside>
@@ -82,7 +83,7 @@
 
   const views=$('#v57Views');
   const viewDefs=[
-    ['overview','Áttekintés'],['pos','Eladás'],['stock','Készlet'],['shifts','Műszakok'],['employees','Dolgozók'],['reviews','Vélemények'],['prices','Menu / Árak'],['management','Vezetés'],['documents','Számlák / Nyugták'],['profile','Saját profil']
+    ['overview','Áttekintés'],['pos','Eladás'],['stock','Készlet'],['shifts','Műszakok'],['employees','Dolgozók'],['reviews','Vélemények'],['prices','Menu / Árak'],['management','Vezetés'],['events','Rendezvények'],['documents','Számlák / Nyugták'],['profile','Saját profil']
   ];
   viewDefs.forEach(([id,title])=>{
     const s=document.createElement('section'); s.className='v57-view'; s.dataset.view=id; s.innerHTML=`<div class="v57-section-head"><span>RED MOON / ${id.toUpperCase()}</span><h2>${esc(title)}</h2></div><div class="v57-view-body" id="v57-${id}"></div>`; views.appendChild(s);
@@ -93,8 +94,8 @@
   function canAccessView(id){
     const role=me?.role;
     if(role==='owner') return true;
-    if(role==='manager') return id!=='management';
-    if(role==='staff') return !['reviews','prices','management'].includes(id);
+    if(role==='manager') return id!=='management' && id!=='events';
+    if(role==='staff') return !['reviews','prices','management','events'].includes(id);
     return id==='profile';
   }
   function applyRoleNavigation(){
@@ -178,6 +179,7 @@
   async function renderActive(){
     if(!me)return;
     if(active==='overview') return renderOverview();
+    if(active==='events') return renderEventsControl();
     if(active==='pos') return renderPOS();
     if(active==='stock') return renderStock();
     if(active==='shifts') return renderShifts();
@@ -450,18 +452,60 @@
     $('#v57CreateProduct')?.addEventListener('click',async()=>{const name=$('#v57NewProductName').value.trim();if(!name){toast('Hiányzó név','A termék neve kötelező.',true);return}try{const out=await api('/api/products',{method:'POST',body:JSON.stringify({name,category:$('#v57NewProductCategory').value,section:$('#v57NewProductSection').value,price:Number($('#v57NewProductPrice').value),stock:Number($('#v57NewProductStock').value),minStock:Number($('#v57NewProductMin').value),image:$('#v57NewProductImage').value.trim(),subtitle:$('#v57NewProductSubtitle').value.trim()})});products.push(out.product);toast('Termék hozzáadva',out.product.name);renderPrices()}catch(e){toast('Termék hozzáadása sikertelen',e.message,true)}})
   }
 
+  async function renderEventsControl(){
+    const host=$('#v57-events');
+    if(!host || !isOwner()) return;
+    host.innerHTML=`<div class="v57-events-control">
+      <div class="v57-card v57-event-editor-card">
+        <div class="v57-card-head"><div><span>OWNER / EVENT CONTROL</span><h3>Új rendezvény létrehozása</h3><small>Amit itt elmentesz, automatikusan megjelenik a nyilvános Rendezvények oldalon és a Főoldal következő esemény blokkjában.</small></div><span class="v57-badge">OWNER ONLY</span></div>
+        <div class="v57-form-grid">
+          <label class="v57-field wide"><span>FEJLÉC / ESEMÉNY NEVE</span><input id="v57EventTitle" maxlength="120" placeholder="pl. RED MOON FRIDAY"></label>
+          <label class="v57-field wide"><span>ALCÍM / LEÍRÁS</span><textarea id="v57EventDescription" maxlength="800" placeholder="Mit kell tudni az eseményről? DJ, tematika, program…"></textarea></label>
+          <label class="v57-field"><span>DÁTUM</span><input id="v57EventDate" type="date"></label>
+          <label class="v57-field"><span>KEZDÉS</span><input id="v57EventTime" type="time" value="20:00"></label>
+          <label class="v57-field"><span>HELYSZÍN</span><input id="v57EventPlace" value="Red Moon Pub" maxlength="120"></label>
+        </div>
+        <div class="action-row"><button id="v57CreateManagedEvent" class="v57-btn red">RENDEZVÉNY LÉTREHOZÁSA ↗</button></div>
+      </div>
+      <div class="v57-card"><div class="v57-card-head"><div><span>LIVE / PUBLIC</span><h3>Publikált rendezvények</h3><small>Mindig kezdési idő szerint, időrendben.</small></div></div><div id="v57ManagedEvents" class="v57-events-list-control"></div></div>
+    </div>`;
+
+    const pad=n=>String(n).padStart(2,'0');
+    const toLocalFields=iso=>{const d=new Date(iso);return {date:`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,time:`${pad(d.getHours())}:${pad(d.getMinutes())}`}};
+    const formatDate=iso=>new Date(iso).toLocaleString('hu-HU',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    async function load(){
+      const d=await api('/api/public-events');
+      const events=(d.events||[]).slice().sort((a,b)=>new Date(a.startsAt)-new Date(b.startsAt));
+      $('#v57ManagedEvents').innerHTML=events.map(x=>`<div class="v57-event-control-row" data-event-row="${esc(x.id)}">
+        <div class="v57-event-control-main"><div class="v57-event-datebox"><b>${new Date(x.startsAt).toLocaleDateString('hu-HU',{day:'2-digit',month:'short'})}</b><small>${new Date(x.startsAt).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'})}</small></div><div><b>${esc(x.title)}</b><small>${esc(x.place||'Red Moon Pub')} · ${formatDate(x.startsAt)}</small><p>${esc(x.description||'')}</p></div></div>
+        <div class="v57-event-control-actions"><span class="v57-countdown" data-event-time="${esc(x.startsAt)}">—</span><button class="v57-mini" data-edit-event="${esc(x.id)}">SZERKESZTÉS</button><button class="v57-mini danger" data-delete-event="${esc(x.id)}">TÖRLÉS</button></div>
+      </div>`).join('')||'<div class="v57-empty">Nincs még publikált rendezvény.</div>';
+      $$('#v57ManagedEvents [data-edit-event]').forEach(b=>b.onclick=async()=>{
+        const ev=events.find(x=>x.id===b.dataset.editEvent); if(!ev)return;
+        const f=toLocalFields(ev.startsAt);
+        const data=await formModal('Rendezvény szerkesztése',[{id:'title',label:'FEJLÉC / ESEMÉNY NEVE',value:ev.title,required:true},{id:'description',label:'ALCÍM / LEÍRÁS',type:'textarea',value:ev.description||'',wide:true},{id:'date',label:'DÁTUM',type:'date',value:f.date,required:true},{id:'time',label:'KEZDÉS',type:'time',value:f.time,required:true},{id:'place',label:'HELYSZÍN',value:ev.place||'Red Moon Pub'}]);
+        if(!data)return; const startsAt=`${data.date}T${data.time}`;
+        try{await api('/api/events/'+encodeURIComponent(ev.id),{method:'PATCH',body:JSON.stringify({title:data.title,description:data.description,place:data.place,startsAt})});toast('Rendezvény frissítve','A nyilvános oldalak automatikusan frissülnek.');await load()}catch(e){toast('Módosítás sikertelen',e.message,true)}
+      });
+      $$('#v57ManagedEvents [data-delete-event]').forEach(b=>b.onclick=async()=>{const ev=events.find(x=>x.id===b.dataset.deleteEvent);if(!ev)return;if(!(await confirmBox('Rendezvény törlése',`Biztosan törlöd: ${ev.title}?`)))return;try{await api('/api/events/'+encodeURIComponent(ev.id),{method:'DELETE'});toast('Rendezvény törölve','A Főoldalról és a Rendezvények oldalról is eltűnt.');await load()}catch(e){toast('Törlés sikertelen',e.message,true)}});
+      tick();
+    }
+    function tick(){ $$('#v57ManagedEvents [data-event-time]').forEach(el=>{const left=new Date(el.dataset.eventTime)-Date.now();if(left<=0){el.textContent='MOST / ELINDULT';el.classList.add('live');return}const days=Math.floor(left/86400000),hours=Math.floor(left/3600000)%24,mins=Math.floor(left/60000)%60,secs=Math.floor(left/1000)%60;el.textContent=`${days}n ${pad(hours)}:${pad(mins)}:${pad(secs)}`;}); }
+    const now=new Date(); now.setMinutes(now.getMinutes()+60); $('#v57EventDate').value=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+    $('#v57CreateManagedEvent').onclick=async()=>{const title=$('#v57EventTitle').value.trim(),description=$('#v57EventDescription').value.trim(),date=$('#v57EventDate').value,time=$('#v57EventTime').value,place=$('#v57EventPlace').value.trim()||'Red Moon Pub';if(!title||!date||!time){toast('Hiányzó adat','Fejléc, dátum és kezdési idő kötelező.',true);return}const startsAt=`${date}T${time}`;if(Number.isNaN(new Date(startsAt).getTime())){toast('Hibás időpont','Ellenőrizd a dátumot és az időt.',true);return}try{await api('/api/events/create',{method:'POST',body:JSON.stringify({title,description,place,startsAt})});toast('Rendezvény létrehozva','Az esemény megjelent a Főoldalon és a Rendezvények oldalon.');$('#v57EventTitle').value='';$('#v57EventDescription').value='';await load()}catch(e){toast('Rendezvény létrehozása sikertelen',e.message,true)}};
+    if(!renderEventsControl._timer) renderEventsControl._timer=setInterval(()=>{if(active==='events')tick()},1000);
+    try{await load()}catch(e){$('#v57ManagedEvents').innerHTML='<div class="v57-empty">A rendezvények nem érhetők el.</div>'}
+  }
+
   async function renderManagement(){
     const host=$('#v57-management');const owner=isOwner();
     host.innerHTML=`<div class="v57-grid two">
       <div class="v57-card"><div class="v57-card-head"><div><span>OWNER / FINANCE</span><h3>Overall bevétel</h3></div></div><div id="v57Finance"></div></div>
-      <div class="v57-card"><div class="v57-card-head"><div><span>OWNER / EVENTS</span><h3>Rendezvények</h3></div>${owner?'<button id="v57NewEvent" class="v57-btn red">＋ ÚJ</button>':''}</div><div id="v57Events"></div></div>
     </div>
     ${owner?`<div class="v57-grid two"><div class="v57-card"><div class="v57-card-head"><div><span>OWNER / ACCOUNTS</span><h3>Fiókok</h3></div><button id="v57NewUser" class="v57-btn red">＋ ÚJ FIÓK</button></div><div id="v57Users"></div></div><div class="v57-card"><div class="v57-card-head"><div><span>OWNER / AUDIT</span><h3>Teljes rendszer napló</h3><small>Owner minden rögzített műveletet lát.</small></div></div><div id="v57Audit"></div></div></div>`:''}
     ${!owner?`<div class="v57-card"><div class="v57-card-head"><div><span>MANAGER / COMMAND</span><h3>Készletértesítések</h3><small>A Manager itt csak a készletfeltöltési értesítéseket látja.</small></div></div><div id="v57Notifications"></div></div>`:''}`;
     try{const d=await api('/api/finance/overall');$('#v57Finance').innerHTML=`<div class="v57-finance"><strong>${money(d.overallRevenue)}</strong><span>OVERALL BEVÉTEL</span><small>Nyers összeg: ${money(d.rawRevenue)} · nullázási offset: ${money(d.offset)}</small>${owner?'<button id="v57ResetFinance" class="v57-btn ghost">OVERALL NULLÁZÁSA</button>':''}</div>`;$('#v57ResetFinance')?.addEventListener('click',async()=>{if(await confirmBox('Overall nullázása','Az eladások nem törlődnek, csak a kijelzett számláló nullázódik.')){await api('/api/finance/reset',{method:'POST',body:'{}'});renderManagement();toast('Overall nullázva','Az eladási adatok megmaradtak.')}})}catch{}
-    try{const d=await api('/api/public-events');$('#v57Events').innerHTML=(d.events||[]).map(x=>`<div class="v57-row"><div><b>${esc(x.title)}</b><small>${new Date(x.startsAt).toLocaleString('hu-HU')} · ${esc(x.place)}</small></div><span>${x.description?esc(x.description):''}</span></div>`).join('')||'<div class="v57-empty">Nincs rendezvény.</div>'}catch{}
     if(owner){
-      $('#v57NewEvent')?.addEventListener('click',async()=>{const d=await formModal('Új rendezvény',[{id:'title',label:'CÍM',required:true},{id:'startsAt',label:'KEZDÉS',type:'datetime-local',required:true},{id:'place',label:'HELYSZÍN',value:'Red Moon Pub'},{id:'description',label:'LEÍRÁS',type:'textarea',wide:true}]);if(!d)return;try{await api('/api/events/create',{method:'POST',body:JSON.stringify(d)});toast('Rendezvény létrehozva','A publikus Rendezvények oldalon megjelent.');renderManagement()}catch(e){toast('Rendezvény sikertelen',e.message,true)}})
       let users=[];try{users=(await api('/api/users')).users||[]}catch{}
       $('#v57Users').innerHTML=users.map(u=>`<div class="v57-row"><div><b>${esc(u.name)}</b><small>${esc(u.username)} · ${esc(u.role.toUpperCase())}</small></div><button class="v57-mini" data-u="${esc(u.id)}">SZERKESZTÉS</button></div>`).join('')||'<div class="v57-empty">Nincs fiók.</div>';
       $$('#v57Users [data-u]').forEach(b=>b.onclick=async()=>{const u=users.find(x=>x.id===b.dataset.u);const d=await formModal('Fiók szerkesztése',[{id:'name',label:'NÉV',value:u.name,required:true},{id:'username',label:'FELHASZNÁLÓNÉV',value:u.username,required:true},{id:'role',label:'RANG',type:'select',value:u.role,options:[{value:'staff',label:'Staff'},{value:'manager',label:'Manager'},{value:'owner',label:'Owner'},{value:'dj',label:'DJ Access'}]},{id:'password',label:'ÚJ JELSZÓ',type:'password'}]);if(!d)return;try{await api('/api/users/'+encodeURIComponent(u.id),{method:'PATCH',body:JSON.stringify(d)});toast('Fiók frissítve',u.name);renderManagement()}catch(e){toast('Fiók frissítés sikertelen',e.message,true)}})
